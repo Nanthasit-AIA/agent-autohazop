@@ -9,6 +9,26 @@ type DeviationType =
   | 'Concentration'
   | 'Composition'
 
+// helper to build empty record
+const createEmptyDeviationSelections = (): Record<DeviationType, string[]> => ({
+  Flow: [],
+  Pressure: [],
+  Temperature: [],
+  Level: [],
+  Concentration: [],
+  Composition: []
+})
+
+// ✅ this is what you must bind to v-model
+const deviationSelections = ref<Record<DeviationType, string[]>>(
+  createEmptyDeviationSelections()
+)
+
+// optional: pagination state for nodes
+const deviationCurrentNode = ref(1)
+const deviationTotalNodes = ref(5) // or computed from nodes
+
+
 const deviationTypes: DeviationType[] = [
   'Flow',
   'Pressure',
@@ -121,6 +141,15 @@ const goNext = () => {
     emit('update:currentNode', currentNode.value + 1)
   }
 }
+
+// ✅ Preview & Next handlers
+const handlePreviewClick = () => {
+  emit('preview')
+}
+
+const handleNextClick = () => {
+  emit('next')
+}
 </script>
 
 <template>
@@ -187,9 +216,7 @@ const goNext = () => {
           </div>
 
           <!-- options pill -->
-          <div
-            class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1"
-          >
+          <div class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1">
             <button
               v-for="opt in deviationOptionsMap[type]"
               :key="opt"
@@ -227,9 +254,7 @@ const goNext = () => {
           :key="page"
           type="button"
           class="w-7 h-7 flex items-center justify-center rounded-full text-xs"
-          :class="
-            page === currentNode ? 'bg-black text-white' : 'text-gray-700'
-          "
+          :class="page === currentNode ? 'bg-black text-white' : 'text-gray-700'"
           @click="changePage(page)"
         >
           {{ page }}
@@ -249,22 +274,34 @@ const goNext = () => {
         </button>
       </div>
 
-      <!-- Preview + next -->
-      <div class="flex items-center gap-3">
-        <button
-          type="button"
-          class="px-5 py-2 rounded-full bg-black text-white text-sm font-semibold hover:bg-gray-900 transition"
-          @click="$emit('preview')"
-        >
-          Preview
-        </button>
-        <button
-          type="button"
-          class="w-10 h-10 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-100 transition"
-          @click="$emit('next')"
-        >
-          →
-        </button>
+      <div class="flex items-center justify-end">
+        <div class="flex gap-3">
+          <button
+            class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+            @click="handlePreviewClick"
+          >
+            Preview
+          </button>
+          <button
+            class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
+            @click="handleNextClick"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>

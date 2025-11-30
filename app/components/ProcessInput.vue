@@ -12,6 +12,7 @@ const emit = defineEmits<{
   'update:name': [value: string];
   'update:description': [value: string];
   'update:file': [file: File | null];
+  'start-extract': [];            // ✅ new emit
 }>();
 
 // show file name
@@ -43,6 +44,11 @@ const handleFileChange = (e: Event) => {
   selectedFileName.value = file ? file.name : null;  // <- show name
   emit('update:file', file);
 };
+
+// ✅ arrow button -> tell parent to start extract
+const handleStartExtract = () => {
+  emit('start-extract');
+};
 </script>
 
 <template>
@@ -63,22 +69,38 @@ const handleFileChange = (e: Event) => {
         </svg>
       </button>
 
-      <input type="text" placeholder="type name" :value="name" @input="handleNameInput"
-        class="bg-black text-white px-4 py-2 rounded-lg w-80" />
+      <input
+        type="text"
+        placeholder="type name"
+        :value="name"
+        @input="handleNameInput"
+        class="bg-black text-white px-4 py-2 rounded-lg w-80"
+      />
     </div>
 
     <div class="flex items-start gap-3">
-      <textarea placeholder="type about process description" :value="description" @input="handleDescriptionInput"
+      <textarea
+        placeholder="type about process description"
+        :value="description"
+        @input="handleDescriptionInput"
         class="bg-gray-200 px-4 py-2 rounded-lg flex-1 h-12 resize-none overflow-hidden leading-tight"
-        rows="1"></textarea>
+        rows="1"
+      ></textarea>
 
       <!-- hidden file input -->
-      <input ref="fileInputRef" type="file" class="hidden" accept="application/pdf,image/*"
-        @change="handleFileChange" />
+      <input
+        ref="fileInputRef"
+        type="file"
+        class="hidden"
+        accept="application/pdf,image/*"
+        @change="handleFileChange"
+      />
 
-      <!-- button to pick file, aligned bottom -->
-      <button 
-        class="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition self-end">
+      <!-- ✅ button to start extract -->
+      <button
+        @click="handleStartExtract"
+        class="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition self-end"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="5" y1="12" x2="19" y2="12" />

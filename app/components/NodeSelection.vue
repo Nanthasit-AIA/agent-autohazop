@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { toRefs } from 'vue'
 interface NodeItem {
   id: string | number
   name: string
@@ -13,6 +14,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [(string | number)[]]
+  next: []        // ✅ this will trigger DeviationSelection
 }>()
 
 const toggleNode = (nodeId: string | number) => {
@@ -22,6 +24,13 @@ const toggleNode = (nodeId: string | number) => {
     : [...props.modelValue, nodeId]
 
   emit('update:modelValue', newValue)
+}
+
+// const handleConfirmClick = () => {
+//   emit('confirm')
+// }
+const handleNextClick = () => {
+  emit('next')                       // ✅ tell parent to go to deviation step
 }
 </script>
 
@@ -46,7 +55,8 @@ const toggleNode = (nodeId: string | number) => {
           Preview
         </button>
         <button
-          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition">
+          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
+          @click="handleNextClick" >
           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
