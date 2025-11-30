@@ -1,0 +1,154 @@
+{
+  "process_description": "This P&ID illustrates a multi-stage chemical processing system with subsystems including raw material storage, heating, reaction, water handling, gas supply, and exhaust. Fluids are transferred between tanks using pumps, with temperature, pressure, and level monitored throughout. The system relies on N2 purging, cooling water, and process air for safe and efficient operation.",
+
+  "system_inputs": [
+    "Air (≥8 kg/cm²)",
+    "N2",
+    "Cooling water in (A)",
+    "Cooling water in (B)",
+    "Water in"
+  ],
+
+  "system_outputs": [
+    "Cooling water out (A)",
+    "Cooling water out (B)",
+    "Water out (A)",
+    "Vent to atmosphere (V-209)"
+  ],
+
+  "equipment": [
+    {"id": "D60-Storage", "name": "D60 Storage Tank", "type": "Tank", "context": "S-1: Stores raw material before heating"},
+    {"id": "D60-Heater", "name": "D60 Heating Tank", "type": "Heated Vessel", "context": "S-2: Preheats material before reaction"},
+    {"id": "Reactor-1", "name": "Reactor Tank", "type": "Reactor", "context": "S-3: Main reaction vessel"},
+    {"id": "Water-Tank", "name": "Water Tank", "type": "Tank", "context": "S-4: Feeds water to process"},
+    {"id": "P1", "name": "Pump-1", "type": "Pump", "context": "S-2: Circulates heated D60 out"},
+    {"id": "P2", "name": "Pump-2", "type": "Pump", "context": "S-4: Transfers water from tank"},
+    {"id": "P3", "name": "Pump-3", "type": "Pump", "context": "S-3: Transfers fluid from reactor"},
+    {"id": "P4", "name": "Pump-4", "type": "Pump", "context": "S-3: Transfers reactor contents"},
+    {"id": "P5", "name": "Pump-5", "type": "Pump", "context": "S-1: Transfers from storage to heater"},
+    {"id": "PDP-1", "name": "PDP Pump-1", "type": "Pump", "context": "S-2: Downstream of heating tank"},
+    {"id": "PDP-2", "name": "PDP Pump-2", "type": "Pump", "context": "S-4: Water outlet pump"},
+    {"id": "PDP-3", "name": "PDP Pump-3", "type": "Pump", "context": "S-4: Water circulation"},
+    {"id": "PDP-4", "name": "PDP Pump-4", "type": "Pump", "context": "S-3: Reactor outlet transfer"},
+    {"id": "PDP-5", "name": "PDP Pump-5", "type": "Pump", "context": "S-1: D60 transfer pump"},
+    {"id": "Heater", "name": "Heating Coil", "type": "Heater", "context": "S-2: Heats D60 feed"}
+  ],
+
+  "valves": [
+    {"id": "V-101", "type": "Valve", "location": "CDA-1", "context": "S-5: Compressed dry air line 1"},
+    {"id": "V-102", "type": "Valve", "location": "CDA-2", "context": "S-5: Compressed dry air line 2"},
+    {"id": "V-103", "type": "Valve", "location": "CDA-2", "context": "S-5: Compressed dry air line 2"},
+    {"id": "V-104", "type": "Valve", "location": "CDA-1", "context": "S-5: Compressed dry air line 1"},
+    {"id": "V-105", "type": "Valve", "location": "CDA-3", "context": "S-5: Compressed dry air line 3"},
+    {"id": "V-106", "type": "Valve", "location": "Air to D60 Storage", "context": "S-1: Air purge to storage"},
+    {"id": "V-201", "type": "Valve", "location": "N2 in to Heater", "context": "S-2: N2 purge to heating tank"},
+    {"id": "V-202", "type": "Valve", "location": "D60 Heater Outlet", "context": "S-2: Heated liquid out"},
+    {"id": "V-203", "type": "Valve", "location": "Vapor outlet from Heater", "context": "S-2: D60 vapor handling"},
+    {"id": "V-204", "type": "Valve", "location": "Feed into Reactor", "context": "S-3: D60 to Reactor"},
+    {"id": "V-205", "type": "Valve", "location": "Reactor outlet", "context": "S-3: Liquid from Reactor"},
+    {"id": "V-206", "type": "Valve", "location": "Reactor outlet to Water Tank", "context": "S-3: Purge line"},
+    {"id": "V-207", "type": "Valve", "location": "N2 to Reactor", "context": "S-3: Reactor N2 purge"},
+    {"id": "V-208", "type": "Valve", "location": "Reactor vent", "context": "S-6: Vent to scrubber"},
+    {"id": "V-209", "type": "Valve", "location": "Reactor manhole", "context": "S-6: Manual vent"}
+  ],
+
+  "instruments": [
+    {"id": "TT-1", "function": "Temperature Indicator", "location": "D60 Heater", "context": "S-2: Temperature of heating tank"},
+    {"id": "TT-2", "function": "Temperature Indicator", "location": "D60 Heater vapor", "context": "S-2: Vapor temperature"},
+    {"id": "TT-3", "function": "Temperature Indicator", "location": "D60 Heater outlet", "context": "S-2: Heated fluid temp"},
+    {"id": "TT-4", "function": "Temperature Indicator", "location": "Reactor", "context": "S-3: Reactor temperature"},
+    {"id": "TT-5", "function": "Temperature Indicator", "location": "Cooling water outlet", "context": "S-4: Cooling water temp"},
+    {"id": "PT-1", "function": "Pressure Transmitter", "location": "Reactor", "context": "S-3: Reactor pressure relief"},
+    {"id": "LS-1", "function": "Level Switch", "location": "D60 Storage", "context": "S-1: Liquid level monitoring"},
+    {"id": "LS-2", "function": "Level Switch", "location": "D60 Heater", "context": "S-2: Liquid level control"},
+    {"id": "LS-3", "function": "Level Switch", "location": "D60 Heater", "context": "S-2: Level monitoring"},
+    {"id": "LS-4", "function": "Level Switch", "location": "Reactor", "context": "S-3: Reactor high level"},
+    {"id": "LS-5", "function": "Level Switch", "location": "Reactor", "context": "S-3: Reactor low level"}
+  ],
+
+  "utility_lines": [
+    {
+      "utility_type": "Air",
+      "valves": ["V-106"],
+      "flow_direction": "into D60 Storage",
+      "context": "S-1: Air purge for pressurization"
+    },
+    {
+      "utility_type": "N2",
+      "valves": ["V-201", "V-207"],
+      "flow_direction": "into D60 Heater and Reactor",
+      "context": "S-2/S-3: N2 inerting and pressurization"
+    },
+    {
+      "utility_type": "Cooling Water (A/B)",
+      "valves": [],
+      "flow_direction": "into and out of Reactor and Heater",
+      "context": "S-2/S-3: Cooling jackets for temperature control"
+    },
+    {
+      "utility_type": "Water",
+      "valves": ["V-206"],
+      "flow_direction": "into Water Tank, to Reactor",
+      "context": "S-4: Water feed and circulation"
+    }
+  ],
+
+  "connections": [
+    {
+      "line_id": "L1",
+      "from_id": "D60-Storage",
+      "to_id": "D60-Heater",
+      "valves": [],
+      "instruments": ["LS-1"],
+      "context": "S-1 to S-2: Transfer of stored D60 to heater"
+    },
+    {
+      "line_id": "L2",
+      "from_id": "D60-Heater",
+      "to_id": "Reactor-1",
+      "valves": ["V-204"],
+      "instruments": ["TT-1", "TT-2", "TT-3", "LS-2", "LS-3"],
+      "context": "S-2 to S-3: Heated feed to reactor"
+    },
+    {
+      "line_id": "L3",
+      "from_id": "Reactor-1",
+      "to_id": "Water-Tank",
+      "valves": ["V-205", "V-206"],
+      "instruments": ["TT-4", "PT-1", "LS-4", "LS-5"],
+      "context": "S-3 to S-4: Reactor output and purge"
+    },
+    {
+      "line_id": "L4",
+      "from_id": "Water-Tank",
+      "to_id": "P2",
+      "valves": [],
+      "instruments": [],
+      "context": "S-4: Water circulation from tank"
+    },
+    {
+      "line_id": "L5",
+      "from_id": "P2",
+      "to_id": "Reactor-1",
+      "valves": [],
+      "instruments": [],
+      "context": "S-4 to S-3: Water feed to reactor"
+    },
+    {
+      "line_id": "MEAS-D60-Heater",
+      "from_id": "D60-Heater",
+      "to_id": "D60-Heater",
+      "valves": [],
+      "instruments": ["TT-1", "TT-2", "TT-3", "LS-2", "LS-3"],
+      "context": "S-2: Measurement of heater parameters"
+    },
+    {
+      "line_id": "MEAS-Reactor-1",
+      "from_id": "Reactor-1",
+      "to_id": "Reactor-1",
+      "valves": [],
+      "instruments": ["TT-4", "PT-1", "LS-4", "LS-5"],
+      "context": "S-3: Reactor condition monitoring"
+    }
+  ]
+}
