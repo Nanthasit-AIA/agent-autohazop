@@ -7,6 +7,7 @@ from langchain.chains import LLMChain
 from langchain.callbacks import get_openai_callback
 from decorators import logger, timeit_log
 from module.llm_module import get_chat_model
+from typing import Generator, Tuple, List, Dict
 
 @timeit_log
 def get_hazop_fewshot_prompt():
@@ -19,7 +20,7 @@ def get_hazop_fewshot_prompt():
         "reasoning": "This utility water line feeds the scrubber. If the valve is misaligned, flow could reverse.",
         "table": "DWS → S-101,Reverse,Flow,Reverse Flow,Valve misalignment,Back-contamination of water system,Medium,3,3,9,Medium,Check valve,Low,2,2,4,Low,Add backflow preventer,1,1,1,Maintenance"
     }
-    with open("data/sample_50_row_hazop_example.txt", "r", encoding="utf-8") as f:
+    with open("static/file/sample_50_row_hazop_example.txt", "r", encoding="utf-8") as f:
         csv_text = f.read()
 
     example_3 = {
@@ -515,51 +516,88 @@ def list_all_process(pid_data: dict):
     return query_infos
 
 def list_all_connections(pid_data: dict):
-    parsed = pid_data["choices"][0]["message"]["parsed"]
+    # --- Detect shape ---
+    if "choices" in pid_data:
+        # old style: OpenAI chat completion wrapper
+        parsed = pid_data["choices"][0]["message"]["parsed"]
+    else:
+        # new style: already-parsed P&ID JSON from frontend
+        parsed = pid_data
+
     connections = parsed.get("connections", [])
     process_description = parsed.get("process_description", "")
-    
+
     query_infos = []
     for conn in connections:
-        line_id = conn["line_id"]
+        line_id = conn.get("line_id")
         from_id = conn.get("from_id")
         to_id = conn.get("to_id")
-        node = f"{from_id} → {to_id}"
+        node = f"{from_id} → {to_id}" if from_id and to_id else (from_id or to_id or "")
         context = conn.get("context", "")
         valves = conn.get("valves", [])
         instruments = conn.get("instruments", [])
-        
-        query_infos.append({
-            "line_id": line_id,
-            "node": node,
-            "valves": valves,
-            "instruments": instruments,
-            "context": context,
-            "process_description": process_description
-        })
+
+        query_infos.append(
+            {
+                "line_id": line_id,
+                "node": node,
+                "valves": valves,
+                "instruments": instruments,
+                "context": context,
+                "process_description": process_description,
+            }
+        )
+
     return query_infos
 
-@timeit_log
-def run_hazop_agent(pid_data: dict, excel_path: str, token_log_path: str, error_log_path: str,
-                    llm_response_log_path: str, parsed_excel_path: str, token_limit: int = 10000
-                   ) -> Generator[Tuple[str, int], None, None]:
 
-    def parse_llm_result_to_rows(result_text: str) -> list:
-        rows = []
+@timeit_log
+def run_hazop_agent(
+    pid_data: dict,
+    excel_path: str,
+    token_log_path: str,
+    error_log_path: str,
+    llm_response_log_path: str,
+    parsed_excel_path: str,
+    selections: List[Dict[str, str]],  # NEW
+    token_limit: int = 10000,
+) -> Generator[Tuple[str, int], None, None]:
+    valid_guide_ws = [
+    "No", "More", "Less", "As well as", "Part of", "Reverse",
+    "Other than", "Early", "Late", "Before", "After"
+    ]
+
+    valid_params = [
+        "Flow", "Pressure", "Temperature", "Level", "Composition",
+        "Phase", "Utility", "Power", "Instrument", "Human Action",
+        "Maintenance", "Operation Timing", "Concentration"
+    ]
+
+    def parse_llm_result_to_rows(result_text: str) -> list[list[str]]:
+        rows: list[list[str]] = []
         for line in str(result_text).strip().splitlines():
+            if not line.strip():
+                continue
+
             parts = [cell.strip() for cell in line.split(",")]
-            if len(parts) == len(headers):
-                rows.append(parts)
+
+            # Strict check – if LLM row is malformed, we skip it and log later
+            if len(parts) != len(headers):
+                # you will log this in the caller; here we just skip
+                continue
+            
+            rows.append(parts)
+
         return rows
-    
+
     @timeit_log
     def parse_llm_result(raw_out: str, i=5) -> list:
         parts = [p.strip() for p in raw_out.split(",")]
         result = {col: "" for col in headers}
 
         result["Node"] = parts[0]
-        result["Guide Word"] = parts[1] if parts[1] in guide_ws else ""
-        result["Parameter"] = parts[2] if parts[2] in params else ""
+        result["Guide Word"] = parts[1] if parts[1] in valid_guide_ws else ""
+        result["Parameter"] = parts[2] if parts[2] in valid_params else ""
         result["Deviation"] = parts[3]
         result["Cause"] = parts[4]
 
@@ -619,6 +657,7 @@ def run_hazop_agent(pid_data: dict, excel_path: str, token_log_path: str, error_
         "S", "L", "RR", "Overall Risk", "Recommendations", "S After Recommendation", 
         "L After Recommendation", "RR After Recommendation", "Responsibility"
     ]
+    info_by_line: Dict[str, dict] = {info["line_id"]: info for info in query_infos}
 
     df = pd.read_excel(excel_path) if os.path.exists(excel_path) else pd.DataFrame(columns=headers)
     token_df = pd.read_csv(token_log_path) if os.path.exists(token_log_path) else pd.DataFrame(columns=[
@@ -633,105 +672,140 @@ def run_hazop_agent(pid_data: dict, excel_path: str, token_log_path: str, error_
 
     llm, model_name = get_chat_model()
     hazop_chain = LLMChain(llm=llm, prompt=get_hazop_fewshot_prompt())
-    guide_ws_t = ["No","More","Less","As well as","Part of","Reverse","Other than","Early","Late","Before","After"]
-    params_t = ["Flow","Pressure","Temperature","Level","Composition","Phase","Utility","Power","Instrument","Human Action","Maintenance","Operation Timing", "Concentration"]
-    guide_ws = ["More"]
-    params = ["Pressure"]
+    
+    for sel in selections:
+        line_id = sel.get("line_id")
+        param = sel.get("parameter")
+        guide_word = sel.get("guide_word")
 
-    for info in query_infos:
-        if info["line_id"] not in ["L02"]:
+        if not line_id or not param or not guide_word:
+            continue  # skip incomplete selections
+
+        info = info_by_line.get(line_id)
+        if not info:
+            logger.warning(f"[Skip] line_id {line_id} not found in pid_data")
             continue
 
-        for param in params:
-            for guide_word in guide_ws:
-                input_data = {
-                    "line_id": info["line_id"],
-                    "node": info["node"],
-                    "valves": ", ".join(info.get("valves", [])),
-                    "instruments": ", ".join(info.get("instruments", [])),
-                    "context": info.get("context", ""),
-                    "process_description": info["process_description"],
-                    "parameter": param,
-                    "guide_word": guide_word,
-                }
+        input_data = {
+            "line_id": info["line_id"],
+            "node": info["node"],
+            "valves": ", ".join(info.get("valves", [])),
+            "instruments": ", ".join(info.get("instruments", [])),
+            "context": info.get("context", ""),
+            "process_description": info["process_description"],
+            "parameter": param,
+            "guide_word": guide_word,
+        }
 
-                with get_openai_callback() as cb:
-                    try:
-                        result = hazop_chain.run(**input_data)
+        with get_openai_callback() as cb:
+            try:
+                result = hazop_chain.run(**input_data)
 
-                        # Parse result into structured rows
-                        rows = []
-                        for line in result.strip().splitlines():
-                            rows += parse_llm_result(line)
-
-                        parsed_rows.extend(rows)
-
-                    except Exception as e:
-                        logger.error(f"[Error] {info['line_id']}:{param}:{guide_word} — {e}")
-                        continue
-
-                    if cb.total_tokens > token_limit:
-                        logger.warning(f"[Skipped] {info['line_id']}:{param}:{guide_word} — {cb.total_tokens} tokens")
-                        continue
-
-                    tokens_used = cb.total_tokens
-
-                # Log RawOutput
-                response_entry = {
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "LineID": info["line_id"],
-                    "Parameter": param,
-                    "GuideWord": guide_word,
-                    "RawOutput": result
-                }
-                llm_response_df = pd.concat([llm_response_df, pd.DataFrame([response_entry])], ignore_index=True)
-                llm_response_df.to_csv(llm_response_log_path, index=False)
-
-                # Parse LLM output
-                # parsed_rows = parse_llm_result(result)
-
-                if not parsed_rows:
-                    print(f"[Warning] No valid rows for {info['line_id']}:{param}:{guide_word}")
+                # Parse result into structured rows (safe)
+                rows = parse_llm_result_to_rows(result)
+                if not rows:
+                    logger.warning(
+                        f"[Warning] No valid rows for {info['line_id']}:{param}:{guide_word} "
+                        f"(LLM output probably malformed CSV)"
+                    )
                     error_entry = {
                         "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "LineID": info["line_id"],
                         "Parameter": param,
                         "GuideWord": guide_word,
                         "RawOutput": result,
-                        "Reason": f"Invalid or no rows parsed (expected {len(headers)} columns)"
+                        "Reason": f"Invalid or no rows parsed (expected {len(headers)} columns per row)"
                     }
                     error_df = pd.concat([error_df, pd.DataFrame([error_entry])], ignore_index=True)
                     error_df.to_csv(error_log_path, index=False)
                     continue
 
-                # Token log
-                token_row = {
-                    "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "LineID": info["line_id"],
-                    "Parameter": param,
-                    "GuideWord": guide_word,
-                    "Model": model_name,
-                    "PromptTokens": cb.prompt_tokens,
-                    "CompletionTokens": cb.completion_tokens,
-                    "TotalTokens": cb.total_tokens
-                }
-                token_df = pd.concat([token_df, pd.DataFrame([token_row])], ignore_index=True)
-                token_df.to_csv(token_log_path, index=False)
+                # extend global list
+                parsed_rows.extend(rows)
 
-                # Append to parsed output log
-                df_parsed = pd.DataFrame(parsed_rows, columns=headers)
-                if os.path.exists(parsed_excel_path):
-                    df_existing = pd.read_excel(parsed_excel_path)
-                    df_combined = pd.concat([df_existing, df_parsed], ignore_index=True)
-                else:
-                    df_combined = df_parsed
-                df_combined.to_excel(parsed_excel_path, index=False)
+            except Exception as e:
+                logger.error(f"[Error] {info['line_id']}:{param}:{guide_word} — {e}")
+                continue
 
-                # Append to main HAZOP output
-                df = pd.concat([df, df_parsed], ignore_index=True)
-                df.to_excel(excel_path, index=False)
 
-                yield f"{info['line_id']}:{param}:{guide_word}", tokens_used
+            if cb.total_tokens > token_limit:
+                logger.warning(f"[Skipped] {line_id}:{param}:{guide_word} — {cb.total_tokens} tokens")
+                continue
+
+            tokens_used = cb.total_tokens
+
+        # Log RawOutput
+        response_entry = {
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "LineID": line_id,
+            "Parameter": param,
+            "GuideWord": guide_word,
+            "RawOutput": result
+        }
+        llm_response_df = pd.concat([llm_response_df, pd.DataFrame([response_entry])], ignore_index=True)
+        llm_response_df.to_csv(llm_response_log_path, index=False)
+
+        if not parsed_rows:
+            print(f"[Warning] No valid rows for {line_id}:{param}:{guide_word}")
+            error_entry = {
+                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "LineID": line_id,
+                "Parameter": param,
+                "GuideWord": guide_word,
+                "RawOutput": result,
+                "Reason": f"Invalid or no rows parsed (expected {len(headers)} columns)"
+            }
+            error_df = pd.concat([error_df, pd.DataFrame([error_entry])], ignore_index=True)
+            error_df.to_csv(error_log_path, index=False)
+            continue
+
+        # Token log
+        token_row = {
+            "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "LineID": line_id,
+            "Parameter": param,
+            "GuideWord": guide_word,
+            "Model": model_name,
+            "PromptTokens": cb.prompt_tokens,
+            "CompletionTokens": cb.completion_tokens,
+            "TotalTokens": cb.total_tokens
+        }
+        token_df = pd.concat([token_df, pd.DataFrame([token_row])], ignore_index=True)
+        token_df.to_csv(token_log_path, index=False)
+
+        # Append to parsed output log
+        # Build fresh DataFrame for this iteration
+        df_parsed = pd.DataFrame(parsed_rows, columns=headers)
+
+        # --- NEW: robust merge into parsed_excel_path ---
+        if os.path.exists(parsed_excel_path):
+            df_existing = pd.read_excel(parsed_excel_path)
+
+            # 1) Drop duplicate column names if any
+            df_existing = df_existing.loc[:, ~df_existing.columns.duplicated()]
+
+            # 2) Ensure the column order & set is exactly `headers`
+            #    (missing columns will be filled with NaN)
+            df_existing = df_existing.reindex(columns=headers)
+
+            # 3) Same for new data (defensive)
+            df_parsed = df_parsed.reindex(columns=headers)
+
+            # Now rows can be safely concatenated
+            df_combined = pd.concat([df_existing, df_parsed], ignore_index=True)
+        else:
+            # First time: just ensure correct columns
+            df_combined = df_parsed.reindex(columns=headers)
+
+        df_combined.to_excel(parsed_excel_path, index=False)
+
+
+        # Append to main HAZOP output
+        df = pd.concat([df, df_parsed], ignore_index=True)
+        df.to_excel(excel_path, index=False)
+
+        yield f"{line_id}:{param}:{guide_word}", tokens_used
+
 
 
 def run_hazop_agent_other(pid_data: dict, excel_path: str, token_log_path: str, token_limit: int = 10000) -> Generator[Tuple[str, int], None, None]:
@@ -803,7 +877,7 @@ def run_hazop_agent_other(pid_data: dict, excel_path: str, token_log_path: str, 
             token_df = pd.concat([token_df, pd.DataFrame([token_row])], ignore_index=True)
             token_df.to_csv(token_log_path, index=False)
 
-        print(f"[Processed] {info["system_input"]} — {tokens_used} tokens (Total: {total_tokens_used})")
+        print(f"[Processed] {info['system_input']} - {tokens_used} tokens (Total: {total_tokens_used})")
 
         rows = result.strip().splitlines()
         parsed_rows = [
@@ -812,7 +886,7 @@ def run_hazop_agent_other(pid_data: dict, excel_path: str, token_log_path: str, 
         ]
 
         if not parsed_rows:
-            print(f"[Warning] No valid rows for {info["system_input"]}")
+            print(f"[Warning] No valid rows for {info['system_input']}")
             continue
 
         temp_df = pd.DataFrame(parsed_rows, columns=headers)

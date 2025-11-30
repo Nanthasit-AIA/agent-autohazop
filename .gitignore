@@ -27,3 +27,5 @@ logs
 *.pyc
 *.pyo
 *.pyd
+/backend/static
+
