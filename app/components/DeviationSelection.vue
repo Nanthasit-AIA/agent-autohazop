@@ -1,83 +1,308 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+
+type DeviationType =
+  | 'Flow'
+  | 'Pressure'
+  | 'Temperature'
+  | 'Level'
+  | 'Concentration'
+  | 'Composition'
+
+// helper to build empty record
+const createEmptyDeviationSelections = (): Record<DeviationType, string[]> => ({
+  Flow: [],
+  Pressure: [],
+  Temperature: [],
+  Level: [],
+  Concentration: [],
+  Composition: []
+})
+
+// ✅ this is what you must bind to v-model
+const deviationSelections = ref<Record<DeviationType, string[]>>(
+  createEmptyDeviationSelections()
+)
+
+// optional: pagination state for nodes
+const deviationCurrentNode = ref(1)
+const deviationTotalNodes = ref(5) // or computed from nodes
+
+
+const deviationTypes: DeviationType[] = [
+  'Flow',
+  'Pressure',
+  'Temperature',
+  'Level',
+  'Concentration',
+  'Composition'
+]
+
+const deviationOptionsMap: Record<DeviationType, string[]> = {
+  Flow: ['More', 'Less', 'No', 'Reverse'],
+  Pressure: ['More', 'Less'],
+  Temperature: ['More', 'Less'],
+  Level: ['More', 'Less', 'No'],
+  Concentration: ['More', 'Less'],
+  Composition: ['Other than']
+}
+
+const maxPageButtons = 5
+
+const props = defineProps<{
+  // Example shape:
+  // {
+  //   Flow: ['More', 'Less'],
+  //   Pressure: [],
+  //   ...
+  // }
+  modelValue: Record<DeviationType, string[]>
+  currentNode?: number
+  totalNodes?: number
+
+  // Optional node info (you can send from backend)
+  nodeTitle?: string        // e.g. "node 1"
+  nodeLine?: string         // e.g. "From ST-101 to HT-101"
+  nodeContext?: string      // e.g. "context"
+}>()
+
+const emit = defineEmits<{
+  'update:modelValue': [Record<DeviationType, string[]>]
+  'update:currentNode': [number]
+  preview: []
+  next: []
+}>()
+
+const currentNode = computed(() => props.currentNode ?? 1)
+const totalNodes = computed(() => props.totalNodes ?? 5)
+
+const pages = computed(() => {
+  const count = Math.min(totalNodes.value, maxPageButtons)
+  return Array.from({ length: count }, (_, i) => i + 1)
+})
+
+const setSelections = (type: DeviationType, options: string[]) => {
+  emit('update:modelValue', {
+    ...props.modelValue,
+    [type]: options
+  })
+}
+
+const isSelected = (type: DeviationType, option: string) => {
+  return props.modelValue[type]?.includes(option) ?? false
+}
+
+const toggleOption = (type: DeviationType, option: string) => {
+  const current = props.modelValue[type] ?? []
+  const next = current.includes(option)
+    ? current.filter(o => o !== option)      // unselect one
+    : [...current, option]                   // select one
+
+  setSelections(type, next)
+}
+
+const toggleAll = (type: DeviationType) => {
+  const allOptions = deviationOptionsMap[type]
+  const current = props.modelValue[type] ?? []
+  const allSelected = allOptions.every(o => current.includes(o))
+
+  const next = allSelected ? [] : [...allOptions] // clear or select all
+  setSelections(type, next)
+}
+
+const selectAll = () => {
+  const next: Record<DeviationType, string[]> = {} as any
+  deviationTypes.forEach(type => {
+    next[type] = [...deviationOptionsMap[type]]
+  })
+  emit('update:modelValue', next)
+}
+
+const deleteAll = () => {
+  const empty: Record<DeviationType, string[]> = {} as any
+  deviationTypes.forEach(type => {
+    empty[type] = []
+  })
+  emit('update:modelValue', empty)
+}
+
+const changePage = (page: number) => {
+  emit('update:currentNode', page)
+}
+
+const goPrev = () => {
+  if (currentNode.value > 1) {
+    emit('update:currentNode', currentNode.value - 1)
+  }
+}
+
+const goNext = () => {
+  if (currentNode.value < totalNodes.value) {
+    emit('update:currentNode', currentNode.value + 1)
+  }
+}
+
+// ✅ Preview & Next handlers
+const handlePreviewClick = () => {
+  emit('preview')
+}
+
+const handleNextClick = () => {
+  emit('next')
+}
+</script>
+
 <template>
-  <div class="bg-white border-2 border-gray-300 rounded-2xl p-6 mb-6">
-    <h3 class="font-semibold text-gray-800 mb-4">Choose perform deviation</h3>
-    <div class="mb-4">
-      <div class="text-sm text-gray-600 mb-3">node 1 :<br />From ST-101 to HT-101<br />context</div>
-      <div class="space-y-2">
-        <label v-for="type in deviationTypes" :key="type" class="flex items-center gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            :checked="modelValue[type] || false"
-            @change="toggleDeviation(type, $event.target.checked)"
-          />
-          <span class="flex-1 text-gray-700">{{ type }}</span>
-          <span class="text-sm text-gray-500">{{ deviationOptions[type] }}</span>
-        </label>
+  <div class="bg-white border-2 border-gray-300 rounded-2xl px-8 py-6 mb-6">
+    <!-- Title -->
+    <h3 class="font-semibold text-gray-800 mb-4">
+      Choose perform deviation
+    </h3>
+
+    <!-- Main: left node info + right deviation list -->
+    <div class="flex gap-8">
+      <!-- Left column: node info + actions -->
+      <div class="w-52 flex flex-col gap-4">
+        <div class="text-sm text-gray-600 leading-snug">
+          <div class="font-medium">
+            {{ nodeTitle || `node ${currentNode}` }} :
+          </div>
+          <div v-if="nodeLine">
+            {{ nodeLine }}
+          </div>
+          <div v-if="nodeContext">
+            {{ nodeContext }}
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2">
+          <button
+            type="button"
+            @click="selectAll"
+            class="w-28 h-10 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-900 transition"
+          >
+            select all
+          </button>
+          <button
+            type="button"
+            @click="deleteAll"
+            class="w-28 h-10 rounded-lg bg-white text-gray-900 text-sm font-semibold border border-gray-300 hover:bg-gray-50 transition"
+          >
+            delete all
+          </button>
+        </div>
+      </div>
+
+      <!-- Right column: deviation items -->
+      <div class="flex-1 space-y-2">
+        <div
+          v-for="type in deviationTypes"
+          :key="type"
+          class="w-full flex items-center gap-3"
+        >
+          <!-- dot + deviation name (click => select/clear all options for that type) -->
+          <div
+            class="flex items-center gap-2 cursor-pointer"
+            @click="toggleAll(type)"
+          >
+            <span
+              class="w-3 h-3 rounded-full"
+              :class="(modelValue[type]?.length ?? 0) > 0 ? 'bg-black' : 'bg-gray-300'"
+            ></span>
+
+            <span class="w-28 text-sm text-gray-700 hover:underline">
+              {{ type }}
+            </span>
+          </div>
+
+          <!-- options pill -->
+          <div class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1">
+            <button
+              v-for="opt in deviationOptionsMap[type]"
+              :key="opt"
+              type="button"
+              class="px-2 py-0.5 rounded-full text-xs transition"
+              :class="
+                isSelected(type, opt)
+                  ? 'bg-black text-white'
+                  : 'bg-transparent text-gray-800'
+              "
+              @click.stop="toggleOption(type, opt)"
+            >
+              {{ opt }}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="flex gap-3 mb-4">
-      <button @click="selectAll" class="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition text-sm">
-        select all
-      </button>
-      <button @click="deleteAll" class="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition text-sm">
-        delete all
-      </button>
-    </div>
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <button class="p-2 hover:bg-gray-100 rounded">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
+
+    <!-- Footer: pagination + preview/next -->
+    <div class="mt-6 flex items-center justify-between">
+      <!-- pagination -->
+      <div class="flex items-center gap-2 text-sm text-gray-700">
+        <button
+          type="button"
+          class="px-1 disabled:opacity-40"
+          @click="goPrev"
+          :disabled="currentNode === 1"
+        >
+          ←
         </button>
-        <span class="text-sm text-gray-600">← 1 2 3 4 5 . . . →</span>
-        <button class="p-2 hover:bg-gray-100 rounded">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"></polyline>
-          </svg>
+
+        <button
+          v-for="page in pages"
+          :key="page"
+          type="button"
+          class="w-7 h-7 flex items-center justify-center rounded-full text-xs"
+          :class="page === currentNode ? 'bg-black text-white' : 'text-gray-700'"
+          @click="changePage(page)"
+        >
+          {{ page }}
+        </button>
+
+        <span v-if="totalNodes > maxPageButtons" class="px-1">
+          ...
+        </span>
+
+        <button
+          type="button"
+          class="px-1 disabled:opacity-40"
+          @click="goNext"
+          :disabled="currentNode === totalNodes"
+        >
+          →
         </button>
       </div>
-      <div class="flex gap-3">
-        <button class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition">
-          Preview
-        </button>
-        <button class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
+
+      <div class="flex items-center justify-end">
+        <div class="flex gap-3">
+          <button
+            class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+            @click="handlePreviewClick"
+          >
+            Preview
+          </button>
+          <button
+            class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
+            @click="handleNextClick"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
-
-<script setup>
-const props = defineProps(['modelValue'])
-const emit = defineEmits(['update:modelValue'])
-
-const deviationTypes = ['Flow', 'Pressure', 'Temperature', 'Level', 'Concentration', 'Composition']
-
-const deviationOptions = {
-  'Flow': 'More - Less - NO - Reverse',
-  'Pressure': 'More - Less',
-  'Temperature': 'More - Less',
-  'Level': 'More - Less - NO',
-  'Concentration': 'More - Less',
-  'Composition': 'Other than'
-}
-
-const toggleDeviation = (type, checked) => {
-  emit('update:modelValue', { ...props.modelValue, [type]: checked })
-}
-
-const selectAll = () => {
-  const all = {}
-  deviationTypes.forEach(type => { all[type] = true })
-  emit('update:modelValue', all)
-}
-
-const deleteAll = () => {
-  emit('update:modelValue', {})
-}
-</script>
