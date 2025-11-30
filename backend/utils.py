@@ -53,13 +53,12 @@ def summarize_pid_components(json_path: Path):
     for i in instruments:
         logger.debug(f"  - ID: {i.get('id')}, Function: {i.get('function')}, Location: {i.get('location')}")
 
-@timeit_log
+# @timeit_log
 def search_file(name: str, data_dir: str | Path = "static/data") -> dict[str, Any]:
-    """
-    Search for <name>.json or <name>.csv inside data_dir and return dict
-    ready for jsonify() in Flask.
-    """
     name = name.strip()
+
+    logger.info(f"🔍 search_file() called with name='{name}' dir='{data_dir}'")
+
     if not name:
         return {"ok": False, "error": "Empty file name"}
 
