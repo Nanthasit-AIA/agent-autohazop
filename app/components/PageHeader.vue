@@ -1,11 +1,11 @@
 <script setup lang="ts">
 const emit = defineEmits<{
   (e: 'cta-click'): void
+  (e: 'search-click'): void
 }>()
 
-const handleCtaClick = () => {
-  emit('cta-click')
-}
+const handleCtaClick = () => emit('cta-click')
+const handleSearchClick = () => emit('search-click')
 </script>
 
 <template>
@@ -21,7 +21,7 @@ const handleCtaClick = () => {
       <button class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition" @click="handleCtaClick">
         Call to action
       </button>
-      <button class="px-6 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+      <button class="px-6 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition" @click="handleSearchClick">
         search
       </button>
     </div>
