@@ -1,55 +1,73 @@
 <script setup lang="ts">
-import { toRefs, ref, computed } from 'vue'
+import { ref, toRefs } from 'vue'
 
 const props = defineProps<{
   name: string
   description: string
-  mode?: 'full' | 'search'
+  mode: 'full' | 'search'
 }>()
 
-const { name, description } = toRefs(props)
-const mode = computed(() => props.mode ?? 'full')
+const { name, description, mode } = toRefs(props)
 
 const emit = defineEmits<{
-  'update:name': [value: string]
-  'update:description': [value: string]
-  'update:file': [file: File | null]
-  'start-extract': []
+  (e: 'update:name', value: string): void
+  (e: 'update:description', value: string): void
+  (e: 'update:file', file: File | null): void
+  (
+    e: 'start-extract',
+    payload:
+      | { mode: 'full'; name: string; description: string; file: File | null; fileName: string | null }
+      | { mode: 'search'; name: string }
+  ): void
 }>()
 
-const selectedFileName = ref<string | null>(null)
-
-
-const handleDescriptionInput = (e: Event) => {
-  const el = e.target as HTMLTextAreaElement
-  emit('update:description', el.value)
-
-  el.style.height = 'auto'
-  el.style.height = `${el.scrollHeight}px`
-}
-
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
+const selectedFileName = ref<string | null>(null)
 
 const handleFileButtonClick = () => {
   fileInputRef.value?.click()
 }
 
-const handleFileChange = (e: Event) => {
-  const el = e.target as HTMLInputElement
-  const file = el.files?.[0] ?? null
+const handleNameInput = (event: Event) => {
+  const target = event.target as HTMLInputElement | HTMLTextAreaElement
+  emit('update:name', target.value)
+}
 
+const handleDescriptionInput = (event: Event) => {
+  const target = event.target as HTMLTextAreaElement
+  emit('update:description', target.value)
+}
+
+const handleFileChange = (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0] ?? null
+  selectedFile.value = file
   selectedFileName.value = file ? file.name : null
   emit('update:file', file)
 }
 
-const handleNameInput = (e: Event) => {
-  emit('update:name', (e.target as HTMLInputElement | HTMLTextAreaElement).value)
+// 👉 used in FULL mode button
+const handleStartExtract = () => {
+  emit('start-extract', {
+    mode: 'full',
+    name: name.value,
+    description: description.value,
+    file: selectedFile.value,
+    fileName: selectedFileName.value
+  })
 }
 
-const handleStartExtract = () => {
-  emit('start-extract')
+// 👉 used in SEARCH mode button
+const handleSearchMode = () => {
+  emit('start-extract', {
+    mode: 'search',
+    name: name.value
+  })
 }
 </script>
+
+
 
 <template>
   <!-- 🔄 Transition between full/search layouts -->
@@ -104,7 +122,7 @@ const handleStartExtract = () => {
             class="bg-gray-200 px-4 py-2 rounded-lg flex-1 h-12 resize-none overflow-hidden leading-tight items-center justify-center"
             rows="1"></textarea>
 
-          <button @click="handleStartExtract"
+          <button @click="handleSearchMode"
             class="w-10 h-10 bg-white rounded-lg flex items-center justify-center hover:bg-gray-100 transition self-end">
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

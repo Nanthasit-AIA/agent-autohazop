@@ -17,9 +17,12 @@ import type { DeviationItem } from '~/components/DeviationSelection.vue'
 type Stage = 'initial' | 'input' | 'extract' | 'json' | 'node' | 'deviation' | 'analysis'
 const stage = ref<Stage>('initial')
 
+// ✅ Backend base URL
+const API_BASE = 'http://localhost:5000'
+
 // input mode: 'full' or 'search'
 type InputMode = 'full' | 'search'
-const inputMode = ref<InputMode>('search')   // 👈 you said you’re working on search
+const inputMode = ref<InputMode>('search')
 
 const processName = ref('')
 const processDescription = ref('')
@@ -30,12 +33,12 @@ const extractLabel = ref('Idle')
 const jsonData = ref<any | null>(null)
 const jsonFileName = ref<string | null>(null)
 
-// ---- Action state (unchanged) ----
+// ---- Action state ----
 type ActionState = 'idle' | 'ready' | 'running'
 const actionState = ref<ActionState>('idle')
 
-// ✅ Socket.io for status indicator (optional but matches backend)
-const socket = io('http://localhost:5000')  // change URL/port if needed
+// ✅ Socket.io for status indicator
+const socket = io(API_BASE)
 
 socket.on('file_status', (payload: { status: string; file_name?: string; error?: string }) => {
   if (payload.status === 'loading_complete') {
@@ -67,9 +70,13 @@ const handleSearchClick = () => {
   actionState.value = 'idle'
 }
 
-// ---- Start extract (used for BOTH modes, but you’re focusing on search) ----
-const handleStartExtract = async () => {
-  const name = processName.value.trim()
+// ---- Start extract (used for BOTH modes) ----
+type StartExtractPayload =
+  | { mode: 'full'; name: string; description: string; file: File | null; fileName: string | null }
+  | { mode: 'search'; name: string }
+
+const onStartExtract = async (payload: StartExtractPayload) => {
+  const name = payload.name.trim()
   if (!name) return
 
   stage.value = 'extract'
@@ -79,17 +86,46 @@ const handleStartExtract = async () => {
   extractLabel.value = `loading ${name}…`
 
   try {
-    const res = await fetch(`/api/search?name=${encodeURIComponent(name)}`)
-    const body = await res.json()
+    if (payload.mode === 'search') {
+      // 🔍 search mode → /api/search (GET)
+      const res = await fetch(`${API_BASE}/api/search?name=${encodeURIComponent(name)}`)
+      const body = await res.json()
 
-    if (!res.ok || !body.ok) {
-      extractLabel.value = body.error || 'Error loading file'
-      return
+      if (!res.ok || !body.ok) {
+        extractLabel.value = body.error || 'Error loading file'
+        return
+      }
+
+      jsonData.value = body.data
+      jsonFileName.value = body.file_name
+      extractLabel.value = `loading ${body.file_name} complete`
+    } else {
+      // 📄 full mode → /api/full (POST with FormData)
+      const formData = new FormData()
+      formData.append('name', payload.name)
+      formData.append('description', payload.description)
+      if (payload.file) {
+        formData.append('file', payload.file)
+      }
+
+      const res = await fetch(`${API_BASE}/api/full`, {
+        method: 'POST',
+        body: formData
+      })
+
+      const body = await res.json()
+
+      if (!res.ok || !body.ok) {
+        extractLabel.value = body.error || 'Error during full extract'
+        return
+      }
+
+      jsonData.value = body.data
+      jsonFileName.value = body.file_name ?? payload.fileName ?? payload.name
+      extractLabel.value = `loading ${jsonFileName.value} complete`
     }
 
-    jsonData.value = body.data
-    jsonFileName.value = body.file_name
-    extractLabel.value = `loading ${body.file_name} complete`
+    // after either mode succeeds:
     stage.value = 'json'
     actionState.value = 'ready'
 
@@ -105,11 +141,9 @@ const handleStartExtract = async () => {
     isExtracting.value = false
   }
 }
+
 //---------------------------------------------------
 
-
-// ⚠️ you still need to change this to the proper Record<DeviationType, string[]>
-// leaving as-is because your question is about scrolling
 const deviationSelections = ref(1)
 const deviationCurrentNode = ref(1)
 const totalDeviationNodes = ref(5)
@@ -238,11 +272,10 @@ const handleDeviationPreview = () => {
         <Transition name="fade-slide">
           <ProcessInput
             v-if="stage !== 'initial'"
-            :mode="inputMode"
             v-model:name="processName"
             v-model:description="processDescription"
-            class="mb-4"
-            @start-extract="handleStartExtract"
+            :mode="inputMode"
+            @start-extract="onStartExtract"
           />
         </Transition>
 
