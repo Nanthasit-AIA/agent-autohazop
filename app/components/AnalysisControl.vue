@@ -30,7 +30,6 @@ const emit = defineEmits<{
 
 const { active, label, errorMessage, runs, outputFolder, fileName } = toRefs(props)
 
-// dot color
 const indicatorClass = computed(() => {
   if (errorMessage.value) return 'bg-red-500'
   if (active.value) return 'bg-blue-400 animate-pulse'
@@ -40,13 +39,10 @@ const indicatorClass = computed(() => {
   return 'bg-gray-300'
 })
 
-// spinner on top of dot when running
 const showSpinner = computed(() => active.value)
 
-// any runs from backend
 const hasRuns = computed(() => (runs.value?.length ?? 0) > 0)
 
-// full saved path
 const fullPath = computed(() => {
   if (!outputFolder.value && !fileName.value) return ''
   if (!outputFolder.value) return fileName.value

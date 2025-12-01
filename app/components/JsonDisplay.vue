@@ -97,17 +97,32 @@ const isArrayOfObjects = computed(() => {
   );
 });
 
+const currentCount = computed(() => {
+  const val = sectionData.value;
+
+  if (Array.isArray(val)) return val.length;
+  if (val && typeof val === "object") return Object.keys(val).length;
+  if (val === null || val === undefined) return 0;
+  return 1;
+});
+
 const prettySectionJson = computed(() =>
   sectionData.value != null ? JSON.stringify(sectionData.value, null, 2) : ""
 );
 
-// 💡 per-section field order
 const fieldOrderBySection: Partial<Record<SectionId, string[]>> = {
   equipment: ["id", "name", "type", "context"],
   valves: ["id", "type", "location", "context"],
   instruments: ["id", "function", "location", "context"],
   utility_lines: ["utility_type", "valves", "flow_direction", "context"],
-  connections: ["line_id", "from_id", "to_id", "valves", "instruments", "context"],
+  connections: [
+    "line_id",
+    "from_id",
+    "to_id",
+    "valves",
+    "instruments",
+    "context",
+  ],
   // other sections (process_description, etc.) = no special order
 };
 
@@ -130,7 +145,6 @@ const getSortedEntries = (
       if (aPreferred) return -1;
       if (bPreferred) return 1;
 
-      // both non-preferred → alphabetical
       return a.localeCompare(b);
     })
     .map((key) => ({
@@ -165,100 +179,79 @@ const goNext = () => {
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-lg w-full max-w-6xl mx-auto">
     <!-- Header: file name + section buttons -->
-    <div
-      class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4"
-    >
+    <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
       <div class="text-sm text-gray-500" v-if="fileName">
         File: <span class="font-medium text-gray-700">{{ fileName }}</span>
       </div>
 
       <div v-if="availableSections.length" class="flex flex-wrap gap-2">
-        <button
-          v-for="sec in availableSections"
-          :key="sec.id"
-          class="px-3 py-1.5 rounded-full text-xs font-medium border transition"
-          :class="
-            sec.id === currentSectionId
+        <button v-for="sec in availableSections" :key="sec.id"
+          class="px-3 py-1.5 rounded-full text-xs font-medium border transition" :class="sec.id === currentSectionId
               ? 'bg-black text-white border-black'
               : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-          "
-          @click="switchSection(sec.id)"
-        >
+            " @click="switchSection(sec.id)">
           {{ sec.label }}
         </button>
       </div>
     </div>
 
-    <!-- Loading -->
+    <!-- Loading case-->
     <div v-if="isLoading" class="text-sm text-gray-500">Loading JSON…</div>
 
-    <!-- No data -->
-    <div
-      v-else-if="!data || !availableSections.length"
-      class="text-sm text-gray-500"
-    >
+    <!-- No data case-->
+    <div v-else-if="!data || !availableSections.length" class="text-sm text-gray-500">
       No structured sections found in JSON data.
     </div>
 
-    <!-- Current section view -->
+    <!-- Section view -->
     <div v-else>
       <div class="flex items-center justify-between mb-2">
-        <h2 class="text-lg font-semibold text-gray-800">
-          {{ currentSection?.label }}
-        </h2>
+
+        <div class="flex items-center gap-2">
+          <h2 class="text-lg font-m font-semibold text-gray-800 ml-2">
+            {{ currentSection?.label }}
+          </h2>
+
+          <span v-if="currentCount > 1"
+            class="inline-flex items-center justify-center px-2 py-0.5 text-sm font-semibold rounded-full bg-gray-200 text-gray-700">
+            {{ currentCount }}
+          </span>
+        </div>
+
         <span class="text-xs text-gray-500">
           Section {{ currentIndex + 1 }} / {{ availableSections.length }}
         </span>
       </div>
 
+
       <!-- Content box -->
       <div class="border border-gray-200 rounded-2xl p-4 bg-slate-50">
         <!-- simple string / number / boolean -->
-        <p
-          v-if="isPrimitiveSection"
-          class="text-sm text-gray-800 whitespace-pre-line"
-        >
+        <p v-if="isPrimitiveSection" class="text-sm text-gray-800 whitespace-pre-line">
           {{ sectionData }}
         </p>
 
         <!-- array of objects: show cards -->
         <div v-else-if="isArrayOfObjects" class="grid gap-3 md:grid-cols-2">
-          <div
-            v-for="(item, idx) in sectionData"
-            :key="idx"
-            class="bg-white rounded-xl border border-gray-200 p-3 text-xs text-gray-800"
-          >
-            <div
-              v-for="entry in getSortedEntries(
-                item as Record<string, unknown>,
-                currentSection?.id ?? null
-              )"
-              :key="entry.key"
-              class="flex justify-between gap-2"
-            >
+          <div v-for="(item, idx) in sectionData" :key="idx"
+            class="bg-white rounded-xl border border-gray-200 p-3 text-xs text-gray-800">
+            <div v-for="entry in getSortedEntries(
+              item as Record<string, unknown>,
+              currentSection?.id ?? null
+            )" :key="entry.key" class="flex justify-between gap-2">
               <span class="text-gray-500">{{ entry.key }}</span>
               <span class="font-medium break-all">{{ entry.value }}</span>
             </div>
           </div>
         </div>
-        <!-- fallback: pretty JSON -->
-        <pre
-          v-else
-          class="text-xs text-gray-800 whitespace-pre overflow-x-auto"
-          >{{ prettySectionJson }}</pre
-        >
+        <pre v-else class="text-xs text-gray-800 whitespace-pre overflow-x-auto">{{ prettySectionJson }}</pre>
       </div>
 
       <!-- Navigation buttons -->
-      <div
-        v-if="availableSections.length > 1"
-        class="flex items-center justify-between mt-4 text-xs"
-      >
+      <div v-if="availableSections.length > 1" class="flex items-center justify-between mt-4 text-xs">
         <button
           class="px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="currentIndex <= 0"
-          @click="goPrev"
-        >
+          :disabled="currentIndex <= 0" @click="goPrev">
           ← Previous
         </button>
 
@@ -268,9 +261,7 @@ const goNext = () => {
 
         <button
           class="px-3 py-1.5 rounded-full border border-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="currentIndex >= availableSections.length - 1"
-          @click="goNext"
-        >
+          :disabled="currentIndex >= availableSections.length - 1" @click="goNext">
           Next →
         </button>
       </div>

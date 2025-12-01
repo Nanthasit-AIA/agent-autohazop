@@ -65,10 +65,10 @@ def api_search():
     return jsonify(result), status_code
 
 
-# ---------- HAZOP agent via Socket.IO ----------
+# ---------- HAZOP agent Socket.IO ----------
 @socketio.on("hazop_start")
 def handle_hazop_start(data):
-    logger.info(f"🔥 hazop_start received: {len(data.get('selections', []))} selections")
+    logger.info(f"hazop_start received: {len(data.get('selections', []))} selections")
     pid_data = data.get("pid_data", {})
     selections = data.get("selections", [])
 
@@ -95,7 +95,7 @@ def handle_hazop_start(data):
     llm_response_log_path = os.path.join(base_dir, "llm_response_log.csv")
     parsed_excel_path = os.path.join(base_dir, "parsed_rows.xlsx")
 
-    logger.info(f"🚀 HAZOP start: {excel_path}")
+    logger.info(f"HAZOP start: {excel_path}")
     logger.info(f"Selections count: {len(selections)}")
 
     sid = request.sid
@@ -154,7 +154,7 @@ def handle_hazop_start(data):
 
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting Flask + SocketIO server on port 5000")
+    logger.info("Starting Flask/SocketIO server on port 5000")
     socketio.run(
         app,
         host="0.0.0.0",

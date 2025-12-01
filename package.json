@@ -10,7 +10,8 @@
     "postinstall": "nuxt prepare",
     "dev:nuxt": "nuxt dev -o",
     "dev:flask": "cd backend && aah01lib\\Scripts\\python.exe app.py",
-    "dev:all": "concurrently \"npm run dev:nuxt\" \"npm run dev:flask\""
+    "dev:s": "concurrently \"npm run dev:nuxt\" \"npm run dev:flask\"",
+    "dev:o": "concurrently \"npm run dev\" \"npm run dev:flask\""
   },
   "dependencies": {
     "@nuxt/content": "^3.8.2",

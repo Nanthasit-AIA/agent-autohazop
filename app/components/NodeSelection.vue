@@ -30,13 +30,11 @@ const handleNextClick = () => {
   emit("next");
 };
 
-// ✅ Select all nodes
 const handleSelectAll = () => {
   const allIds = props.nodes.map((node) => node.id);
   emit("update:modelValue", allIds);
 };
 
-// ✅ Clear all selections
 const handleClearAll = () => {
   emit("update:modelValue", []);
 };
@@ -44,7 +42,7 @@ const handleClearAll = () => {
 
 
 <template>
-  <div class="bg-white border-2 border-gray-300 rounded-2xl p-6 mb-6">
+  <div class="bg-white rounded-2xl p-6 shadow-lg mb-6 ">
     <!-- Header + Select/Clear buttons -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-semibold text-gray-800">

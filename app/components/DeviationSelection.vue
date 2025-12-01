@@ -39,20 +39,16 @@ const props = defineProps<{
   // v-model for CURRENT node (per-page)
   modelValue: Record<DeviationType, string[]>;
 
-  // pagination for nodes
   currentNode?: number;
   totalNodes?: number;
 
-  // current node display info
   nodeTitle?: string;
   nodeLine?: string;
   nodeContext?: string;
 
-  // all selected nodes and their full selections (for popup)
   allNodes: PreviewNode[];
   allSelections: Record<string | number, Record<DeviationType, string[]>>;
 
-  // 🔹 new: analysis configuration
   analysisFileName?: string;
   outputFolder?: string;
 }>();
@@ -179,7 +175,6 @@ const handleNextClick = () => {
   emit("next");
 };
 
-// safe getter for any node + type from allSelections
 const getNodeDeviation = (
   nodeId: string | number,
   devType: DeviationType
@@ -199,13 +194,13 @@ const hasAnyDeviationSomeNode = computed(() =>
 </script>
 
 <template>
-  <div class="bg-white border-2 border-gray-300 rounded-2xl px-8 py-6 mb-6">
+  <div class="bg-white rounded-2xl p-6 shadow-lg px-8 py-6 mb-6">
     <!-- Title only -->
     <div class="mb-2">
       <h3 class="font-semibold text-gray-800">Choose perform deviation</h3>
     </div>
 
-    <!-- 🔹 Analysis settings: file name + folder (JUST under title) -->
+    <!-- Analysis settings: file name + folder (JUST under title) -->
     <div class="mb-4 grid gap-4 md:grid-cols-2">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-gray-700">
@@ -411,7 +406,7 @@ const hasAnyDeviationSomeNode = computed(() =>
               v-if="hasAnyDeviationForNode(node.id)"
               class="mb-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
             >
-              <!-- Header: L1 (D60-Storage → D60-Heater) -->
+              <!-- Header:  -->
               <h4 class="font-semibold text-gray-800 mb-1">
                 {{ node.name }}
               </h4>

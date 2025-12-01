@@ -7,7 +7,7 @@ const props = withDefaults(
     name: string;
     description: string;
     mode: "full" | "search";
-    busy?: boolean; // 👈 NEW: parent tells us when we’re busy
+    busy?: boolean; 
   }>(),
   {
     busy: false,
@@ -39,7 +39,7 @@ const selectedFile = ref<File | null>(null);
 const selectedFileName = ref<string | null>(null);
 
 const handleFileButtonClick = () => {
-  if (busy.value) return; // ❗ prevent clicking while busy
+  if (busy.value) return; 
   fileInputRef.value?.click();
 };
 
@@ -61,7 +61,6 @@ const handleFileChange = (event: Event) => {
   emit("update:file", file);
 };
 
-// 👉 used in FULL mode button
 const handleStartExtract = () => {
   if (busy.value) return;
   locked.value = true;
@@ -74,7 +73,6 @@ const handleStartExtract = () => {
   });
 };
 
-// 👉 used in SEARCH mode button
 const handleSearchMode = () => {
   if (busy.value) return;
   locked.value = true;
@@ -86,11 +84,10 @@ const handleSearchMode = () => {
 </script>
 
 <template>
-  <!-- 🔄 Transition between full/search layouts -->
+  <!-- Transition between full/search layouts -->
   <Transition name="mode-fade" mode="out-in">
-    <!-- key forces Vue to treat them as different elements -->
     <div :key="mode" class="max-w-6xl mx-auto">
-      <!-- ✅ MODE: full (Call to action) -->
+      <!-- MODE: full (Start-new-process button) -->
       <div
         v-if="mode === 'full'"
         class="bg-gray-200 rounded-2xl p-6 mb-6 relative"
@@ -189,7 +186,7 @@ const handleSearchMode = () => {
         </div>
       </div>
 
-      <!-- ✅ MODE: search (Search button) -->
+      <!-- MODE: search (Search button) -->
       <div v-else class="bg-gray-200 rounded-2xl p-6 mb-6 relative">
         <div class="flex items-center justify-center gap-3">
           <!-- Input -->
