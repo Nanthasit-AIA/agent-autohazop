@@ -7,7 +7,7 @@ const props = withDefaults(
     name: string;
     description: string;
     mode: "full" | "search";
-    busy?: boolean; 
+    busy?: boolean;
   }>(),
   {
     busy: false,
@@ -29,57 +29,110 @@ const emit = defineEmits<{
           description: string;
           file: File | null;
           fileName: string | null;
+          files: File[];
         }
       | { mode: "search"; name: string }
   ): void;
 }>();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
-const selectedFile = ref<File | null>(null);
-const selectedFileName = ref<string | null>(null);
+
+/* ------------------------------
+   MULTI FILE SUPPORT
+------------------------------ */
+const selectedFiles = ref<File[]>([]);
 
 const handleFileButtonClick = () => {
-  if (busy.value) return; 
+  if (busy.value) return;
   fileInputRef.value?.click();
 };
 
 const handleNameInput = (event: Event) => {
-  const target = event.target as HTMLInputElement | HTMLTextAreaElement;
-  emit("update:name", target.value);
+  emit("update:name", (event.target as HTMLInputElement).value);
 };
 
 const handleDescriptionInput = (event: Event) => {
-  const target = event.target as HTMLTextAreaElement;
-  emit("update:description", target.value);
+  emit("update:description", (event.target as HTMLTextAreaElement).value);
 };
 
+/* -------------------------
+    ON FILE CHANGE
+--------------------------*/
 const handleFileChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
-  const file = target.files?.[0] ?? null;
-  selectedFile.value = file;
-  selectedFileName.value = file ? file.name : null;
-  emit("update:file", file);
+  const files = target.files;
+
+  if (!files) return;
+
+  for (const f of files) {
+    selectedFiles.value.push(f);
+  }
+
+  // always emit the *first* file like old system
+  emit("update:file", selectedFiles.value[0] ?? null);
+
+  target.value = "";
 };
 
+/* -------------------------
+    REMOVE FILE CHIP
+--------------------------*/
+const removeFile = (i: number) => {
+  selectedFiles.value.splice(i, 1);
+
+  // update extract main file
+  emit("update:file", selectedFiles.value[0] ?? null);
+};
+
+/* -------------------------
+    EXTRACT
+--------------------------*/
 const handleStartExtract = () => {
   if (busy.value) return;
   locked.value = true;
+
+  const firstFile = selectedFiles.value[0] || null;
+
   emit("start-extract", {
     mode: "full",
     name: name.value,
     description: description.value,
-    file: selectedFile.value,
-    fileName: selectedFileName.value,
+    file: firstFile,
+    fileName: firstFile ? firstFile.name : null,
+    files: [...selectedFiles.value],
   });
 };
 
 const handleSearchMode = () => {
   if (busy.value) return;
   locked.value = true;
+
   emit("start-extract", {
     mode: "search",
     name: name.value,
   });
+};
+
+/* -------------------------
+    CHIP COLOR + LABEL
+--------------------------*/
+const fileType = (file: File): string => {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? "";
+
+  if (ext === "pdf") return "PDF";
+  if (["jpg", "jpeg"].includes(ext)) return "JPG";
+  if (ext === "png") return "PNG";
+
+  return ext ? ext.toUpperCase() : "FILE";
+};
+
+const fileColor = (file: File): string => {
+  const ext = file.name.split(".").pop()?.toLowerCase() ?? ""; //
+
+  if (ext === "pdf") return "bg-red-600";
+  if (["jpg", "jpeg", "png"].includes(ext)) return "bg-blue-600";
+
+  return "bg-gray-600";
 };
 </script>
 
@@ -92,15 +145,8 @@ const handleSearchMode = () => {
         v-if="mode === 'full'"
         class="bg-gray-200 rounded-2xl p-6 mb-6 relative"
       >
-        <!-- file name on top-left -->
-        <div
-          v-if="selectedFileName"
-          class="absolute top-2 left-10 text-sm text-gray-600"
-        >
-          File: {{ selectedFileName }}
-        </div>
-
-        <div class="flex items-start gap-3 mb-4 mt-3">
+        <div class="flex items-center gap-3 mb-4 mt-3 jusitfy-center">
+          <!-- File Add Button -->
           <button
             @click="handleFileButtonClick"
             :disabled="locked"
@@ -127,34 +173,74 @@ const handleSearchMode = () => {
             </svg>
           </button>
 
+          <!-- Name -->
           <input
             type="text"
             placeholder="type name"
             :value="name"
             @input="handleNameInput"
             :disabled="locked"
-            class="bg-black text-white px-4 py-2 rounded-lg w-80"
-            :class="locked ? 'opacity-60 cursor-not-allowed' : ''"
+            class="bg-black text-white px-4 py-2 rounded-lg w-60 max-w-full md:max-w-xl transition disabled:opacity-60 disabled:cursor-not-allowed"
+            :style="{
+              width:
+                name && name.length > 0
+                  ? `max(${240}px, ${name.length * 12 + 60}px)`
+                  : undefined,
+            }"
           />
+        </div>
+
+        <!-- 🌟 NEW: FILE CHIPS -->
+        <div class="flex flex-wrap gap-3 mb-4 ml-2">
+          <div
+            v-for="(file, i) in selectedFiles"
+            :key="i"
+            class="flex items-center gap-3 px-4 py-3 rounded-xl text-white shadow relative min-w-[200px]"
+            :class="fileColor(file)"
+          >
+            <div class="text-2xl">📄</div>
+
+            <div class="flex flex-col">
+              <span class="font-medium truncate max-w-[120px]">
+                {{ file.name }}</span
+              >
+              <span class="text-xs opacity-80">{{ fileType(file) }}</span>
+            </div>
+
+            <button
+              @click="removeFile(i)"
+              class="absolute top-2 right-2 text-white hover:text-gray-200"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         <div class="flex items-start gap-3">
           <textarea
             placeholder="type about process description"
             :value="description"
-            @input="handleDescriptionInput"
             :disabled="locked"
-            class="bg-gray-200 px-4 py-2 rounded-lg flex-1 h-12 resize-none overflow-hidden leading-tight"
-            :class="locked ? 'opacity-60 cursor-not-allowed' : ''"
             rows="1"
+            class="bg-gray-200 px-4 py-2 rounded-lg flex-1 min-h-[3rem] h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
+            @input="
+              (e) => {
+                handleDescriptionInput(e);
+
+                const el = e.target as HTMLTextAreaElement;
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+              }
+            "
           ></textarea>
 
-          <!-- hidden file input -->
+          <!-- Hidden input -->
           <input
             ref="fileInputRef"
             type="file"
             class="hidden"
             accept="application/pdf,image/*"
+            multiple
             @change="handleFileChange"
           />
 
@@ -196,7 +282,7 @@ const handleSearchMode = () => {
             :value="name"
             @input="handleNameInput"
             rows="1"
-            class="bg-gray-200 px-4 py-3 rounded-lg h-12 w-full max-w-full resize-none overflow-hidden text-gray-800 leading-tight "
+            class="bg-gray-200 px-4 py-3 rounded-lg h-12 w-full max-w-full resize-none overflow-hidden text-gray-800 leading-tight"
             :class="locked ? 'opacity-60 cursor-not-allowed' : ''"
           ></textarea>
 

@@ -29,5 +29,5 @@ logs
 *.pyd
 /backend/static/hazop
 /backend/static/hazop_runs
-/backend/static/data
+
 

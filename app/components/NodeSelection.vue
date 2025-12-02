@@ -1,4 +1,7 @@
 <script setup lang="ts">
+import { ref } from 'vue'
+import PipelineGraphModal, { type Connection } from '~/components/PipelineGraphModal.vue'
+
 export interface NodeItem {
   id: string | number
   name: string
@@ -6,43 +9,61 @@ export interface NodeItem {
   context?: string
 }
 
+const selectedConnections = ref<Connection[]>([])
+const showGraph = ref(false)
 
 const props = defineProps<{
-  modelValue: (string | number)[];
-  nodes: NodeItem[];
-}>();
+  modelValue: (string | number)[]
+  nodes: NodeItem[]
+  // 🔹 all connections from PID JSON (line_id, from_id, to_id, context)
+  connections: Connection[]
+}>()
 
 const emit = defineEmits<{
-  "update:modelValue": [(string | number)[]];
-  next: [];
-}>();
+  'update:modelValue': [(string | number)[]]
+  next: []
+}>()
 
 const toggleNode = (nodeId: string | number) => {
-  const exists = props.modelValue.includes(nodeId);
+  const exists = props.modelValue.includes(nodeId)
   const newValue = exists
-    ? props.modelValue.filter((id) => id !== nodeId)
-    : [...props.modelValue, nodeId];
+    ? props.modelValue.filter(id => id !== nodeId)
+    : [...props.modelValue, nodeId]
 
-  emit("update:modelValue", newValue);
-};
+  emit('update:modelValue', newValue)
+}
 
 const handleNextClick = () => {
-  emit("next");
-};
+  emit('next')
+}
 
 const handleSelectAll = () => {
-  const allIds = props.nodes.map((node) => node.id);
-  emit("update:modelValue", allIds);
-};
+  const allIds = props.nodes.map(node => node.id)
+  emit('update:modelValue', allIds)
+}
 
 const handleClearAll = () => {
-  emit("update:modelValue", []);
-};
+  emit('update:modelValue', [])
+}
+
+// 🔹 Build subset of connections for selected line_ids & open modal
+const handlePreviewClick = () => {
+  if (!props.connections?.length || !props.modelValue.length) return
+
+  const selectedIds = new Set(props.modelValue.map(v => String(v)))
+
+  selectedConnections.value = props.connections.filter(conn =>
+    selectedIds.has(String(conn.line_id))
+  )
+
+  if (selectedConnections.value.length === 0) return
+
+  showGraph.value = true
+}
 </script>
 
-
 <template>
-  <div class="bg-white rounded-2xl p-6 shadow-lg mb-6 ">
+  <div class="bg-white rounded-2xl p-6 shadow-lg mb-6">
     <!-- Header + Select/Clear buttons -->
     <div class="flex items-center justify-between mb-4">
       <h3 class="font-semibold text-gray-800">
@@ -69,8 +90,8 @@ const handleClearAll = () => {
 
     <!-- Node list -->
     <div
-      class="grid grid-cols-2 gap-4 mb-4"
-      :class="nodes.length > 4 ? 'max-h-64 overflow-y-auto pr-2' : ''"
+      class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+      :class="nodes.length > 4 ? 'max-h-122 overflow-y-auto pr-2' : ''"
     >
       <label
         v-for="node in nodes"
@@ -101,14 +122,17 @@ const handleClearAll = () => {
     <div class="flex items-center justify-end">
       <div class="flex gap-3">
         <button
-          class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+          class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
           type="button"
+          :disabled="modelValue.length === 0 || !connections.length"
+          @click="handlePreviewClick"
         >
           Preview
         </button>
         <button
-          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
+          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
           type="button"
+          :disabled="modelValue.length === 0"
           @click="handleNextClick"
         >
           <svg
@@ -129,4 +153,11 @@ const handleClearAll = () => {
       </div>
     </div>
   </div>
+
+  <!-- 🔹 Pipeline graph modal -->
+  <PipelineGraphModal
+    :show="showGraph"
+    :connections="selectedConnections"
+    @close="showGraph = false"
+  />
 </template>

@@ -1,6 +1,6 @@
+import logging, time
 from coloredlogs import install
 from functools import wraps
-import logging, time
 
 logger = logging.getLogger(__name__)
 logger_format = "%(asctime)s %(hostname)s %(name)s[%(process)d] %(levelname)s %(message)s"

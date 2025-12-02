@@ -1,29 +1,52 @@
+import json, csv, re
 from pathlib import Path
-import json
-import csv
-from typing import Any
+from typing import Any, Union
 
 from module.schema_json import PIDResponse
 from decorators import logger, timeit_log
 
+PathLike = Union[str, Path]
+
+def _slugify_filename(raw: str) -> str:
+    """
+    Turn an arbitrary name into a safe filename:
+    - lowercases
+    - replaces spaces with '_'
+    - strips non-alphanumeric/_/-
+    - ensures not empty
+    """
+    s = raw.strip().lower()
+    s = s.replace(" ", "_")
+    s = re.sub(r"[^a-z0-9_\-]+", "", s)
+    return s or "pid_result"
+
 @timeit_log
 def save_pid_json(
     pid_data: PIDResponse,
-    image_path: str | Path,
+    metadata: dict,
+    image_path: PathLike,
     out_dir: str = "data",
     *,
-    suffix: str = ".pido3_t_2.json",
+    name: str | None = None,
+    suffix: str = ".json",
     indent: int = 2,
 ) -> Path:
     img_path = Path(image_path)
-    out_dir = Path(out_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = Path(out_dir)
+    out_path.mkdir(parents=True, exist_ok=True)
+    if name:
+        base = _slugify_filename(name)
+    else:
+        base = img_path.stem
 
-    out_path = out_dir / f"{img_path.stem}{suffix}"
-    json_text = pid_data.model_dump_json(indent=indent, by_alias=True)
-    out_path.write_text(json_text, encoding="utf-8")
-
-    return out_path
+    save_path = out_path / f"{base}{suffix}"
+    combined = {
+        "pid_data": pid_data.model_dump(by_alias=True),
+        "metadata": metadata,
+    }
+    json_text = json.dumps(combined, indent=indent, ensure_ascii=False)
+    save_path.write_text(json_text, encoding="utf-8")
+    return save_path
 
 @timeit_log
 def summarize_pid_components(json_path: Path):
@@ -53,10 +76,8 @@ def summarize_pid_components(json_path: Path):
     for i in instruments:
         logger.debug(f"  - ID: {i.get('id')}, Function: {i.get('function')}, Location: {i.get('location')}")
 
-# @timeit_log
 def search_file(name: str, data_dir: str | Path = "static/data") -> dict[str, Any]:
     name = name.strip()
-
     logger.info(f"🔍 search_file() called with name='{name}' dir='{data_dir}'")
 
     if not name:

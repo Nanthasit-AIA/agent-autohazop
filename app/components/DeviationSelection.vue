@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 
+//
+// ---------- Types ----------
+//
 type DeviationType =
   | "Flow"
   | "Pressure"
@@ -9,7 +12,29 @@ type DeviationType =
   | "Concentration"
   | "Composition";
 
-// options per type
+type AdditionalParam =
+  | "Phase"
+  | "Utility"
+  | "Power"
+  | "Instrument"
+  | "Human Action"
+  | "Maintenance"
+  | "Operation Timing";
+
+type ParamName = DeviationType | AdditionalParam;
+type GuideWord =
+  | "No"
+  | "More"
+  | "Less"
+  | "As well as"
+  | "Part of"
+  | "Reverse"
+  | "Other than"
+  | "Early"
+  | "Late"
+  | "Before"
+  | "After";
+
 const deviationTypes: DeviationType[] = [
   "Flow",
   "Pressure",
@@ -19,13 +44,45 @@ const deviationTypes: DeviationType[] = [
   "Composition",
 ];
 
-const deviationOptionsMap: Record<DeviationType, string[]> = {
+const additionalParams: AdditionalParam[] = [
+  "Phase",
+  "Utility",
+  "Power",
+  "Instrument",
+  "Human Action",
+  "Maintenance",
+  "Operation Timing",
+];
+
+const allParams: ParamName[] = [...deviationTypes, ...additionalParams];
+
+const validGuideWords: GuideWord[] = [
+  "No",
+  "More",
+  "Less",
+  "As well as",
+  "Part of",
+  "Reverse",
+  "Other than",
+  "Early",
+  "Late",
+  "Before",
+  "After",
+];
+
+// base options for main 6 parameters
+const deviationOptionsMap: Record<DeviationType, GuideWord[]> = {
   Flow: ["More", "Less", "No", "Reverse"],
   Pressure: ["More", "Less"],
   Temperature: ["More", "Less"],
   Level: ["More", "Less", "No"],
   Concentration: ["More", "Less"],
   Composition: ["Other than"],
+};
+
+const extraGuideWordsFor = (devType: DeviationType): GuideWord[] => {
+  const base = deviationOptionsMap[devType];
+  return validGuideWords.filter((gw) => !base.includes(gw));
 };
 
 interface PreviewNode {
@@ -36,8 +93,8 @@ interface PreviewNode {
 }
 
 const props = defineProps<{
-  // v-model for CURRENT node (per-page)
-  modelValue: Record<DeviationType, string[]>;
+  // v-model for CURRENT node (per-page): includes BOTH main + additional params
+  modelValue: Record<ParamName, GuideWord[]>;
 
   currentNode?: number;
   totalNodes?: number;
@@ -47,22 +104,27 @@ const props = defineProps<{
   nodeContext?: string;
 
   allNodes: PreviewNode[];
-  allSelections: Record<string | number, Record<DeviationType, string[]>>;
+  allSelections: Record<string | number, Record<ParamName, GuideWord[]>>;
 
   analysisFileName?: string;
   outputFolder?: string;
 }>();
 
 const emit = defineEmits<{
-  "update:modelValue": [Record<DeviationType, string[]>];
+  "update:modelValue": [Record<ParamName, GuideWord[]>];
   "update:currentNode": [number];
   "update:analysisFileName": [string];
   "update:outputFolder": [string];
+  "update:allSelections": [
+    Record<string | number, Record<ParamName, GuideWord[]>>,
+  ];
   preview: [];
   next: [];
 }>();
 
+//
 // ---------- v-model wrappers for analysis config ----------
+//
 const analysisFile = computed<string>({
   get() {
     return props.analysisFileName ?? "";
@@ -81,14 +143,55 @@ const outputFolder = computed<string>({
   },
 });
 
+//
 // ---------- pagination ----------
+//
+type PageItem = number | "dots";
+
 const currentNode = computed(() => props.currentNode ?? 1);
 const totalNodes = computed(() => props.totalNodes ?? 1);
 
-const pages = computed<number[]>(() => {
+const pages = computed<PageItem[]>(() => {
   const total = totalNodes.value;
+  const current = currentNode.value;
+
   if (total <= 0) return [];
-  return Array.from({ length: total }, (_, i) => i + 1);
+
+  // show all if <= 6
+  if (total <= 6) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+
+  const result: PageItem[] = [];
+  const first = 1;
+  const second = 2;
+  result.push(first, second);
+
+  const windowSize = 2;
+  const minStart = 3;
+  const maxStart = total - 2 - (windowSize - 1);
+
+  let midStart = current;
+  if (midStart < minStart) midStart = minStart;
+  if (midStart > maxStart) midStart = maxStart;
+  const midEnd = midStart + windowSize - 1;
+
+  if (midStart > second + 1) {
+    result.push("dots");
+  }
+
+  for (let p = midStart; p <= midEnd; p++) {
+    if (p >= total - 1) break;
+    result.push(p);
+  }
+
+  if (midEnd < total - 2) {
+    result.push("dots");
+  }
+
+  result.push(total - 1, total);
+
+  return result;
 });
 
 const changePage = (page: number) => {
@@ -107,59 +210,189 @@ const goNext = () => {
   }
 };
 
-// ---------- selection helpers for CURRENT node ----------
-const setSelections = (devType: DeviationType, options: string[]) => {
+//
+// ---------- selection helpers (generic: ALL params) ----------
+//
+const setSelections = (param: ParamName, options: GuideWord[]) => {
   emit("update:modelValue", {
     ...props.modelValue,
-    [devType]: options,
+    [param]: options,
   });
 };
 
-const getSelectionsForType = (devType: DeviationType): string[] => {
-  return props.modelValue[devType] ?? [];
+const getSelectionsFor = (param: ParamName): GuideWord[] => {
+  return props.modelValue[param] ?? [];
 };
 
-const hasSelectionsForType = (devType: DeviationType): boolean => {
-  return getSelectionsForType(devType).length > 0;
+const hasSelectionsFor = (param: ParamName): boolean => {
+  return getSelectionsFor(param).length > 0;
 };
 
-const isSelected = (devType: DeviationType, option: string) => {
-  return getSelectionsForType(devType).includes(option);
+const isSelected = (param: ParamName, option: GuideWord) => {
+  return getSelectionsFor(param).includes(option);
 };
 
-const toggleOption = (devType: DeviationType, option: string) => {
-  const current = getSelectionsForType(devType);
+const toggleOption = (param: ParamName, option: GuideWord) => {
+  const current = getSelectionsFor(param);
   const next = current.includes(option)
     ? current.filter((o) => o !== option)
     : [...current, option];
+  setSelections(param, next);
+};
+
+// main "dot" toggle for base options only (6 params)
+const toggleAllBaseForType = (devType: DeviationType) => {
+  const base = deviationOptionsMap[devType];
+  const current = getSelectionsFor(devType);
+  const allSelected = base.every((o) => current.includes(o));
+
+  const next = allSelected
+    ? current.filter((o) => !base.includes(o)) // clear only base
+    : Array.from(new Set([...current, ...base]));
+
   setSelections(devType, next);
 };
 
-const toggleAll = (devType: DeviationType) => {
-  const allOptions = deviationOptionsMap[devType];
-  const current = getSelectionsForType(devType);
-  const allSelected = allOptions.every((o) => current.includes(o));
-  const next = allSelected ? [] : [...allOptions];
-  setSelections(devType, next);
-};
-
-const selectAll = () => {
-  const next: Record<DeviationType, string[]> = {} as any;
-  deviationTypes.forEach((devType) => {
-    next[devType] = [...deviationOptionsMap[devType]];
+// left column buttons: only main 6 params
+const selectAllMainForCurrentNode = () => {
+  const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
+  deviationTypes.forEach((p) => {
+    next[p] = [...deviationOptionsMap[p]];
   });
   emit("update:modelValue", next);
 };
 
-const deleteAll = () => {
-  const empty: Record<DeviationType, string[]> = {} as any;
-  deviationTypes.forEach((devType) => {
-    empty[devType] = [];
+const clearAllMainForCurrentNode = () => {
+  const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
+  deviationTypes.forEach((p) => {
+    next[p] = [];
   });
-  emit("update:modelValue", empty);
+  emit("update:modelValue", next);
 };
 
+//
+// ---------- extra guide word popover for main parameters ----------
+//
+const openExtraFor = ref<DeviationType | null>(null);
+
+const toggleExtraPopover = (devType: DeviationType) => {
+  openExtraFor.value = openExtraFor.value === devType ? null : devType;
+};
+
+const toggleExtraGuide = (devType: DeviationType, gw: GuideWord) => {
+  const base = deviationOptionsMap[devType];
+  const current = new Set(getSelectionsFor(devType));
+
+  if (current.has(gw)) {
+    current.delete(gw);
+  } else {
+    current.add(gw);
+  }
+
+  const next: GuideWord[] = [
+    // keep base in base order
+    ...base.filter((b) => current.has(b)),
+    // then extra in validGuideWords order
+    ...validGuideWords.filter((w) => !base.includes(w) && current.has(w)),
+  ];
+
+  setSelections(devType, next);
+};
+
+const selectAllExtraForType = (devType: DeviationType) => {
+  const base = deviationOptionsMap[devType];
+  const extras = extraGuideWordsFor(devType);
+  const next: GuideWord[] = [...base, ...extras];
+  setSelections(devType, next);
+};
+
+const clearAllExtraForType = (devType: DeviationType) => {
+  const base = deviationOptionsMap[devType];
+  const current = getSelectionsFor(devType);
+  const keepBase = current.filter((w) => base.includes(w));
+  setSelections(devType, keepBase);
+};
+
+//
+// ---------- Additional parameters section ----------
+//
+const showAdditional = ref(true);
+
+const toggleAdditionalSection = () => {
+  showAdditional.value = !showAdditional.value;
+};
+
+// header buttons: only additional params, current node
+const selectAllAdditionalForCurrentNode = () => {
+  const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
+  additionalParams.forEach((p) => {
+    next[p] = [...validGuideWords];
+  });
+  emit("update:modelValue", next);
+};
+
+const clearAllAdditionalForCurrentNode = () => {
+  const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
+  additionalParams.forEach((p) => {
+    next[p] = [];
+  });
+  emit("update:modelValue", next);
+};
+
+//
+// ---------- global “all lines” select/clear (only main params) ----------
+//
+const makeFullMainDeviations = (): Record<ParamName, GuideWord[]> => {
+  const obj = {} as Record<ParamName, GuideWord[]>;
+  deviationTypes.forEach((devType) => {
+    obj[devType] = [...deviationOptionsMap[devType]];
+  });
+  return obj;
+};
+
+const makeEmptyMainDeviations = (): Record<ParamName, GuideWord[]> => {
+  const obj = {} as Record<ParamName, GuideWord[]>;
+  deviationTypes.forEach((devType) => {
+    obj[devType] = [];
+  });
+  return obj;
+};
+
+const selectAllAllLines = () => {
+  const newAll: Record<string | number, Record<ParamName, GuideWord[]>> = {
+    ...props.allSelections,
+  };
+
+  props.allNodes.forEach((node) => {
+    const prev = newAll[node.id] ?? ({} as Record<ParamName, GuideWord[]>);
+    newAll[node.id] = {
+      ...prev,
+      ...makeFullMainDeviations(),
+    };
+  });
+
+  emit("update:allSelections", newAll);
+};
+
+const deleteAllAllLines = () => {
+  const newAll: Record<string | number, Record<ParamName, GuideWord[]>> = {
+    ...props.allSelections,
+  };
+
+  props.allNodes.forEach((node) => {
+    const prev = newAll[node.id] ?? ({} as Record<ParamName, GuideWord[]>);
+    newAll[node.id] = {
+      ...prev,
+      ...makeEmptyMainDeviations(),
+    };
+  });
+
+  emit("update:allSelections", newAll);
+};
+
+//
 // ---------- preview modal (all nodes) ----------
+//
 const showPreview = ref(false);
 
 const handlePreviewClick = () => {
@@ -177,15 +410,15 @@ const handleNextClick = () => {
 
 const getNodeDeviation = (
   nodeId: string | number,
-  devType: DeviationType
-): string[] => {
+  param: ParamName
+): GuideWord[] => {
   const nodeSel = props.allSelections?.[nodeId];
   if (!nodeSel) return [];
-  return nodeSel[devType] ?? [];
+  return nodeSel[param] ?? [];
 };
 
 const hasAnyDeviationForNode = (nodeId: string | number): boolean => {
-  return deviationTypes.some((dt) => getNodeDeviation(nodeId, dt).length > 0);
+  return allParams.some((p) => getNodeDeviation(nodeId, p).length > 0);
 };
 
 const hasAnyDeviationSomeNode = computed(() =>
@@ -195,12 +428,29 @@ const hasAnyDeviationSomeNode = computed(() =>
 
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-lg px-8 py-6 mb-6">
-    <!-- Title only -->
-    <div class="mb-2">
+    <!-- Title + global all-lines buttons -->
+    <div class="mb-4 flex items-center justify-between gap-4">
       <h3 class="font-semibold text-gray-800">Choose perform deviation</h3>
+
+      <div class="flex items-center gap-2 text-xs">
+        <button
+          type="button"
+          @click="selectAllAllLines"
+          class="px-3 py-1.5 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
+        >
+          select all (all lines)
+        </button>
+        <button
+          type="button"
+          @click="deleteAllAllLines"
+          class="px-3 py-1.5 rounded-lg bg-white text-gray-900 font-semibold border border-gray-300 hover:bg-gray-50 transition"
+        >
+          delete all (all nodes)
+        </button>
+      </div>
     </div>
 
-    <!-- Analysis settings: file name + folder (JUST under title) -->
+    <!-- Analysis settings -->
     <div class="mb-4 grid gap-4 md:grid-cols-2">
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-gray-700">
@@ -225,10 +475,12 @@ const hasAnyDeviationSomeNode = computed(() =>
       </div>
     </div>
 
-    <!-- Node info + pagination UNDER the analysis settings -->
+    <!-- Node info + pagination -->
     <div class="flex items-start justify-between mb-6 gap-6">
       <div class="text-sm text-gray-600 leading-snug space-y-1">
-        <div class="font-medium">
+        <div
+          class="py-2 px-4 justify-center item-center font-medium bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+        >
           {{ nodeTitle || `node ${currentNode}` }} :
         </div>
         <div v-if="nodeLine">
@@ -250,18 +502,20 @@ const hasAnyDeviationSomeNode = computed(() =>
           ←
         </button>
 
-        <button
-          v-for="page in pages"
-          :key="page"
-          type="button"
-          class="w-7 h-7 flex items-center justify-center rounded-full text-xs"
-          :class="
-            page === currentNode ? 'bg-black text-white' : 'text-gray-700'
-          "
-          @click="changePage(page)"
-        >
-          {{ page }}
-        </button>
+        <template v-for="item in pages" :key="String(item)">
+          <button
+            v-if="item !== 'dots'"
+            type="button"
+            class="w-7 h-7 flex items-center justify-center rounded-full text-xs"
+            :class="
+              item === currentNode ? 'bg-black text-white' : 'text-gray-700'
+            "
+            @click="changePage(item as number)"
+          >
+            {{ item }}
+          </button>
+          <span v-else class="px-1 text-xs text-gray-400 select-none"> … </span>
+        </template>
 
         <button
           type="button"
@@ -274,21 +528,21 @@ const hasAnyDeviationSomeNode = computed(() =>
       </div>
     </div>
 
-    <!-- Main: left actions + right deviation list -->
+    <!-- Main row: left buttons + right main deviations -->
     <div class="flex gap-8">
-      <!-- Left column: select/delete all -->
+      <!-- left: select/delete current line (main params only) -->
       <div class="w-52 flex flex-col gap-4">
         <div class="flex flex-col gap-2">
           <button
             type="button"
-            @click="selectAll"
+            @click="selectAllMainForCurrentNode"
             class="w-28 h-10 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-900 transition"
           >
             select all
           </button>
           <button
             type="button"
-            @click="deleteAll"
+            @click="clearAllMainForCurrentNode"
             class="w-28 h-10 rounded-lg bg-white text-gray-900 text-sm font-semibold border border-gray-300 hover:bg-gray-50 transition"
           >
             delete all
@@ -296,32 +550,29 @@ const hasAnyDeviationSomeNode = computed(() =>
         </div>
       </div>
 
-      <!-- Right column: deviation items in 2-column grid -->
+      <!-- right: main deviation rows -->
       <div class="flex-1">
         <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
           <div
             v-for="devType in deviationTypes"
             :key="devType"
-            class="w-full flex items-center gap-3"
+            class="relative w-full flex items-center gap-3"
           >
-            <!-- dot + deviation name -->
+            <!-- dot + name -->
             <div
               class="flex items-center gap-2 cursor-pointer"
-              @click="toggleAll(devType)"
+              @click="toggleAllBaseForType(devType)"
             >
               <span
                 class="w-3 h-3 rounded-full"
-                :class="
-                  hasSelectionsForType(devType) ? 'bg-black' : 'bg-gray-300'
-                "
+                :class="hasSelectionsFor(devType) ? 'bg-black' : 'bg-gray-300'"
               ></span>
-
               <span class="text-sm text-gray-700 hover:underline">
                 {{ devType }}
               </span>
             </div>
 
-            <!-- options pill -->
+            <!-- base options + plus button -->
             <div
               class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1"
             >
@@ -338,6 +589,131 @@ const hasAnyDeviationSomeNode = computed(() =>
                 @click.stop="toggleOption(devType, opt)"
               >
                 {{ opt }}
+              </button>
+
+              <!-- plus: extra guide words -->
+              <button
+                type="button"
+                class="ml-1 w-6 h-6 rounded-full bg-white/80 text-gray-800 text-xs flex items-center justify-center hover:bg-white shadow-sm"
+                @click.stop="toggleExtraPopover(devType)"
+              >
+                +
+              </button>
+            </div>
+
+            <!-- popover for extra guide words -->
+            <div
+              v-if="openExtraFor === devType"
+              class="absolute z-20 top-full left-24 mt-2 w-56 rounded-xl bg-white shadow-xl border border-gray-200 py-2 text-xs"
+            >
+              <div class="px-3 pb-2 font-semibold text-gray-800">
+                Additional guide word
+              </div>
+
+              <button
+                type="button"
+                class="w-full text-left px-3 py-1 hover:bg-gray-100 text-[11px]"
+                @click.stop="selectAllExtraForType(devType)"
+              >
+                + select all
+              </button>
+              <button
+                type="button"
+                class="w-full text-left px-3 py-1 border-b border-gray-100 hover:bg-gray-100 text-[11px]"
+                @click.stop="clearAllExtraForType(devType)"
+              >
+                − clear all
+              </button>
+
+              <div class="mt-1 max-h-48 overflow-y-auto">
+                <button
+                  v-for="gw in extraGuideWordsFor(devType)"
+                  :key="gw"
+                  type="button"
+                  class="w-full flex items-center justify-between px-3 py-1 hover:bg-gray-100"
+                  @click.stop="toggleExtraGuide(devType, gw)"
+                >
+                  <span>{{ gw }}</span>
+                  <span v-if="isSelected(devType, gw)">✓</span>
+                </button>
+              </div>
+
+              <button
+                type="button"
+                class="w-full mt-1 px-3 py-1 text-center text-[11px] text-gray-600 border-t border-gray-100 hover:bg-gray-50"
+                @click.stop="openExtraFor = null"
+              >
+                cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Additional parameters (collapsible) -->
+    <div class="mt-8 border-t border-gray-200 pt-4">
+      <div class="flex items-center justify-between mb-3">
+        <button
+          type="button"
+          class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-xs text-gray-700 hover:bg-gray-200 transition"
+          @click="toggleAdditionalSection"
+        >
+          <span>{{ showAdditional ? "−" : "+" }}</span>
+          <span>Additional parameters </span>
+        </button>
+
+        <div v-if="showAdditional" class="flex items-center gap-2 text-[11px]">
+          <button
+            type="button"
+            class="px-3 py-1 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
+            @click="selectAllAdditionalForCurrentNode"
+          >
+            + select all
+          </button>
+          <button
+            type="button"
+            class="px-3 py-1 rounded-lg bg-white text-gray-900 font-semibold border border-gray-300 hover:bg-gray-50 transition"
+            @click="clearAllAdditionalForCurrentNode"
+          >
+            − delete all
+          </button>
+        </div>
+      </div>
+
+      <div v-if="showAdditional">
+        <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
+          <div
+            v-for="param in additionalParams"
+            :key="param"
+            class="w-full flex items-center gap-3"
+          >
+            <div class="flex items-center gap-2">
+              <span
+                class="w-3 h-3 rounded-full"
+                :class="hasSelectionsFor(param) ? 'bg-black' : 'bg-gray-300'"
+              ></span>
+              <span class="text-sm text-gray-700">
+                {{ param }}
+              </span>
+            </div>
+
+            <div
+              class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1"
+            >
+              <button
+                v-for="gw in validGuideWords"
+                :key="gw"
+                type="button"
+                class="px-2 py-0.5 rounded-full text-xs transition"
+                :class="
+                  isSelected(param, gw)
+                    ? 'bg-black text-white'
+                    : 'bg-transparent text-gray-800'
+                "
+                @click.stop="toggleOption(param, gw)"
+              >
+                {{ gw }}
               </button>
             </div>
           </div>
@@ -392,7 +768,6 @@ const hasAnyDeviationSomeNode = computed(() =>
             Review selected deviations for each line before submitting.
           </p>
 
-          <!-- If nothing selected at all -->
           <div
             v-if="!hasAnyDeviationSomeNode"
             class="text-sm text-gray-500 italic mb-4"
@@ -400,18 +775,15 @@ const hasAnyDeviationSomeNode = computed(() =>
             No deviations selected for any line yet.
           </div>
 
-          <!-- For each line/node -->
           <template v-for="node in allNodes" :key="node.id">
             <div
               v-if="hasAnyDeviationForNode(node.id)"
               class="mb-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
             >
-              <!-- Header:  -->
               <h4 class="font-semibold text-gray-800 mb-1">
                 {{ node.name }}
               </h4>
 
-              <!-- optional line info -->
               <div class="text-xs text-gray-600 mb-2 space-y-1">
                 <div v-if="node.range">
                   <span class="font-medium">Range:</span> {{ node.range }}
@@ -421,19 +793,17 @@ const hasAnyDeviationSomeNode = computed(() =>
                 </div>
               </div>
 
-              <!-- deviation summary for THIS line -->
               <div class="text-sm space-y-1">
-                <template v-for="devType in deviationTypes" :key="devType">
-                  <div v-if="getNodeDeviation(node.id, devType).length > 0">
-                    <span class="font-semibold">{{ devType }}:</span>
-                    {{ getNodeDeviation(node.id, devType).join(", ") }}
+                <template v-for="p in allParams" :key="p">
+                  <div v-if="getNodeDeviation(node.id, p).length > 0">
+                    <span class="font-semibold">{{ p }}:</span>
+                    {{ getNodeDeviation(node.id, p).join(", ") }}
                   </div>
                 </template>
               </div>
             </div>
           </template>
 
-          <!-- Footer buttons -->
           <div class="mt-4 flex justify-end gap-3">
             <button
               type="button"
