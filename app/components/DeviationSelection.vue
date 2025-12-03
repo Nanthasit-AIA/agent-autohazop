@@ -316,7 +316,7 @@ const clearAllExtraForType = (devType: DeviationType) => {
 //
 // ---------- Additional parameters section ----------
 //
-const showAdditional = ref(true);
+const showAdditional = ref(false);
 
 const toggleAdditionalSection = () => {
   showAdditional.value = !showAdditional.value;
@@ -325,11 +325,16 @@ const toggleAdditionalSection = () => {
 // header buttons: only additional params, current node
 const selectAllAdditionalForCurrentNode = () => {
   const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
+
+  const shouldClear = isAllAdditionalSelected();
+
   additionalParams.forEach((p) => {
-    next[p] = [...validGuideWords];
+    next[p] = shouldClear ? [] : [...validGuideWords];
   });
+
   emit("update:modelValue", next);
 };
+
 
 const clearAllAdditionalForCurrentNode = () => {
   const next: Record<ParamName, GuideWord[]> = { ...props.modelValue };
@@ -338,6 +343,30 @@ const clearAllAdditionalForCurrentNode = () => {
   });
   emit("update:modelValue", next);
 };
+const openAdditionalFor = ref<AdditionalParam | null>(null);
+
+const toggleAdditionalPopover = (param: AdditionalParam) => {
+  openAdditionalFor.value =
+    openAdditionalFor.value === param ? null : param;
+};
+
+// ✅ NEW: click param name = select all / clear all validGuideWords
+const toggleAllForAdditional = (param: AdditionalParam) => {
+  const current = getSelectionsFor(param);
+  const allSelected = validGuideWords.every((gw) =>
+    current.includes(gw)
+  );
+
+  const next = allSelected ? [] : [...validGuideWords];
+  setSelections(param, next);
+};
+const isAllAdditionalSelected = (): boolean => {
+  return additionalParams.every((p) =>
+    validGuideWords.every((gw) => getSelectionsFor(p).includes(gw))
+  );
+};
+
+
 
 //
 // ---------- global “all lines” select/clear (only main params) ----------
@@ -429,22 +458,16 @@ const hasAnyDeviationSomeNode = computed(() =>
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-lg px-8 py-6 mb-6">
     <!-- Title + global all-lines buttons -->
-    <div class="mb-4 flex items-center justify-between gap-4">
-      <h3 class="font-semibold text-gray-800">Choose perform deviation</h3>
+    <div class="mb-4 flex items-center justify-between gap-4 mt-2">
+      <h3 class="font-black text-2xl text-gray-800">Choose Perform Deviation</h3>
 
       <div class="flex items-center gap-2 text-xs">
-        <button
-          type="button"
-          @click="selectAllAllLines"
-          class="px-3 py-1.5 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
-        >
-          select all (all lines)
+        <button type="button" @click="selectAllAllLines"
+          class="px-3 py-1.5 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition">
+          select all (all nodes)
         </button>
-        <button
-          type="button"
-          @click="deleteAllAllLines"
-          class="px-3 py-1.5 rounded-lg bg-white text-gray-900 font-semibold border border-gray-300 hover:bg-gray-50 transition"
-        >
+        <button type="button" @click="deleteAllAllLines"
+          class="px-3 py-1.5 rounded-lg bg-white text-gray-900 font-semibold border border-gray-300 hover:bg-gray-50 transition">
           delete all (all nodes)
         </button>
       </div>
@@ -456,73 +479,51 @@ const hasAnyDeviationSomeNode = computed(() =>
         <label class="text-xs font-medium text-gray-700">
           Analysis file name
         </label>
-        <input
-          v-model="analysisFile"
-          type="text"
-          placeholder="e.g. hazop_L1_L2_run01.xlsx"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
-        />
+        <input v-model="analysisFile" type="text" placeholder="e.g. hazop_name_run01.xlsx"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500" />
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-xs font-medium text-gray-700"> Output folder </label>
-        <input
-          v-model="outputFolder"
-          type="text"
-          placeholder="e.g. static/hazop_runs/2025-12-01"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500"
-        />
+        <input v-model="outputFolder" type="text" placeholder="e.g. 2025-12-08"
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500" />
       </div>
     </div>
 
     <!-- Node info + pagination -->
     <div class="flex items-start justify-between mb-6 gap-6">
-      <div class="text-sm text-gray-600 leading-snug space-y-1">
+      <div class="px-3 text-sm text-gray-600 leading-snug space-y-1">
         <div
-          class="py-2 px-4 justify-center item-center font-medium bg-gray-200 rounded-lg hover:bg-gray-300 transition"
-        >
+          class="py-2 px-4 justify-center item-center font-medium bg-gray-200 rounded-lg hover:bg-gray-300 transition">
+          <span class="text-sm font-black">Node :</span>
           {{ nodeTitle || `node ${currentNode}` }} :
         </div>
-        <div v-if="nodeLine">
+        <div v-if="nodeLine" class="text-semibold">
+          <span class="text-sm font-black">connection :</span>
           {{ nodeLine }}
         </div>
-        <div v-if="nodeContext">
+        <div v-if="nodeContext" class="text-semibold">
+          <span class="text-sm font-black">description : </span>
           {{ nodeContext }}
         </div>
       </div>
 
       <!-- pagination -->
       <div class="flex items-center gap-2 text-sm text-gray-700">
-        <button
-          type="button"
-          class="px-1 disabled:opacity-40"
-          @click="goPrev"
-          :disabled="currentNode === 1"
-        >
+        <button type="button" class="px-1 disabled:opacity-40" @click="goPrev" :disabled="currentNode === 1">
           ←
         </button>
 
         <template v-for="item in pages" :key="String(item)">
-          <button
-            v-if="item !== 'dots'"
-            type="button"
-            class="w-7 h-7 flex items-center justify-center rounded-full text-xs"
-            :class="
-              item === currentNode ? 'bg-black text-white' : 'text-gray-700'
-            "
-            @click="changePage(item as number)"
-          >
+          <button v-if="item !== 'dots'" type="button"
+            class="w-7 h-7 flex items-center justify-center rounded-full text-xs" :class="item === currentNode ? 'bg-black text-white' : 'text-gray-700'
+              " @click="changePage(item as number)">
             {{ item }}
           </button>
           <span v-else class="px-1 text-xs text-gray-400 select-none"> … </span>
         </template>
 
-        <button
-          type="button"
-          class="px-1 disabled:opacity-40"
-          @click="goNext"
-          :disabled="currentNode === totalNodes"
-        >
+        <button type="button" class="px-1 disabled:opacity-40" @click="goNext" :disabled="currentNode === totalNodes">
           →
         </button>
       </div>
@@ -533,18 +534,12 @@ const hasAnyDeviationSomeNode = computed(() =>
       <!-- left: select/delete current line (main params only) -->
       <div class="w-52 flex flex-col gap-4">
         <div class="flex flex-col gap-2">
-          <button
-            type="button"
-            @click="selectAllMainForCurrentNode"
-            class="w-28 h-10 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-900 transition"
-          >
+          <button type="button" @click="selectAllMainForCurrentNode"
+            class="w-28 h-10 rounded-lg bg-black text-white text-sm font-semibold hover:bg-gray-900 transition">
             select all
           </button>
-          <button
-            type="button"
-            @click="clearAllMainForCurrentNode"
-            class="w-28 h-10 rounded-lg bg-white text-gray-900 text-sm font-semibold border border-gray-300 hover:bg-gray-50 transition"
-          >
+          <button type="button" @click="clearAllMainForCurrentNode"
+            class="w-28 h-10 rounded-lg bg-white text-gray-900 text-sm font-semibold border border-gray-300 hover:bg-gray-50 transition">
             delete all
           </button>
         </div>
@@ -553,96 +548,62 @@ const hasAnyDeviationSomeNode = computed(() =>
       <!-- right: main deviation rows -->
       <div class="flex-1">
         <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
-          <div
-            v-for="devType in deviationTypes"
-            :key="devType"
-            class="relative w-full flex items-center gap-3"
-          >
+          <div v-for="devType in deviationTypes" :key="devType" class="relative w-full flex items-center gap-3">
             <!-- dot + name -->
-            <div
-              class="flex items-center gap-2 cursor-pointer"
-              @click="toggleAllBaseForType(devType)"
-            >
-              <span
-                class="w-3 h-3 rounded-full"
-                :class="hasSelectionsFor(devType) ? 'bg-black' : 'bg-gray-300'"
-              ></span>
+            <div class="flex items-center gap-2 cursor-pointer" @click="toggleAllBaseForType(devType)">
+              <span class="w-3 h-3 rounded-full" :class="hasSelectionsFor(devType) ? 'bg-black' : 'bg-gray-300'"></span>
               <span class="text-sm text-gray-700 hover:underline">
                 {{ devType }}
               </span>
             </div>
 
             <!-- base options + plus button -->
-            <div
-              class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1"
-            >
-              <button
-                v-for="opt in deviationOptionsMap[devType]"
-                :key="opt"
-                type="button"
-                class="px-2 py-0.5 rounded-full text-xs transition"
-                :class="
-                  isSelected(devType, opt)
-                    ? 'bg-black text-white'
-                    : 'bg-transparent text-gray-800'
-                "
-                @click.stop="toggleOption(devType, opt)"
-              >
+            <div class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1">
+              <button v-for="opt in deviationOptionsMap[devType]" :key="opt" type="button"
+                class="px-2 py-0.5 rounded-full text-xs transition" :class="isSelected(devType, opt)
+                  ? 'bg-black text-white'
+                  : 'bg-transparent text-gray-800'
+                  " @click.stop="toggleOption(devType, opt)">
                 {{ opt }}
               </button>
 
               <!-- plus: extra guide words -->
-              <button
-                type="button"
+              <button type="button"
                 class="ml-1 w-6 h-6 rounded-full bg-white/80 text-gray-800 text-xs flex items-center justify-center hover:bg-white shadow-sm"
-                @click.stop="toggleExtraPopover(devType)"
-              >
+                @click.stop="toggleExtraPopover(devType)">
                 +
               </button>
             </div>
 
             <!-- popover for extra guide words -->
-            <div
-              v-if="openExtraFor === devType"
-              class="absolute z-20 top-full left-24 mt-2 w-56 rounded-xl bg-white shadow-xl border border-gray-200 py-2 text-xs"
-            >
+            <div v-if="openExtraFor === devType"
+              class="absolute z-20 top-full left-24 mt-2 w-56 rounded-xl bg-white shadow-xl border border-gray-200 py-2 text-xs">
               <div class="px-3 pb-2 font-semibold text-gray-800">
                 Additional guide word
               </div>
 
-              <button
-                type="button"
-                class="w-full text-left px-3 py-1 hover:bg-gray-100 text-[11px]"
-                @click.stop="selectAllExtraForType(devType)"
-              >
+              <button type="button" class="w-full text-left px-3 py-1 hover:bg-gray-100 text-[11px]"
+                @click.stop="selectAllExtraForType(devType)">
                 + select all
               </button>
-              <button
-                type="button"
+              <button type="button"
                 class="w-full text-left px-3 py-1 border-b border-gray-100 hover:bg-gray-100 text-[11px]"
-                @click.stop="clearAllExtraForType(devType)"
-              >
+                @click.stop="clearAllExtraForType(devType)">
                 − clear all
               </button>
 
               <div class="mt-1 max-h-48 overflow-y-auto">
-                <button
-                  v-for="gw in extraGuideWordsFor(devType)"
-                  :key="gw"
-                  type="button"
+                <button v-for="gw in extraGuideWordsFor(devType)" :key="gw" type="button"
                   class="w-full flex items-center justify-between px-3 py-1 hover:bg-gray-100"
-                  @click.stop="toggleExtraGuide(devType, gw)"
-                >
+                  @click.stop="toggleExtraGuide(devType, gw)">
                   <span>{{ gw }}</span>
                   <span v-if="isSelected(devType, gw)">✓</span>
                 </button>
               </div>
 
-              <button
-                type="button"
+              <button type="button"
                 class="w-full mt-1 px-3 py-1 text-center text-[11px] text-gray-600 border-t border-gray-100 hover:bg-gray-50"
-                @click.stop="openExtraFor = null"
-              >
+                @click.stop="openExtraFor = null">
                 cancel
               </button>
             </div>
@@ -654,97 +615,87 @@ const hasAnyDeviationSomeNode = computed(() =>
     <!-- Additional parameters (collapsible) -->
     <div class="mt-8 border-t border-gray-200 pt-4">
       <div class="flex items-center justify-between mb-3">
-        <button
-          type="button"
+        <button type="button"
           class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-100 text-xs text-gray-700 hover:bg-gray-200 transition"
-          @click="toggleAdditionalSection"
-        >
+          @click="toggleAdditionalSection">
           <span>{{ showAdditional ? "−" : "+" }}</span>
           <span>Additional parameters </span>
         </button>
 
         <div v-if="showAdditional" class="flex items-center gap-2 text-[11px]">
-          <button
-            type="button"
+          <button type="button"
             class="px-3 py-1 rounded-lg bg-black text-white font-semibold hover:bg-gray-900 transition"
-            @click="selectAllAdditionalForCurrentNode"
-          >
-            + select all
-          </button>
-          <button
-            type="button"
-            class="px-3 py-1 rounded-lg bg-white text-gray-900 font-semibold border border-gray-300 hover:bg-gray-50 transition"
-            @click="clearAllAdditionalForCurrentNode"
-          >
-            − delete all
+            @click="selectAllAdditionalForCurrentNode">
+            {{ isAllAdditionalSelected() ? "− delete all" : "+ select all" }}
           </button>
         </div>
       </div>
 
       <div v-if="showAdditional">
-        <div class="grid md:grid-cols-2 gap-x-8 gap-y-3">
-          <div
-            v-for="param in additionalParams"
-            :key="param"
-            class="w-full flex items-center gap-3"
-          >
-            <div class="flex items-center gap-2">
-              <span
-                class="w-3 h-3 rounded-full"
-                :class="hasSelectionsFor(param) ? 'bg-black' : 'bg-gray-300'"
-              ></span>
-              <span class="text-sm text-gray-700">
+        <div class="grid md:grid-cols-4 gap-x-8 gap-y-3 px-25">
+          <div v-for="param in additionalParams" :key="param" class="relative w-full flex items-center gap-3">
+            <!-- Click param name: select all / clear all -->
+            <div class="flex items-center gap-2 cursor-pointer" @click="toggleAllForAdditional(param)">
+              <span class="w-3 h-3 rounded-full" :class="hasSelectionsFor(param) ? 'bg-black' : 'bg-gray-300'"></span>
+              <span class="text-sm text-gray-700 hover:underline">
                 {{ param }}
               </span>
             </div>
 
-            <div
-              class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1"
-            >
-              <button
-                v-for="gw in validGuideWords"
-                :key="gw"
-                type="button"
-                class="px-2 py-0.5 rounded-full text-xs transition"
-                :class="
-                  isSelected(param, gw)
-                    ? 'bg-black text-white'
-                    : 'bg-transparent text-gray-800'
-                "
-                @click.stop="toggleOption(param, gw)"
-              >
-                {{ gw }}
+            <!-- Chip + plus button -->
+            <div class="inline-flex flex-wrap items-center gap-1 bg-gray-200 rounded-full px-3 py-1">
+              <!-- + button to open guide word list -->
+              <button type="button"
+                class="text-xs font-semibold px-2 py-0.5 rounded-full bg-white hover:bg-white shadow-sm"
+                @click.stop="toggleAdditionalPopover(param)">
+                {{ openAdditionalFor === param ? "−" : "+" }}
+              </button>
+            </div>
+
+            <!-- Popover with all guide words for this additional param -->
+            <div v-if="openAdditionalFor === param"
+              class="absolute z-20 top-full left-0 mt-2 w-56 rounded-xl bg-white shadow-xl border border-gray-200 py-2 text-xs">
+              <div class="px-3 pb-2 font-semibold text-gray-800 border-b border-gray-200">
+                Guide words
+              </div>
+              <button type="button"
+                class="w-full text-left px-3 py-1 hover:bg-gray-100 text-[11px] border-b border-gray-200"
+                @click="selectAllAdditionalForCurrentNode">
+                {{ isAllAdditionalSelected() ? "− delete all" : "+ select all" }}
+              </button>
+
+
+              <button v-for="gw in validGuideWords" :key="gw" type="button"
+                class="w-full flex items-center justify-between px-3 py-1 hover:bg-gray-100"
+                @click.stop="toggleOption(param, gw)">
+                <span>{{ gw }}</span>
+                <span v-if="isSelected(param, gw)">✓</span>
+              </button>
+
+              <button type="button"
+                class="w-full mt-1 px-3 py-1 text-center text-[11px] text-gray-600 border-t border-gray-100 hover:bg-gray-50"
+                @click.stop="openAdditionalFor = null">
+                close
               </button>
             </div>
           </div>
         </div>
       </div>
+
     </div>
 
     <!-- Bottom-right: Preview + Next -->
     <div class="mt-6 flex items-center justify-end">
       <div class="flex gap-3">
-        <button
-          class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
-          @click="handlePreviewClick"
-        >
+        <button class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+          @click="handlePreviewClick">
           Preview
         </button>
         <button
           class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
-          @click="handleNextClick"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
+          @click="handleNextClick">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
           </svg>
@@ -754,42 +705,33 @@ const hasAnyDeviationSomeNode = computed(() =>
 
     <!-- Preview popup: all lines summary -->
     <transition name="fade">
-      <div
-        v-if="showPreview"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-      >
-        <div
-          class="bg-white rounded-2xl shadow-xl max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto"
-        >
-          <h3 class="text-lg font-semibold text-gray-800 mb-2">
-            Deviation preview for all selected lines
+      <div v-if="showPreview" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="bg-white rounded-2xl shadow-xl max-w-3xl w-full p-6 max-h-[80vh] overflow-y-auto">
+          <h3 class="text-lg font-black text-gray-800 mb-2">
+            Deviations preview for All Perform Nodes
           </h3>
           <p class="text-sm text-gray-600 mb-4">
-            Review selected deviations for each line before submitting.
+            Review selected deviations for each nodes before submitting.
           </p>
 
-          <div
-            v-if="!hasAnyDeviationSomeNode"
-            class="text-sm text-gray-500 italic mb-4"
-          >
+          <div v-if="!hasAnyDeviationSomeNode" class="text-sm text-gray-500 italic mb-4">
             No deviations selected for any line yet.
           </div>
 
           <template v-for="node in allNodes" :key="node.id">
-            <div
-              v-if="hasAnyDeviationForNode(node.id)"
-              class="mb-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
-            >
+            <div v-if="hasAnyDeviationForNode(node.id)" class="mb-4 p-4 rounded-xl border border-gray-200 bg-gray-50">
+
               <h4 class="font-semibold text-gray-800 mb-1">
+                <span class="text-sm font-black">Node :</span>
                 {{ node.name }}
               </h4>
 
               <div class="text-xs text-gray-600 mb-2 space-y-1">
                 <div v-if="node.range">
-                  <span class="font-medium">Range:</span> {{ node.range }}
+                  <span class="font-black">connection:</span> {{ node.range }}
                 </div>
                 <div v-if="node.context">
-                  <span class="font-medium">Context:</span> {{ node.context }}
+                  <span class="font-black">description:</span> {{ node.context }}
                 </div>
               </div>
 
@@ -805,23 +747,17 @@ const hasAnyDeviationSomeNode = computed(() =>
           </template>
 
           <div class="mt-4 flex justify-end gap-3">
-            <button
-              type="button"
+            <button type="button"
               class="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition"
-              @click="closePreview"
-            >
+              @click="closePreview">
               Close
             </button>
-            <button
-              type="button"
-              class="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition"
-              @click="
-                () => {
-                  closePreview();
-                  handleNextClick();
-                }
-              "
-            >
+            <button type="button" class="px-4 py-2 rounded-lg bg-black text-white hover:bg-gray-800 transition" @click="
+              () => {
+                closePreview();
+                handleNextClick();
+              }
+            ">
               Confirm &amp; Next
             </button>
           </div>
@@ -836,6 +772,7 @@ const hasAnyDeviationSomeNode = computed(() =>
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;

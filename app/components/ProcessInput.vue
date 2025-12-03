@@ -176,7 +176,7 @@ const fileColor = (file: File): string => {
           <!-- Name -->
           <input
             type="text"
-            placeholder="type name"
+            placeholder="type process name"
             :value="name"
             @input="handleNameInput"
             :disabled="locked"
@@ -222,7 +222,7 @@ const fileColor = (file: File): string => {
             :value="description"
             :disabled="locked"
             rows="1"
-            class="bg-gray-200 px-4 py-2 rounded-lg flex-1 min-h-[3rem] h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
+            class="bg-gray-200 px-4 py-2 rounded-lg flex-1 min-h-12 h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
             @input="
               (e) => {
                 handleDescriptionInput(e);
@@ -278,7 +278,7 @@ const fileColor = (file: File): string => {
           <!-- Input -->
           <textarea
             :disabled="locked"
-            placeholder="type search name"
+            placeholder="search process name"
             :value="name"
             @input="handleNameInput"
             rows="1"

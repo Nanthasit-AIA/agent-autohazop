@@ -1,6 +1,13 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import PipelineGraphModal, { type Connection } from '~/components/PipelineGraphModal.vue'
+import { ref, computed } from 'vue'
+import SelectedPipelineGraph from '~/components/SelectedPipelineGraph.vue'
+
+export interface Connection {
+  line_id: string
+  from_id: string
+  to_id: string
+  context?: string
+}
 
 export interface NodeItem {
   id: string | number
@@ -9,13 +16,10 @@ export interface NodeItem {
   context?: string
 }
 
-const selectedConnections = ref<Connection[]>([])
-const showGraph = ref(false)
-
 const props = defineProps<{
   modelValue: (string | number)[]
   nodes: NodeItem[]
-  // 🔹 all connections from PID JSON (line_id, from_id, to_id, context)
+  // All connections from PID JSON (line_id, from_id, to_id, context)
   connections: Connection[]
 }>()
 
@@ -23,6 +27,8 @@ const emit = defineEmits<{
   'update:modelValue': [(string | number)[]]
   next: []
 }>()
+
+const showGraph = ref(false)
 
 const toggleNode = (nodeId: string | number) => {
   const exists = props.modelValue.includes(nodeId)
@@ -46,28 +52,34 @@ const handleClearAll = () => {
   emit('update:modelValue', [])
 }
 
-// 🔹 Build subset of connections for selected line_ids & open modal
-const handlePreviewClick = () => {
-  if (!props.connections?.length || !props.modelValue.length) return
+// Build subset of connections for selected line_ids
+const selectedConnections = computed(() => {
+  if (!props.connections?.length || !props.modelValue.length) return []
 
   const selectedIds = new Set(props.modelValue.map(v => String(v)))
 
-  selectedConnections.value = props.connections.filter(conn =>
+  return props.connections.filter(conn =>
     selectedIds.has(String(conn.line_id))
   )
+})
 
+// Open modal
+const handlePreviewClick = () => {
   if (selectedConnections.value.length === 0) return
-
   showGraph.value = true
+}
+
+const handleCloseGraph = () => {
+  showGraph.value = false
 }
 </script>
 
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-lg mb-6">
     <!-- Header + Select/Clear buttons -->
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold text-gray-800">
-        Choose perform node : {{ modelValue.length }}/{{ nodes.length }}
+    <div class="flex items-center justify-between mb-8 mt-2">
+      <h3 class="font-black text-gray-800 text-2xl">
+        Choose Perform Nodes : {{ modelValue.length }}/{{ nodes.length }}
       </h3>
 
       <div class="flex gap-2">
@@ -91,7 +103,7 @@ const handlePreviewClick = () => {
     <!-- Node list -->
     <div
       class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
-      :class="nodes.length > 4 ? 'max-h-122 overflow-y-auto pr-2' : ''"
+      :class="nodes.length > 4 ? 'max-h-[488px] overflow-y-auto pr-2' : ''"
     >
       <label
         v-for="node in nodes"
@@ -106,12 +118,15 @@ const handlePreviewClick = () => {
         />
         <div class="flex-1">
           <div class="font-medium text-gray-700">
+            <span class="text-sm font-black">Node :</span>
             {{ node.name }}
           </div>
           <div v-if="node.range" class="text-sm text-gray-500">
+            <span class="text-sm font-black">connection :</span>
             {{ node.range }}
           </div>
           <div v-if="node.context" class="text-sm text-gray-500">
+            <span class="text-sm font-black">description :</span>
             {{ node.context }}
           </div>
         </div>
@@ -154,10 +169,10 @@ const handlePreviewClick = () => {
     </div>
   </div>
 
-  <!-- 🔹 Pipeline graph modal -->
-  <PipelineGraphModal
+  <!-- Full-screen Pipeline Graph Modal -->
+  <SelectedPipelineGraph
     :show="showGraph"
     :connections="selectedConnections"
-    @close="showGraph = false"
+    @close="handleCloseGraph"
   />
 </template>

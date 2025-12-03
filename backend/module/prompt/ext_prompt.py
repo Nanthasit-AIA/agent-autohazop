@@ -32,7 +32,7 @@ Step 7 - Identify utility_lines:
 * any visible `context` such as operational purpose or endpoint
 
 Step 8 - Map all connections (process or pipeline lines):
-- Assign a unique "line_id" (use image tag or assign Node:1, Node:2, ...).
+- Assign a unique "line_id" (use image tag or assign L1, L2, ...).
 - Define "from_id" and "to_id" based on origin and destination (equipment ID or system input/output).
 - For each connection, list:
     * valve_ids on the segment

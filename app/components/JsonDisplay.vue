@@ -247,22 +247,18 @@ const closeGraph = () => {
 <template>
   <div class="bg-white rounded-2xl p-6 shadow-lg w-full max-w-6xl mx-auto">
     <!-- Header: file + tokens/latency -->
-    <div
-      v-if="fileName || totalTokens !== null || latencySeconds !== null"
-      class="mb-3 flex flex-col gap-1 md:flex-row md:items-center md:justify-between"
-    >
-      <div v-if="fileName" class="text-sm text-gray-500">
+    <div v-if="fileName || totalTokens !== null || latencySeconds !== null"
+      class="mb-3 flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+      <div v-if="fileName" class="text-sm text-gray-800 font-black">
         File:
         <span class="font-medium text-gray-700">{{ fileName }}</span>
       </div>
 
-      <div
-        v-if="totalTokens !== null || latencySeconds !== null"
-        class="text-xs text-gray-500 flex flex-wrap gap-3 md:justify-end"
-      >
+      <div v-if="totalTokens !== null || latencySeconds !== null"
+        class="text-xs text-gray-500 flex flex-wrap gap-3 md:justify-end">
         <span v-if="totalTokens !== null">
           Tokens:
-          <span class="font-medium text-gray-700">{{ totalTokens }}</span>
+          <span class="font-medium text-gray-700 ">{{ totalTokens }}</span>
         </span>
         <span v-if="latencySeconds !== null">
           Latency:
@@ -275,8 +271,8 @@ const closeGraph = () => {
 
     <!-- User Input: process_description -->
     <div v-if="hasProcessDescription" class="mb-6">
-      <h2 class="text-sm font-semibold text-gray-700 mb-1">User Input</h2>
-      <div class="border border-gray-200 rounded-2xl p-4 bg-slate-50">
+      <span class="text-xl font-black text-gray-700 ml-3">Input Description</span>
+      <div class="border border-gray-200 rounded-2xl p-4 bg-slate-50 mt-2">
         <p class="text-sm text-gray-800 whitespace-pre-line">
           {{ processDescription }}
         </p>
@@ -287,10 +283,7 @@ const closeGraph = () => {
     <div v-if="isLoading" class="text-sm text-gray-500">Loading JSON…</div>
 
     <!-- No data -->
-    <div
-      v-else-if="!pidRoot || !availableSections.length"
-      class="text-sm text-gray-500"
-    >
+    <div v-else-if="!pidRoot || !availableSections.length" class="text-sm text-gray-500">
       No structured output sections found in JSON data.
     </div>
 
@@ -298,22 +291,15 @@ const closeGraph = () => {
     <div v-else>
       <!-- Output header: section buttons -->
       <div
-        class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4"
-      >
-        <h3 class="text-sm font-semibold text-gray-700">Output Sections</h3>
+        class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-2 py-2 border-b border-gray-200">
+        <h3 class="text-xl font-black text-gray-700 ml-3">Process Output Sections</h3>
 
         <div v-if="availableSections.length" class="flex flex-wrap gap-2">
-          <button
-            v-for="sec in availableSections"
-            :key="sec.id"
-            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition"
-            :class="
-              sec.id === currentSectionId
+          <button v-for="sec in availableSections" :key="sec.id"
+            class="px-3 py-1.5 rounded-lg text-xs font-medium border transition" :class="sec.id === currentSectionId
                 ? 'bg-black text-white border-black'
                 : 'bg-gray-100 text-gray-700 border-gray-300 hover:bg-gray-200'
-            "
-            @click="switchSection(sec.id)"
-          >
+              " @click="switchSection(sec.id)">
             {{ sec.label }}
           </button>
         </div>
@@ -322,14 +308,12 @@ const closeGraph = () => {
       <!-- Section header (current section info + graph button) -->
       <div class="flex items-center justify-between mb-2">
         <div class="flex items-center gap-2">
-          <h2 class="text-lg font-semibold text-gray-800 ml-2">
+          <h2 class="text-lg font-black text-gray-600 ml-3">
             {{ currentSection?.label }}
           </h2>
 
-          <span
-            v-if="currentCount > 1"
-            class="inline-flex items-center justify-center px-2 py-0.5 text-sm font-semibold rounded-full bg-gray-200 text-gray-700"
-          >
+          <span v-if="currentCount > 1"
+            class="inline-flex items-center justify-center px-2 py-0.5 text-sm font-semibold rounded-full bg-gray-200 text-gray-700">
             {{ currentCount }}
           </span>
         </div>
@@ -340,42 +324,29 @@ const closeGraph = () => {
           </span>
 
           <!-- ✅ Preview graph button -->
-          <button
-            v-if="hasConnections"
-            type="button"
+          <!-- <button v-if="hasConnections" type="button"
             class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 transition"
-            @click="openGraph"
-          >
+            @click="openGraph">
             Preview graph
-          </button>
+          </button> -->
         </div>
       </div>
 
       <!-- Content box -->
       <div class="border border-gray-200 rounded-2xl p-4 bg-slate-50">
         <!-- simple string / number / boolean -->
-        <p
-          v-if="isPrimitiveSection"
-          class="text-sm text-gray-800 whitespace-pre-line"
-        >
+        <p v-if="isPrimitiveSection" class="text-sm text-gray-800 whitespace-pre-line">
           {{ sectionData }}
         </p>
 
         <!-- array of objects: show cards -->
         <div v-else-if="isArrayOfObjects" class="grid gap-3 md:grid-cols-2">
-          <div
-            v-for="(item, idx) in sectionData"
-            :key="idx"
-            class="bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-800"
-          >
-            <div
-              v-for="entry in getSortedEntries(
-                item as Record<string, unknown>,
-                currentSection?.id ?? null
-              )"
-              :key="entry.key"
-              class="flex justify-between gap-2"
-            >
+          <div v-for="(item, idx) in sectionData" :key="idx"
+            class="bg-white rounded-lg border border-gray-200 p-3 text-xs text-gray-800">
+            <div v-for="entry in getSortedEntries(
+              item as Record<string, unknown>,
+              currentSection?.id ?? null
+            )" :key="entry.key" class="flex justify-between gap-2">
               <span class="text-gray-500">{{ entry.key }}</span>
               <span class="font-medium break-all">{{ entry.value }}</span>
             </div>
@@ -383,21 +354,15 @@ const closeGraph = () => {
         </div>
 
         <!-- fallback: pretty JSON -->
-        <pre v-else class="text-xs text-gray-800 whitespace-pre overflow-x-auto"
-          >{{ prettySectionJson }}
+        <pre v-else class="text-xs text-gray-800 whitespace-pre overflow-x-auto">{{ prettySectionJson }}
         </pre>
       </div>
 
       <!-- Navigation buttons -->
-      <div
-        v-if="availableSections.length > 1"
-        class="flex items-center justify-between mt-4 text-xs"
-      >
+      <div v-if="availableSections.length > 1" class="flex items-center justify-between mt-4 text-xs">
         <button
           class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="currentIndex <= 0"
-          @click="goPrev"
-        >
+          :disabled="currentIndex <= 0" @click="goPrev">
           ← Previous
         </button>
 
@@ -407,9 +372,7 @@ const closeGraph = () => {
 
         <button
           class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-          :disabled="currentIndex >= availableSections.length - 1"
-          @click="goNext"
-        >
+          :disabled="currentIndex >= availableSections.length - 1" @click="goNext">
           Next →
         </button>
       </div>
@@ -417,23 +380,16 @@ const closeGraph = () => {
 
     <!-- 🔍 Graph modal -->
     <transition name="fade">
-      <div
-        v-if="showGraph"
-        class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-        @click.self="closeGraph"
-      >
-        <div
-          class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[80vh] p-4 overflow-hidden"
-        >
+      <div v-if="showGraph" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+        @click.self="closeGraph">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[80vh] p-4 overflow-hidden">
           <div class="flex items-center justify-between mb-3">
             <h3 class="text-sm font-semibold text-gray-800">
               Connection graph
             </h3>
-            <button
-              type="button"
+            <button type="button"
               class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
-              @click="closeGraph"
-            >
+              @click="closeGraph">
               <span class="text-sm font-bold text-gray-600">×</span>
             </button>
           </div>
@@ -453,6 +409,7 @@ const closeGraph = () => {
 .fade-leave-active {
   transition: opacity 0.2s ease;
 }
+
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
