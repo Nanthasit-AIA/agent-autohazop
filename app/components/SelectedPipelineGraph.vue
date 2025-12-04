@@ -522,8 +522,10 @@ const getPath = (
             <div
               class="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-white shrink-0"
             >
+              
               <h2 class="text-2xl font-black text-gray-900">
-                🗠🔍 Pipeline Graph Preview
+                <i class="fi fi-br-circle-nodes text-lg mr-2"/>
+                Pipeline Graph Preview
                 <span class="text-sm font-bold text-gray-500 ml-2">
                   ({{ connections.length }} connections)
                 </span>
