@@ -1,158 +1,203 @@
-import base64, time
+import openai, time
 from pathlib import Path
+from typing import Dict, List
 
-import openai
-from decorators import logger, timeit_log
-
-from module.llm_module import get_openai_sdk
+from module.llm_module import get_openai_sdk, build_llm_metadata, LLMUsageMeta
 from module.schema_json import PIDResponse
-
-prompt = {
-    "system_prompt" : (
-    """
-        Act like an expert Process and Instrumentation Diagram (P&ID) analyst and industrial automation engineer. Your role is to meticulously extract and structure all relevant data from a given P&ID image and accompanying high-level process description. Your final output must be a detailed JSON object that conforms exactly to the schema described below.
-        Your objective is to interpret the P&ID and convert it into structured, machine-readable JSON by identifying process operations, equipment, control systems, and flow interconnections.
-
-        Follow these exact steps:
-
-        Step 1 - Summarize the core process operation concisely under "process_description".
-
-        Step 2 - Identify and list all system_inputs such as raw materials or utilities (e.g., HF, BF3, N2).
-
-        Step 3 - Identify and list all system_outputs including any discharges to atmosphere or wastewater treatment (e.g., ATM., Flare, W.W.T.).
-
-        Step 4 - Detect all major equipment:
-        - Use tag names shown (e.g., R-101, S-101).
-        - If no tag, infer from shape and assign a type-based ID (e.g., HX1 for heat exchanger, COL1 for column, V1 for vessel).
-        - Include a `context` field where applicable, describing its operational role or positioning.
-
-        Step 5 - Identify and label all valves:
-        - Use visible tags (e.g., V-101).
-        - If untagged, assign unique IDs like V1, V2, V3...
-        - Include a `location` or `context` if indicated (e.g., “near BF3 inlet”).
-
-        Step 6 - Extract all instruments:
-        - Use ISA tag codes (e.g., PC1, TC1, TI1, FC2).
-        - If missing, infer instrument type and assign standard ID format.
-        - Include functional purpose in `function`, and `location` or `context` where relevant (e.g., "controls R-101 pressure").
-        
-        Step 7 - Identify utility_lines:
-        - Detect all external utilities (e.g., AIR IN, H.T., CW).
-        - For each utility, classify by "utility_type", list all valve IDs it passes through, and describe its "flow_direction" (e.g., "into reactor").
-        * any visible `context` such as operational purpose or endpoint
-
-        Step 8 - Map all connections (process or pipeline lines):
-        - Assign a unique "line_id" (use image tag or assign L1, L2, ...).
-        - Define "from_id" and "to_id" based on origin and destination (equipment ID or system input/output).
-        - For each connection, list:
-            * valve_ids on the segment
-            * instrument_ids on the segment
-            * list all valves, instruments does that line pass through
-            * flow_direction based strictly on arrow markers in the image
-            * any contextual detail (e.g., “BF3 feed to R-101”)
-            * and for information keep this format for connection:
-                1. Every process/utility line segment must include:
-                - line_id
-                - from_id, to_id
-                - valves: [valve_ids on that physical segment]
-                - instruments: [instrument_ids on that physical segment]
-                - context (optional)
-
-                2. Instrument self-measurements:
-                - When an instrument measures/acts only on one equipment item (no distinct line segment), create a “self-connection”:
-                    {
-                    "line_id": "MEAS-<equipment_id>",
-                    "from_id": "<equipment_id>",
-                    "to_id":   "<equipment_id>",
-                    "valves": [],
-                    "instruments": ["<instrument_id> all on measurement on this equipment"],
-                    "context": "<what is being measured/controlled>"
-                    }
-
-        Important Constraints:
-        - Check about user prompt {description} for count of equipment, valve, instrument for information
-        - Never guess flow direction; rely only on arrows in the diagram.
-        - Followed Flow direction by check with arrow and number of this line by follow like Line-1 to Line-2 to Line-3 
-        - Treat branches and merges as separate segments if arrows differ.
-        - All objects ID must be listed once per type.
-        - Reuse all IDs consistently across connections, utilities, and references.
-        - Extract and include `context` data wherever such visual or textual information is available.
-        - keep input {description} from user prompt into "process_description"
-
-        **ID Naming Rules:**
-        - Equipment: Use tag if shown (e.g., R-101); otherwise infer and assign (e.g., HX1, COL1).
-        - Valves: Use tag if shown (e.g., V-101); else assign V1, V2...
-        - Instruments: Use standard ISA code (e.g., TI1, PC1, LC1).
-        - Connections: Use line tag if shown (e.g., L01); else assign L1, L2...
-       
-        **Schema Reference:**
-        - Equipment: `id`, `name`, `type`, `context`
-        - Valve: `id`, `type`, `location`, `context`
-        - Instrument: `id`, `function`, `location`, `context`
-        - UtilityLine: `utility_type`, `valves`, `flow_direction`, `context`
-        - Connection: `line_id`, `from_id`, `to_id`, `valves`, `instruments`, `context`
-
-        Return **only** the final JSON output matching the above schema — do not include any narrative explanation, assumptions, or notes.
-
-        Take a deep breath and work on this problem step-by-step.
-
-    """
-    ),
-    "user_prompt" : (
-        "{description}\n\n"
-        "Identify all equipment, valves, and instruments; list system inputs and "
-        "outputs; detail utility lines; and build full connection objects as specified "
-        "above.\n\n"
-        "Return only the JSON matching the schema."
-    )
-}
+from module.prompt.ext_prompt import PID_SYSTEM_PROMPT, build_pid_input
+from decorators import logger, timeit_log
+from utils import save_pid_json
 
 @timeit_log
-def encode_image(image_path: str) -> str:
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-
-@timeit_log
-def extract_pid(image_path: str,
-                *,
-                process_description: str,
-                model: str = "o3-2025-04-16",
-                max_retries: int = 3,
-                backoff_s: float = 2.0) -> PIDResponse:
+def _upload_vision_file(path: str | Path) -> str:
     client = get_openai_sdk()
-    img_uri = encode_image(Path(image_path))
+    path = Path(path)
+
+    with path.open("rb") as f:
+        file_obj = client.files.create(
+            file=f,
+            purpose="user_data",  
+        )
+    logger.info("Uploaded file '%s' as id=%s", path, file_obj.id)
+    return file_obj.id
+
+# single file (PDF or image) using Responses API.
+def extract_pid(
+    file_path: str,
+    *,
+    process_description: str,
+    model: str = "gpt-5.1-2025-11-13",
+    max_retries: int = 3,
+    backoff_s: float = 2.0,
+) -> tuple[PIDResponse, LLMUsageMeta]:
+    client = get_openai_sdk()
+
+    file_id = _upload_vision_file(file_path)
+    input_messages = build_pid_input(process_description, [file_id])
+
     for attempt in range(1, max_retries + 1):
         try:
-            return client.chat.completions.parse(
-                        model=model,
-                        seed= 42,
-                        temperature=1,
-                        response_format=PIDResponse,
-                        messages=[
-                            {"role": "system", "content": prompt["system_prompt"]},
-                            {"role": "user", "content": prompt["user_prompt"].format(description=process_description)},
-                            {
-                                "role": "user",
-                                "content": [
-                                    {"type": "image_url", "image_url": {"url": f"data:image/png;base64,{img_uri}"}}
-                                ]
-                            }
-                        ],
-                    )
-        except openai.BadRequestError as e:
-            logger.warning("[attempt %d/%d] JSON validation failed: %s",
-                        attempt, max_retries, e.message)
+            start_t = time.perf_counter()
 
+            resp = client.responses.parse(
+                model=model,
+                instructions=PID_SYSTEM_PROMPT,
+                input=input_messages,
+                text_format=PIDResponse,
+            )
+
+            elapsed = time.perf_counter() - start_t
+
+            pid_result: PIDResponse = resp.output_parsed
+            meta = build_llm_metadata(resp, elapsed)
+
+            total_tokens = meta.get("tokens", {}).get("total")
+            logger.info(
+                "LLM single-file usage: model=%s total_tokens=%s latency=%.3fs",
+                meta.get("model"),
+                total_tokens,
+                meta["latency_s"],
+            )
+
+            return pid_result, meta
+
+        except openai.BadRequestError as e:
+            logger.warning(
+                "[attempt %d/%d] JSON validation or request failed: %s",
+                attempt,
+                max_retries,
+                getattr(e, "message", str(e)),
+            )
         except openai.APITimeoutError as e:
-            logger.warning("[attempt %d/%d] OpenAI timeout: %s",
-                        attempt, max_retries, e)
+            logger.warning(
+                "[attempt %d/%d] OpenAI timeout: %s",
+                attempt,
+                max_retries,
+                e,
+            )
         except openai.APIConnectionError as e:
-            logger.warning("[attempt %d/%d] OpenAI connection error: %s",
-                        attempt, max_retries, e)
-            
+            logger.warning(
+                "[attempt %d/%d] OpenAI connection error: %s",
+                attempt,
+                max_retries,
+                e,
+            )
+
         if attempt < max_retries:
             time.sleep(backoff_s * attempt)
 
     raise RuntimeError(
-        f"Failed to obtain valid P&ID JSON after {max_retries} attempts."
+        f"Failed to obtain valid P&ID JSON for {file_path} after {max_retries} attempts."
     )
+
+# multiple files (e.g. several PDFs + images) in ONE API call.
+# NOTE:
+# The model will automatically interpret ANY file types:
+# P&ID, PFD, symbol sheets, spec sheets, etc.
+# File order does NOT matter; all context is used together.
+@timeit_log
+def extract_pid_multi_files_single_call(
+    file_paths: List[str],
+    *,
+    process_description: str,
+    model: str = "gpt-5.1-2025-11-13",
+    max_retries: int = 3,
+    backoff_s: float = 2.0,
+) -> tuple[PIDResponse, LLMUsageMeta]:
+    client = get_openai_sdk()
+
+    file_ids: List[str] = []
+    for p in file_paths:
+        try:
+            fid = _upload_vision_file(p)
+            file_ids.append(fid)
+        except Exception as e:
+            logger.error("Failed to upload file '%s': %s", p, e)
+            raise
+
+    input_messages = build_pid_input(process_description, file_ids)
+
+    for attempt in range(1, max_retries + 1):
+        try:
+            start_t = time.perf_counter()
+
+            resp = client.responses.parse(
+                model=model,
+                instructions=PID_SYSTEM_PROMPT,
+                input=input_messages,
+                text_format=PIDResponse,
+            )
+
+            elapsed = time.perf_counter() - start_t
+
+            pid_result: PIDResponse = resp.output_parsed
+            meta = build_llm_metadata(resp, elapsed)
+
+            logger.info(
+                "LLM multi-files usage: model=%s total_tokens=%s latency=%.3fs",
+                meta["model"],
+                meta["tokens"]["total"],
+                meta["latency_s"],
+            )
+
+            return pid_result, meta
+
+        except openai.BadRequestError as e:
+            logger.warning(
+                "[attempt %d/%d] JSON validation or request failed (multi-files): %s",
+                attempt,
+                max_retries,
+                getattr(e, "message", str(e)),
+            )
+        except openai.APITimeoutError as e:
+            logger.warning(
+                "[attempt %d/%d] OpenAI timeout (multi-files): %s",
+                attempt,
+                max_retries,
+                e,
+            )
+        except openai.APIConnectionError as e:
+            logger.warning(
+                "[attempt %d/%d] OpenAI connection error (multi-files): %s",
+                attempt,
+                max_retries,
+                e,
+            )
+
+        if attempt < max_retries:
+            time.sleep(backoff_s * attempt)
+
+    raise RuntimeError(
+        f"Failed to obtain valid P&ID JSON for files {file_paths} after {max_retries} attempts."
+    )
+
+# Run P&ID extraction for multiple files, but with ONE call per file.
+@timeit_log
+def extract_pid_batch(
+    file_paths: List[str],
+    *,
+    process_description: str,
+    model: str = "gpt-5.1-2025-11-13",
+    max_retries: int = 3,
+    backoff_s: float = 2.0,
+) -> Dict[str, Dict[str, object]]:
+    results: Dict[str, Dict[str, object]] = {}
+
+    for p in file_paths:
+        try:
+            logger.info("Starting P&ID extraction for: %s", p)
+            pid_result, meta = extract_pid(
+                p,
+                process_description=process_description,
+                model=model,
+                max_retries=max_retries,
+                backoff_s=backoff_s,
+            )
+            results[p] = {
+                "pid": pid_result,
+                "metadata": meta,
+            }
+        except Exception as e:
+            logger.error("Failed to extract P&ID from %s: %s", p, e)
+
+    return results

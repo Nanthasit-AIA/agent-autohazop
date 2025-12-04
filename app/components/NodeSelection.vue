@@ -1,4 +1,14 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
+import SelectedPipelineGraph from '~/components/SelectedPipelineGraph.vue'
+
+export interface Connection {
+  line_id: string
+  from_id: string
+  to_id: string
+  context?: string
+}
+
 export interface NodeItem {
   id: string | number
   name: string
@@ -6,49 +16,70 @@ export interface NodeItem {
   context?: string
 }
 
-
 const props = defineProps<{
-  modelValue: (string | number)[];
-  nodes: NodeItem[];
-}>();
+  modelValue: (string | number)[]
+  nodes: NodeItem[]
+  // All connections from PID JSON (line_id, from_id, to_id, context)
+  connections: Connection[]
+}>()
 
 const emit = defineEmits<{
-  "update:modelValue": [(string | number)[]];
-  next: [];
-}>();
+  'update:modelValue': [(string | number)[]]
+  next: []
+}>()
+
+const showGraph = ref(false)
 
 const toggleNode = (nodeId: string | number) => {
-  const exists = props.modelValue.includes(nodeId);
+  const exists = props.modelValue.includes(nodeId)
   const newValue = exists
-    ? props.modelValue.filter((id) => id !== nodeId)
-    : [...props.modelValue, nodeId];
+    ? props.modelValue.filter(id => id !== nodeId)
+    : [...props.modelValue, nodeId]
 
-  emit("update:modelValue", newValue);
-};
+  emit('update:modelValue', newValue)
+}
 
 const handleNextClick = () => {
-  emit("next");
-};
+  emit('next')
+}
 
-// ✅ Select all nodes
 const handleSelectAll = () => {
-  const allIds = props.nodes.map((node) => node.id);
-  emit("update:modelValue", allIds);
-};
+  const allIds = props.nodes.map(node => node.id)
+  emit('update:modelValue', allIds)
+}
 
-// ✅ Clear all selections
 const handleClearAll = () => {
-  emit("update:modelValue", []);
-};
+  emit('update:modelValue', [])
+}
+
+// Build subset of connections for selected line_ids
+const selectedConnections = computed(() => {
+  if (!props.connections?.length || !props.modelValue.length) return []
+
+  const selectedIds = new Set(props.modelValue.map(v => String(v)))
+
+  return props.connections.filter(conn =>
+    selectedIds.has(String(conn.line_id))
+  )
+})
+
+// Open modal
+const handlePreviewClick = () => {
+  if (selectedConnections.value.length === 0) return
+  showGraph.value = true
+}
+
+const handleCloseGraph = () => {
+  showGraph.value = false
+}
 </script>
 
-
 <template>
-  <div class="bg-white border-2 border-gray-300 rounded-2xl p-6 mb-6">
+  <div class="bg-white rounded-2xl p-6 shadow-lg mb-6">
     <!-- Header + Select/Clear buttons -->
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold text-gray-800">
-        Choose perform node : {{ modelValue.length }}/{{ nodes.length }}
+    <div class="flex items-center justify-between mb-8 mt-2">
+      <h3 class="font-black text-gray-800 text-2xl">
+        Choose Perform Nodes : {{ modelValue.length }}/{{ nodes.length }}
       </h3>
 
       <div class="flex gap-2">
@@ -71,8 +102,8 @@ const handleClearAll = () => {
 
     <!-- Node list -->
     <div
-      class="grid grid-cols-2 gap-4 mb-4"
-      :class="nodes.length > 4 ? 'max-h-64 overflow-y-auto pr-2' : ''"
+      class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+      :class="nodes.length > 4 ? 'max-h-[488px] overflow-y-auto pr-2' : ''"
     >
       <label
         v-for="node in nodes"
@@ -87,12 +118,15 @@ const handleClearAll = () => {
         />
         <div class="flex-1">
           <div class="font-medium text-gray-700">
+            <span class="text-sm font-black">Node :</span>
             {{ node.name }}
           </div>
           <div v-if="node.range" class="text-sm text-gray-500">
+            <span class="text-sm font-black">connection :</span>
             {{ node.range }}
           </div>
           <div v-if="node.context" class="text-sm text-gray-500">
+            <span class="text-sm font-black">description :</span>
             {{ node.context }}
           </div>
         </div>
@@ -103,14 +137,17 @@ const handleClearAll = () => {
     <div class="flex items-center justify-end">
       <div class="flex gap-3">
         <button
-          class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition"
+          class="px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition disabled:opacity-40 disabled:cursor-not-allowed"
           type="button"
+          :disabled="modelValue.length === 0 || !connections.length"
+          @click="handlePreviewClick"
         >
           Preview
         </button>
         <button
-          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition"
+          class="w-10 h-10 bg-white border border-gray-300 rounded-lg flex items-center justify-center hover:bg-gray-50 transition disabled:opacity-40 disabled:cursor-not-allowed"
           type="button"
+          :disabled="modelValue.length === 0"
           @click="handleNextClick"
         >
           <svg
@@ -131,4 +168,11 @@ const handleClearAll = () => {
       </div>
     </div>
   </div>
+
+  <!-- Full-screen Pipeline Graph Modal -->
+  <SelectedPipelineGraph
+    :show="showGraph"
+    :connections="selectedConnections"
+    @close="handleCloseGraph"
+  />
 </template>

@@ -1,13 +1,15 @@
-import os, json
+import os
 from datetime import datetime
+from typing import Generator, Tuple, List, Dict
 import pandas as pd
+
 from langchain.prompts import FewShotPromptTemplate, PromptTemplate
 from typing import Generator, Tuple
 from langchain.chains import LLMChain
 from langchain.callbacks import get_openai_callback
+
 from decorators import logger, timeit_log
 from module.llm_module import get_chat_model
-from typing import Generator, Tuple, List, Dict
 
 @timeit_log
 def get_hazop_fewshot_prompt():
@@ -550,7 +552,6 @@ def list_all_connections(pid_data: dict):
 
     return query_infos
 
-
 @timeit_log
 def run_hazop_agent(
     pid_data: dict,
@@ -805,92 +806,3 @@ def run_hazop_agent(
         df.to_excel(excel_path, index=False)
 
         yield f"{line_id}:{param}:{guide_word}", tokens_used
-
-
-
-def run_hazop_agent_other(pid_data: dict, excel_path: str, token_log_path: str, token_limit: int = 10000) -> Generator[Tuple[str, int], None, None]:
-    
-    query_infos = list_all_process(pid_data)
-
-    parsed = pid_data["choices"][0]["message"]["parsed"]
-    system_input = parsed.get("system_inputs", [])
-    system_output = parsed.get("system_outputs", [])
-
-    for info in query_infos:
-        info["system_input"] = system_input
-        info["system_output"] = system_output
-
-    headers = [
-        "Node", "Guide Word", "Parameter", "Deviation", "Cause", "Consequence", 
-        "Unmitigated Risk Category", "S Before Safeguards", "L Before Safeguards", 
-        "RR Before Safeguards", "Overall Risk", "Safeguards", "Mitigated Risk Category", 
-        "S", "L", "RR", "Overall Risk", "Recommendations", "S After Recommendation", 
-        "L After Recommendation", "RR After Recommendation", "Responsibility"
-    ]
-
-    if os.path.exists(excel_path):
-        df = pd.read_excel(excel_path)
-    else:
-        df = pd.DataFrame(columns=headers)
-
-    if os.path.exists(token_log_path):
-        token_df = pd.read_csv(token_log_path)
-    else:
-        token_df = pd.DataFrame(columns=[
-            "Timestamp", "LineID", "Model", "PromptTokens", "CompletionTokens", "TotalTokens"
-        ])
-
-    llm, model_name = get_chat_model()
-    hazop_chain = LLMChain(llm=llm, prompt=get_hazop_other_prompt())
-    total_tokens_used = 0
-
-    for info in query_infos:
-
-        input_data = {
-            "system_input": info["system_input"],
-            "system_output": info["system_output"],
-            "process_description": info["process_description"]
-        }
-
-        with get_openai_callback() as cb:
-            try:
-                result = hazop_chain.run(**input_data)
-            except Exception as e:
-                print(f"[Error] {info['line_id']} — {e}")
-                continue
-
-            if cb.total_tokens > token_limit:
-                print(f"[Skipped] {info['line_id']} — {cb.total_tokens} tokens (exceeds per-run limit: {token_limit})")
-                continue
-
-            tokens_used = cb.total_tokens
-
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            token_row = {
-                "Timestamp": timestamp,
-                "LineID": info["system_input"],
-                "Model": model_name,
-                "PromptTokens": cb.prompt_tokens,
-                "CompletionTokens": cb.completion_tokens,
-                "TotalTokens": cb.total_tokens
-            }
-            token_df = pd.concat([token_df, pd.DataFrame([token_row])], ignore_index=True)
-            token_df.to_csv(token_log_path, index=False)
-
-        print(f"[Processed] {info['system_input']} - {tokens_used} tokens (Total: {total_tokens_used})")
-
-        rows = result.strip().splitlines()
-        parsed_rows = [
-            r.split(",") for r in rows 
-            if len(r.strip()) > 0 and len(r.split(",")) == len(headers)
-        ]
-
-        if not parsed_rows:
-            print(f"[Warning] No valid rows for {info['system_input']}")
-            continue
-
-        temp_df = pd.DataFrame(parsed_rows, columns=headers)
-        df = pd.concat([df, temp_df], ignore_index=True)
-        df.to_excel(excel_path, index=False)
-
-        yield info["system_input"], tokens_used

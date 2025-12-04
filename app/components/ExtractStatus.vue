@@ -14,7 +14,6 @@ const props = withDefaults(
   }
 )
 
-// dot color logic
 const indicatorClass = computed(() => {
   if (props.errorMessage) return 'bg-red-500'
   if (props.active) return 'bg-blue-400 animate-pulse'
