@@ -1,0 +1,682 @@
+{
+  "pid_data": {
+    "process_description": "This P&ID represents the complete operational workflow for preparing, transferring, conditioning, and delivering high-concentration hydrogen peroxide (H₂O₂) for thrust testing. The process begins at the starting point zone—the 1000-liter SUS-316 main storage tank, which is first cleaned using deionized and de-oxygenated water supplied from the 1000-L H₂O tank. It ends at the catalyst bed, the final delivery point where conditioned H₂O₂ is supplied for reaction testing. The overall operation is carried out in four phases: (Phase-1) cleaning and preparation of the main tank using DI/DO water introduced through valve V-O and drained through V-D; (Phase-2) transferring H₂O₂ from 20-liter supply barrels into the 1000-L tank via valves V-V, V-I, and the vacuum system connected through V-R; (Phase-3) distributing H₂O₂ from the main tank into three 145-liter carbon-fiber storage tanks via valve V-05 while nitrogen pressurization (60–80 barA) maintains transfer flow; and (Phase-4) delivering pressurized peroxide high-concentration H₂O from the three 145-L tanks to the catalyst bed using high-pressure nitrogen propulsion (60–80 barA) propels the peroxide through the transfer lines, Differential pressure transmitters (P6 and P7) monitor and control the flow rate, while thermometer T1 and a CO₂-based cooling system regulate temperature to protect the catalyst from overheating. Once conditioned, the peroxide enters the catalyst bed, marking the completion of the test operation.",
+    "system_inputs": [
+      "N2 bundle 200 bar (left)",
+      "N2 bundle 200 bar (right)",
+      "1000 L H2O tank (DI/DO water)",
+      "20 L H2O2 supply barrels",
+      "Cooling CO2 supply",
+      "Vacuum pump",
+      "Ambient air for vents"
+    ],
+    "system_outputs": [
+      "Waste liquid drain",
+      "Vent gas to venting desk / atmosphere",
+      "Full pipe exhaust to atmosphere",
+      "H2O2 to catalyst bed"
+    ],
+    "equipment": [
+      {
+        "id": "E1",
+        "name": "1000 L H2O2 Tank",
+        "type": "storage tank",
+        "context": "Main SUS-316 peroxide storage and transfer tank with load cell and safety relief set 8 bar"
+      },
+      {
+        "id": "E2",
+        "name": "1000 L H2O Tank",
+        "type": "water tank",
+        "context": "Deionized/de-oxygenated water tank used for cleaning and preparation of 1000 L H2O2 tank"
+      },
+      {
+        "id": "E3",
+        "name": "145 L H2O2 Tank 1",
+        "type": "storage tank",
+        "context": "First 145 L carbon-fiber peroxide storage tank with load cell, part of three-tank delivery set"
+      },
+      {
+        "id": "E4",
+        "name": "145 L H2O2 Tank 2",
+        "type": "storage tank",
+        "context": "Second 145 L carbon-fiber peroxide storage tank with load cell"
+      },
+      {
+        "id": "E5",
+        "name": "145 L H2O2 Tank 3",
+        "type": "storage tank",
+        "context": "Third 145 L carbon-fiber peroxide storage tank with load cell"
+      },
+      {
+        "id": "E6",
+        "name": "N2 Bundle Left",
+        "type": "gas bundle",
+        "context": "200 bar nitrogen bundle feeding PR-1 for pressurizing 145 L tanks"
+      },
+      {
+        "id": "E7",
+        "name": "N2 Bundle Right",
+        "type": "gas bundle",
+        "context": "200 bar nitrogen bundle feeding PR-2 for pressurizing 145 L tanks and downstream lines"
+      },
+      {
+        "id": "E8",
+        "name": "Pressure Regulator PR-1",
+        "type": "pressure regulator",
+        "context": "Venting pressure regulator for N2 supply to 145 L tanks group left"
+      },
+      {
+        "id": "E9",
+        "name": "Pressure Regulator PR-2",
+        "type": "pressure regulator",
+        "context": "Pressure regulator for N2 supply to 145 L tanks group right"
+      },
+      {
+        "id": "E10",
+        "name": "Venting Desk",
+        "type": "vent header",
+        "context": "Common vent point for main 1000 L H2O2 tank nitrogen system"
+      },
+      {
+        "id": "E11",
+        "name": "Vacuum Pump",
+        "type": "vacuum pump",
+        "context": "Vacuum source connected via V-R-X and V-X for drawing H2O2 from 20 L barrels into main tank"
+      },
+      {
+        "id": "E12",
+        "name": "Weight Scale",
+        "type": "weighing scale",
+        "context": "Weight scale for 20 L H2O2 barrels upstream of V-V"
+      },
+      {
+        "id": "E13",
+        "name": "Catalyst Bed",
+        "type": "reactor",
+        "context": "Final reaction bed receiving conditioned high-concentration H2O2 for thrust testing"
+      },
+      {
+        "id": "E14",
+        "name": "Cooling CO2 System",
+        "type": "cooling system",
+        "context": "CO2-based cooling system around delivery line to control temperature before catalyst bed"
+      },
+      {
+        "id": "E15",
+        "name": "Full Pipe Exhaust",
+        "type": "exhaust header",
+        "context": "Exhaust outlet for depressurizing line via V-09"
+      },
+      {
+        "id": "E16",
+        "name": "Waste Liquid Drain",
+        "type": "drain header",
+        "context": "Waste liquid discharge point for cleaning fluids via V-D"
+      },
+      {
+        "id": "E17",
+        "name": "N2 Cylinder Main Tank",
+        "type": "gas cylinder",
+        "context": "Nitrogen bottle with pressure regulator used to pressurize main 1000 L H2O2 tank"
+      }
+    ],
+    "valves": [
+      {
+        "id": "V-O",
+        "type": "manual valve",
+        "location": "On line from 1000 L H2O tank to 1000 L H2O2 tank top",
+        "context": "Tank filling valve for cleaning water (Phase-1)"
+      },
+      {
+        "id": "V-D",
+        "type": "manual valve",
+        "location": "Bottom outlet of 1000 L H2O2 tank to waste liquid drain",
+        "context": "Drain valve for tank cleaning and emptying (Phase-1)"
+      },
+      {
+        "id": "V-V",
+        "type": "manual valve",
+        "location": "Upstream on line from 20 L H2O2 barrel weight scale to 1000 L H2O2 tank bottom",
+        "context": "Front isolation valve for barrel transfer (Phase-2)"
+      },
+      {
+        "id": "V-I",
+        "type": "manual valve",
+        "location": "On transfer line from barrel to 1000 L H2O2 tank",
+        "context": "Mutual isolation/interlock valve for barrel transfer (Phase-2)"
+      },
+      {
+        "id": "V-G1",
+        "type": "manual valve",
+        "location": "On line from 1000 L H2O2 tank bottom toward 145 L tanks",
+        "context": "Tank outlet test valve (Phase-3)"
+      },
+      {
+        "id": "V-H7_5",
+        "type": "manual valve",
+        "location": "On line from V-G1 toward V-D and distribution header",
+        "context": "Interconnection valve between main tank outlet and drain/distribution"
+      },
+      {
+        "id": "V-05",
+        "type": "manual valve",
+        "location": "On main H2O2 transfer header from 1000 L tank to three 145 L tanks",
+        "context": "Main distribution valve to 145 L tanks (Phase-3)"
+      },
+      {
+        "id": "V-06",
+        "type": "manual valve",
+        "location": "On downstream H2O2 line from 145 L tanks toward catalyst bed",
+        "context": "Main outlet valve from 145 L tanks to delivery line (Phase-4)"
+      },
+      {
+        "id": "V-07",
+        "type": "manual valve",
+        "location": "On branch from main delivery line to full pipe exhaust",
+        "context": "Filling or venting valve to exhaust (Phase-4)"
+      },
+      {
+        "id": "V-08",
+        "type": "manual valve",
+        "location": "On N2 line near catalyst bed and cooling section",
+        "context": "High-pressure N2 control valve near test section (Phase-4)"
+      },
+      {
+        "id": "V-09",
+        "type": "manual valve",
+        "location": "On line from delivery header to full pipe exhaust unit",
+        "context": "Exhaust isolation valve (Phase-4)"
+      },
+      {
+        "id": "V-R",
+        "type": "manual valve",
+        "location": "On line from vacuum pump to 1000 L H2O2 tank top",
+        "context": "Vacuum connection valve (Phase-2)"
+      },
+      {
+        "id": "V-R-X",
+        "type": "check/isolating valve",
+        "location": "Between vacuum pump and V-R",
+        "context": "Auxiliary valve on vacuum line (Phase-2)"
+      },
+      {
+        "id": "V-X",
+        "type": "manual valve",
+        "location": "On N2 line from N2 cylinder main tank to top of 1000 L H2O2 tank",
+        "context": "Pressurizing valve for main tank nitrogen (Phase-3)"
+      },
+      {
+        "id": "V-U",
+        "type": "manual valve",
+        "location": "On N2 supply from cylinder to pressure regulator at venting desk",
+        "context": "Low-pressure nitrogen source isolation valve (Phase-3)"
+      },
+      {
+        "id": "V-01",
+        "type": "manual valve",
+        "location": "On N2 supply from PR-1 to 145 L H2O2 tanks (left side)",
+        "context": "Pressurizing valve for 145 L tanks (left group) (Phase-3/4)"
+      },
+      {
+        "id": "V-02",
+        "type": "manual valve",
+        "location": "On N2 supply from PR-2 to 145 L H2O2 tanks (right side)",
+        "context": "Pressurizing valve for 145 L tanks (right group) (Phase-3/4)"
+      },
+      {
+        "id": "V-03",
+        "type": "manual valve",
+        "location": "On N2 line between PR-1 and 145 L tanks",
+        "context": "Pressure adjustment valve upstream of P3 (Phase-3/4)"
+      },
+      {
+        "id": "V-04",
+        "type": "manual valve",
+        "location": "On N2 line between PR-2 and 145 L tanks",
+        "context": "Pressure adjustment valve upstream of P4/P5 (Phase-3/4)"
+      },
+      {
+        "id": "V-VENT1",
+        "type": "manual valve",
+        "location": "On vent line from PR-1/145 L tanks to atmosphere",
+        "context": "Venting valve near PR-1"
+      },
+      {
+        "id": "V-VENT2",
+        "type": "manual valve",
+        "location": "On vent line from PR-2/145 L tanks to atmosphere",
+        "context": "Venting valve near PR-2"
+      }
+    ],
+    "instruments": [
+      {
+        "id": "P0",
+        "function": "Tank pressure indicator / transmitter",
+        "location": "Top of 1000 L H2O2 tank",
+        "context": "Monitors main tank pressure"
+      },
+      {
+        "id": "P1",
+        "function": "Pressure indicator / transmitter",
+        "location": "Bottom or outlet region of 145 L H2O2 Tank 1",
+        "context": "Monitors N2 or peroxide pressure at first 145 L tank"
+      },
+      {
+        "id": "P2",
+        "function": "Pressure indicator / transmitter",
+        "location": "Bottom or outlet region of 145 L H2O2 Tank 3",
+        "context": "Monitors N2 or peroxide pressure at third 145 L tank"
+      },
+      {
+        "id": "P3",
+        "function": "Pressure indicator / transmitter",
+        "location": "On N2 line from PR-1 to 145 L tanks",
+        "context": "Monitors regulated nitrogen pressure from left bundle"
+      },
+      {
+        "id": "P4",
+        "function": "Pressure indicator / transmitter",
+        "location": "On N2 line from PR-2 to 145 L tanks",
+        "context": "Monitors regulated nitrogen pressure from right bundle"
+      },
+      {
+        "id": "P5",
+        "function": "Safety relief / pressure indicator",
+        "location": "Common header above 145 L tanks",
+        "context": "Safety relief set 90 bar monitoring tank group pressure"
+      },
+      {
+        "id": "P6",
+        "function": "Differential pressure transmitter",
+        "location": "On peroxide delivery line near outlet of 145 L tanks",
+        "context": "Measures DP for flow rate control toward catalyst bed"
+      },
+      {
+        "id": "P7",
+        "function": "Differential pressure transmitter",
+        "location": "On delivery line closer to catalyst bed",
+        "context": "Measures DP for flow control and monitoring before catalyst bed"
+      },
+      {
+        "id": "P8",
+        "function": "Pressure indicator / transmitter",
+        "location": "On gas line near V-08 and test section",
+        "context": "Monitors N2 pressure near catalyst bed"
+      },
+      {
+        "id": "P9",
+        "function": "Pressure indicator / transmitter",
+        "location": "On line near full pipe exhaust and CO2 system",
+        "context": "Monitors pressure in exhaust or cooling section"
+      },
+      {
+        "id": "T0",
+        "function": "Temperature indicator",
+        "location": "On main 1000 L H2O2 tank",
+        "context": "Monitors tank temperature"
+      },
+      {
+        "id": "T1",
+        "function": "Thermometer / temperature indicator",
+        "location": "On peroxide delivery line after cooling section",
+        "context": "Monitors temperature to protect catalyst from overheating"
+      }
+    ],
+    "utility_lines": [
+      {
+        "utility_type": "Nitrogen (pressurization) from N2 cylinder main tank to 1000 L H2O2 tank",
+        "valves": [
+          "V-U",
+          "V-X"
+        ],
+        "flow_direction": "from N2 Cylinder Main Tank toward 1000 L H2O2 Tank",
+        "context": "Pressurizes main peroxide tank and vents to venting desk"
+      },
+      {
+        "utility_type": "Nitrogen (pressurization) from left N2 bundle through PR-1",
+        "valves": [
+          "V-01",
+          "V-03"
+        ],
+        "flow_direction": "from N2 Bundle Left toward 145 L H2O2 tanks group",
+        "context": "Provides regulated N2 to pressurize 145 L tanks via PR-1"
+      },
+      {
+        "utility_type": "Nitrogen (pressurization) from right N2 bundle through PR-2",
+        "valves": [
+          "V-02",
+          "V-04"
+        ],
+        "flow_direction": "from N2 Bundle Right toward 145 L H2O2 tanks group",
+        "context": "Provides regulated N2 to pressurize 145 L tanks via PR-2 and supply N2 near test section"
+      },
+      {
+        "utility_type": "Cooling CO2",
+        "valves": [],
+        "flow_direction": "from CO2 supply toward cooling jacket and return to exhaust",
+        "context": "Cools delivery line and catalyst-bed region"
+      },
+      {
+        "utility_type": "Vacuum line",
+        "valves": [
+          "V-R-X",
+          "V-R"
+        ],
+        "flow_direction": "from 1000 L H2O2 tank toward Vacuum Pump",
+        "context": "Creates suction for transferring H2O2 from 20 L barrels into main tank"
+      },
+      {
+        "utility_type": "Venting to atmosphere",
+        "valves": [
+          "V-VENT1",
+          "V-VENT2"
+        ],
+        "flow_direction": "from 145 L tanks nitrogen lines toward atmosphere",
+        "context": "Relieves pressure from N2 regulation system"
+      }
+    ],
+    "connections": [
+      {
+        "line_id": "L1",
+        "from_id": "E2",
+        "to_id": "E1",
+        "valves": [
+          "V-O"
+        ],
+        "instruments": [],
+        "context": "(Phase-1) DI/DO water supply from 1000 L H2O tank to 1000 L H2O2 tank for cleaning"
+      },
+      {
+        "line_id": "L2",
+        "from_id": "E1",
+        "to_id": "E16",
+        "valves": [
+          "V-D"
+        ],
+        "instruments": [],
+        "context": "(Phase-1) Drain and waste liquid discharge from 1000 L H2O2 tank to waste liquid header"
+      },
+      {
+        "line_id": "L3",
+        "from_id": "E12",
+        "to_id": "E1",
+        "valves": [
+          "V-V",
+          "V-I"
+        ],
+        "instruments": [],
+        "context": "(Phase-2) H2O2 transfer from 20 L supply barrel through weight scale into 1000 L H2O2 tank bottom"
+      },
+      {
+        "line_id": "L4",
+        "from_id": "E1",
+        "to_id": "E11",
+        "valves": [
+          "V-R-X",
+          "V-R"
+        ],
+        "instruments": [],
+        "context": "(Phase-2) Vacuum line connection from tank top to vacuum pump to draw H2O2 from barrels"
+      },
+      {
+        "line_id": "L5",
+        "from_id": "E17",
+        "to_id": "E10",
+        "valves": [
+          "V-U"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) N2 supply from cylinder to venting desk and pressure regulator for main tank system"
+      },
+      {
+        "line_id": "L6",
+        "from_id": "E10",
+        "to_id": "E1",
+        "valves": [
+          "V-X"
+        ],
+        "instruments": [
+          "P0",
+          "T0"
+        ],
+        "context": "(Phase-3) Nitrogen pressurization and vent path from venting desk to 1000 L H2O2 tank top with pressure and temperature monitoring"
+      },
+      {
+        "line_id": "L7",
+        "from_id": "E1",
+        "to_id": "E3",
+        "valves": [
+          "V-G1",
+          "V-H7_5",
+          "V-05"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) Main peroxide transfer line from 1000 L tank to first 145 L tank"
+      },
+      {
+        "line_id": "L8",
+        "from_id": "E1",
+        "to_id": "E4",
+        "valves": [
+          "V-G1",
+          "V-H7_5",
+          "V-05"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) Branch of peroxide transfer line from 1000 L tank to second 145 L tank"
+      },
+      {
+        "line_id": "L9",
+        "from_id": "E1",
+        "to_id": "E5",
+        "valves": [
+          "V-G1",
+          "V-H7_5",
+          "V-05"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) Branch of peroxide transfer line from 1000 L tank to third 145 L tank"
+      },
+      {
+        "line_id": "L10",
+        "from_id": "E6",
+        "to_id": "E8",
+        "valves": [],
+        "instruments": [],
+        "context": "(Phase-3) High-pressure N2 from left bundle to venting pressure regulator PR-1"
+      },
+      {
+        "line_id": "L11",
+        "from_id": "E8",
+        "to_id": "E3",
+        "valves": [
+          "V-03",
+          "V-01"
+        ],
+        "instruments": [
+          "P3",
+          "P1"
+        ],
+        "context": "(Phase-3) Regulated N2 supply from PR-1 to first 145 L tank for pressurization"
+      },
+      {
+        "line_id": "L12",
+        "from_id": "E8",
+        "to_id": "E4",
+        "valves": [
+          "V-03",
+          "V-01"
+        ],
+        "instruments": [
+          "P3"
+        ],
+        "context": "(Phase-3) Regulated N2 supply from PR-1 to second 145 L tank for pressurization"
+      },
+      {
+        "line_id": "L13",
+        "from_id": "E7",
+        "to_id": "E9",
+        "valves": [],
+        "instruments": [],
+        "context": "(Phase-3) High-pressure N2 from right bundle to pressure regulator PR-2"
+      },
+      {
+        "line_id": "L14",
+        "from_id": "E9",
+        "to_id": "E5",
+        "valves": [
+          "V-04",
+          "V-02"
+        ],
+        "instruments": [
+          "P4",
+          "P2"
+        ],
+        "context": "(Phase-3) Regulated N2 supply from PR-2 to third 145 L tank for pressurization"
+      },
+      {
+        "line_id": "L15",
+        "from_id": "E9",
+        "to_id": "E4",
+        "valves": [
+          "V-04",
+          "V-02"
+        ],
+        "instruments": [
+          "P4"
+        ],
+        "context": "(Phase-3) Additional regulated N2 supply from PR-2 to second 145 L tank"
+      },
+      {
+        "line_id": "L16",
+        "from_id": "E3",
+        "to_id": "E13",
+        "valves": [
+          "V-06",
+          "V-07",
+          "V-08",
+          "V-09"
+        ],
+        "instruments": [
+          "P6",
+          "P7",
+          "T1",
+          "P8",
+          "P9"
+        ],
+        "context": "(Phase-4) Peroxide delivery line from 145 L tanks through DP transmitters and cooling system to catalyst bed with N2 propulsion and exhaust branch"
+      },
+      {
+        "line_id": "L17",
+        "from_id": "E4",
+        "to_id": "E13",
+        "valves": [
+          "V-06",
+          "V-07",
+          "V-08",
+          "V-09"
+        ],
+        "instruments": [
+          "P6",
+          "P7",
+          "T1",
+          "P8",
+          "P9"
+        ],
+        "context": "(Phase-4) Peroxide delivery from second 145 L tank to catalyst bed via common header"
+      },
+      {
+        "line_id": "L18",
+        "from_id": "E5",
+        "to_id": "E13",
+        "valves": [
+          "V-06",
+          "V-07",
+          "V-08",
+          "V-09"
+        ],
+        "instruments": [
+          "P6",
+          "P7",
+          "T1",
+          "P8",
+          "P9"
+        ],
+        "context": "(Phase-4) Peroxide delivery from third 145 L tank to catalyst bed via common header"
+      },
+      {
+        "line_id": "L19",
+        "from_id": "E3",
+        "to_id": "E15",
+        "valves": [
+          "V-07",
+          "V-09"
+        ],
+        "instruments": [
+          "P9"
+        ],
+        "context": "(Phase-4) Branch from delivery header to full pipe exhaust for depressurization"
+      },
+      {
+        "line_id": "L20",
+        "from_id": "E4",
+        "to_id": "E15",
+        "valves": [
+          "V-07",
+          "V-09"
+        ],
+        "instruments": [
+          "P9"
+        ],
+        "context": "(Phase-4) Additional branch from header to full pipe exhaust"
+      },
+      {
+        "line_id": "L21",
+        "from_id": "E5",
+        "to_id": "E15",
+        "valves": [
+          "V-07",
+          "V-09"
+        ],
+        "instruments": [
+          "P9"
+        ],
+        "context": "(Phase-4) Additional branch from header to full pipe exhaust"
+      },
+      {
+        "line_id": "L22",
+        "from_id": "E3",
+        "to_id": "Vent gas to venting desk / atmosphere",
+        "valves": [
+          "V-VENT1"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) Venting of N2 from left-side pressure regulation to atmosphere"
+      },
+      {
+        "line_id": "L23",
+        "from_id": "E5",
+        "to_id": "Vent gas to venting desk / atmosphere",
+        "valves": [
+          "V-VENT2"
+        ],
+        "instruments": [],
+        "context": "(Phase-3) Venting of N2 from right-side pressure regulation to atmosphere"
+      }
+    ]
+  },
+  "metadata": {
+    "id": "resp_035e55cbb93a13c3006930ce24c184819a8f9d7cfaa6155847",
+    "created": null,
+    "model": "gpt-5.1-2025-11-13",
+    "tokens": {
+      "prompt": 3222,
+      "completion": 4303,
+      "total": 7525
+    },
+    "response_type": "json_schema",
+    "reasoning_effort": "none",
+    "verbosity": "medium",
+    "latency_s": 54.1909
+  }
+}

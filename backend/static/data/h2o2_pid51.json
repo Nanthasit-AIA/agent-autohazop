@@ -405,293 +405,294 @@
       "context": "Allows safe discharge of peroxide line during or after testing"
     }
   ],
-  "connections": [
-    {
-      "line_id": "L1",
-      "from_id": "1000L_H2O_TANK",
-      "to_id": "1000L_H2O2_TANK",
-      "valves": [
-        "V-O"
-      ],
-      "instruments": [],
-      "context": "DI/DO water transfer for cleaning main tank"
-    },
-    {
-      "line_id": "L2",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "WASTE LIQUID",
-      "valves": [
-        "V-D"
-      ],
-      "instruments": [],
-      "context": "Drain and waste liquid discharge from main tank"
-    },
-    {
-      "line_id": "L3",
-      "from_id": "20L_H2O2_BARRELS",
-      "to_id": "1000L_H2O2_TANK",
-      "valves": [
-        "V-V",
-        "V-I"
-      ],
-      "instruments": [],
-      "context": "H2O2 transfer from supply barrels to main tank using vacuum"
-    },
-    {
-      "line_id": "L4",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "VACUUM_PUMP",
-      "valves": [
-        "V-R",
-        "V-X"
-      ],
-      "instruments": [],
-      "context": "Vacuum connection during peroxide transfer"
-    },
-    {
-      "line_id": "L5",
-      "from_id": "N2_CYL_1000L",
-      "to_id": "1000L_H2O2_TANK",
-      "valves": [
-        "V-U"
-      ],
-      "instruments": [
-        "PR_1000L"
-      ],
-      "context": "Nitrogen pressurization line to 1000 L tank"
-    },
-    {
-      "line_id": "L6",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "VENT_SYSTEM_1000L",
-      "valves": [
-        "V-S"
-      ],
-      "instruments": [
-        "P0_IND",
-        "P0"
-      ],
-      "context": "Vent and relief line from 1000 L tank to venting desk"
-    },
-    {
-      "line_id": "L7",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "145L_TANK_1",
-      "valves": [
-        "V-05"
-      ],
-      "instruments": [],
-      "context": "Peroxide transfer header from main tank to first 145 L tank"
-    },
-    {
-      "line_id": "L8",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "145L_TANK_2",
-      "valves": [
-        "V-05"
-      ],
-      "instruments": [],
-      "context": "Peroxide transfer header from main tank to second 145 L tank"
-    },
-    {
-      "line_id": "L9",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "145L_TANK_3",
-      "valves": [
-        "V-05"
-      ],
-      "instruments": [],
-      "context": "Peroxide transfer header from main tank to third 145 L tank"
-    },
-    {
-      "line_id": "L10",
-      "from_id": "N2_BUNDLE_1",
-      "to_id": "145L_TANK_1",
-      "valves": [
-        "P1",
-        "V-O1"
-      ],
-      "instruments": [
-        "P1_IND"
-      ],
-      "context": "High-pressure nitrogen line P1 to first 145 L tank"
-    },
-    {
-      "line_id": "L11",
-      "from_id": "N2_BUNDLE_1",
-      "to_id": "145L_TANK_2",
-      "valves": [
-        "P1",
-        "V-O1"
-      ],
-      "instruments": [
-        "P1_IND"
-      ],
-      "context": "High-pressure nitrogen line P1 to second 145 L tank"
-    },
-    {
-      "line_id": "L12",
-      "from_id": "N2_BUNDLE_2",
-      "to_id": "145L_TANK_2",
-      "valves": [
-        "P2",
-        "V-O2"
-      ],
-      "instruments": [
-        "P2_IND"
-      ],
-      "context": "High-pressure nitrogen line P2 to second 145 L tank"
-    },
-    {
-      "line_id": "L13",
-      "from_id": "N2_BUNDLE_2",
-      "to_id": "145L_TANK_3",
-      "valves": [
-        "P2",
-        "V-O2"
-      ],
-      "instruments": [
-        "P2_IND"
-      ],
-      "context": "High-pressure nitrogen line P2 to third 145 L tank"
-    },
-    {
-      "line_id": "L14",
-      "from_id": "145L_TANK_1",
-      "to_id": "VENT_SYSTEM_145L",
-      "valves": [
-        "P3",
-        "V-O3"
-      ],
-      "instruments": [
-        "P3_IND",
-        "PR-1"
-      ],
-      "context": "Vent and pressure regulation from first 145 L tank"
-    },
-    {
-      "line_id": "L15",
-      "from_id": "145L_TANK_3",
-      "to_id": "VENT_SYSTEM_145L",
-      "valves": [
-        "P4",
-        "V-O4"
-      ],
-      "instruments": [
-        "P4_IND",
-        "PR-2"
-      ],
-      "context": "Vent and pressure regulation from third 145 L tank"
-    },
-    {
-      "line_id": "L16",
-      "from_id": "145L_TANK_1",
-      "to_id": "OUTLET_HEADER",
-      "valves": [],
-      "instruments": [],
-      "context": "Peroxide outlet from first 145 L tank to common outlet header"
-    },
-    {
-      "line_id": "L17",
-      "from_id": "145L_TANK_2",
-      "to_id": "OUTLET_HEADER",
-      "valves": [],
-      "instruments": [],
-      "context": "Peroxide outlet from second 145 L tank to common outlet header"
-    },
-    {
-      "line_id": "L18",
-      "from_id": "145L_TANK_3",
-      "to_id": "OUTLET_HEADER",
-      "valves": [],
-      "instruments": [],
-      "context": "Peroxide outlet from third 145 L tank to common outlet header"
-    },
-    {
-      "line_id": "L19",
-      "from_id": "OUTLET_HEADER",
-      "to_id": "COOLING_SECTION",
-      "valves": [
-        "V-06"
-      ],
-      "instruments": [
-        "P6",
-        "T1"
-      ],
-      "context": "High-pressure peroxide flow from tanks outlet header through differential pressure P6 and temperature control T1"
-    },
-    {
-      "line_id": "L20",
-      "from_id": "COOLING_SECTION",
-      "to_id": "CATALYST_BED",
-      "valves": [
-        "V-07"
-      ],
-      "instruments": [
-        "P7"
-      ],
-      "context": "Conditioned peroxide delivery to catalyst bed for testing"
-    },
-    {
-      "line_id": "L21",
-      "from_id": "COOLING_SECTION",
-      "to_id": "FULL_PIPE_EXHAUST",
-      "valves": [
-        "P8"
-      ],
-      "instruments": [],
-      "context": "Branch from main line to full pipe exhaust for safety discharge"
-    },
-    {
-      "line_id": "L22",
-      "from_id": "CO2_SUPPLY",
-      "to_id": "COOLING_SECTION",
-      "valves": [
-        "P9"
-      ],
-      "instruments": [],
-      "context": "CO2 cooling injection to control line temperature around T1"
-    },
-    {
-      "line_id": "MEAS-1000L_H2O2_TANK",
-      "from_id": "1000L_H2O2_TANK",
-      "to_id": "1000L_H2O2_TANK",
-      "valves": [],
-      "instruments": [
-        "LC_1000L",
-        "T0"
-      ],
-      "context": "Measurement of tank weight and temperature"
-    },
-    {
-      "line_id": "MEAS-145L_TANK_1",
-      "from_id": "145L_TANK_1",
-      "to_id": "145L_TANK_1",
-      "valves": [],
-      "instruments": [
-        "LC_145L_1"
-      ],
-      "context": "Weight measurement of first 145 L tank"
-    },
-    {
-      "line_id": "MEAS-145L_TANK_2",
-      "from_id": "145L_TANK_2",
-      "to_id": "145L_TANK_2",
-      "valves": [],
-      "instruments": [
-        "LC_145L_2"
-      ],
-      "context": "Weight measurement of second 145 L tank"
-    },
-    {
-      "line_id": "MEAS-145L_TANK_3",
-      "from_id": "145L_TANK_3",
-      "to_id": "145L_TANK_3",
-      "valves": [],
-      "instruments": [
-        "LC_145L_3"
-      ],
-      "context": "Weight measurement of third 145 L tank"
-    }
-  ]
+"connections": [
+  {
+    "line_id": "L1",
+    "from_id": "1000L_H2O_TANK",
+    "to_id": "1000L_H2O2_TANK",
+    "valves": [
+      "V-O"
+    ],
+    "instruments": [],
+    "context": "(Phase-1) DI/DO water transfer for cleaning main tank"
+  },
+  {
+    "line_id": "L2",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "WASTE LIQUID",
+    "valves": [
+      "V-D"
+    ],
+    "instruments": [],
+    "context": "(Phase-1) Drain and waste liquid discharge from main tank"
+  },
+  {
+    "line_id": "L3",
+    "from_id": "20L_H2O2_BARRELS",
+    "to_id": "1000L_H2O2_TANK",
+    "valves": [
+      "V-V",
+      "V-I"
+    ],
+    "instruments": [],
+    "context": "(Phase-2) H2O2 transfer from supply barrels to main tank using vacuum"
+  },
+  {
+    "line_id": "L4",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "VACUUM_PUMP",
+    "valves": [
+      "V-R",
+      "V-X"
+    ],
+    "instruments": [],
+    "context": "(Phase-2) Vacuum connection during peroxide transfer"
+  },
+  {
+    "line_id": "L5",
+    "from_id": "N2_CYL_1000L",
+    "to_id": "1000L_H2O2_TANK",
+    "valves": [
+      "V-U"
+    ],
+    "instruments": [
+      "PR_1000L"
+    ],
+    "context": "(Phase-3) Nitrogen pressurization line to 1000 L tank"
+  },
+  {
+    "line_id": "L6",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "VENT_SYSTEM_1000L",
+    "valves": [
+      "V-S"
+    ],
+    "instruments": [
+      "P0_IND",
+      "P0"
+    ],
+    "context": "Vent and relief line from 1000 L tank to venting desk"
+  },
+  {
+    "line_id": "L7",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "145L_TANK_1",
+    "valves": [
+      "V-05"
+    ],
+    "instruments": [],
+    "context": "(Phase-3) Peroxide transfer header from main tank to first 145 L tank"
+  },
+  {
+    "line_id": "L8",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "145L_TANK_2",
+    "valves": [
+      "V-05"
+    ],
+    "instruments": [],
+    "context": "(Phase-3) Peroxide transfer header from main tank to second 145 L tank"
+  },
+  {
+    "line_id": "L9",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "145L_TANK_3",
+    "valves": [
+      "V-05"
+    ],
+    "instruments": [],
+    "context": "(Phase-3) Peroxide transfer header from main tank to third 145 L tank"
+  },
+  {
+    "line_id": "L10",
+    "from_id": "N2_BUNDLE_1",
+    "to_id": "145L_TANK_1",
+    "valves": [
+      "P1",
+      "V-O1"
+    ],
+    "instruments": [
+      "P1_IND"
+    ],
+    "context": "High-pressure nitrogen line P1 to first 145 L tank"
+  },
+  {
+    "line_id": "L11",
+    "from_id": "N2_BUNDLE_1",
+    "to_id": "145L_TANK_2",
+    "valves": [
+      "P1",
+      "V-O1"
+    ],
+    "instruments": [
+      "P1_IND"
+    ],
+    "context": "High-pressure nitrogen line P1 to second 145 L tank"
+  },
+  {
+    "line_id": "L12",
+    "from_id": "N2_BUNDLE_2",
+    "to_id": "145L_TANK_2",
+    "valves": [
+      "P2",
+      "V-O2"
+    ],
+    "instruments": [
+      "P2_IND"
+    ],
+    "context": "High-pressure nitrogen line P2 to second 145 L tank"
+  },
+  {
+    "line_id": "L13",
+    "from_id": "N2_BUNDLE_2",
+    "to_id": "145L_TANK_3",
+    "valves": [
+      "P2",
+      "V-O2"
+    ],
+    "instruments": [
+      "P2_IND"
+    ],
+    "context": "High-pressure nitrogen line P2 to third 145 L tank"
+  },
+  {
+    "line_id": "L14",
+    "from_id": "145L_TANK_1",
+    "to_id": "VENT_SYSTEM_145L",
+    "valves": [
+      "P3",
+      "V-O3"
+    ],
+    "instruments": [
+      "P3_IND",
+      "PR-1"
+    ],
+    "context": "Vent and pressure regulation from first 145 L tank"
+  },
+  {
+    "line_id": "L15",
+    "from_id": "145L_TANK_3",
+    "to_id": "VENT_SYSTEM_145L",
+    "valves": [
+      "P4",
+      "V-O4"
+    ],
+    "instruments": [
+      "P4_IND",
+      "PR-2"
+    ],
+    "context": "Vent and pressure regulation from third 145 L tank"
+  },
+  {
+    "line_id": "L16",
+    "from_id": "145L_TANK_1",
+    "to_id": "OUTLET_HEADER",
+    "valves": [],
+    "instruments": [],
+    "context": "(Phase-4) Peroxide outlet from first 145 L tank to common outlet header"
+  },
+  {
+    "line_id": "L17",
+    "from_id": "145L_TANK_2",
+    "to_id": "OUTLET_HEADER",
+    "valves": [],
+    "instruments": [],
+    "context": "(Phase-4) Peroxide outlet from second 145 L tank to common outlet header"
+  },
+  {
+    "line_id": "L18",
+    "from_id": "145L_TANK_3",
+    "to_id": "OUTLET_HEADER",
+    "valves": [],
+    "instruments": [],
+    "context": "(Phase-4) Peroxide outlet from third 145 L tank to common outlet header"
+  },
+  {
+    "line_id": "L19",
+    "from_id": "OUTLET_HEADER",
+    "to_id": "COOLING_SECTION",
+    "valves": [
+      "V-06"
+    ],
+    "instruments": [
+      "P6",
+      "T1"
+    ],
+    "context": "(Phase-4) High-pressure peroxide flow from tanks outlet header through differential pressure P6 and temperature control T1"
+  },
+  {
+    "line_id": "L20",
+    "from_id": "COOLING_SECTION",
+    "to_id": "CATALYST_BED",
+    "valves": [
+      "V-07"
+    ],
+    "instruments": [
+      "P7"
+    ],
+    "context": "(Phase-4) Conditioned peroxide delivery to catalyst bed for testing"
+  },
+  {
+    "line_id": "L21",
+    "from_id": "COOLING_SECTION",
+    "to_id": "FULL_PIPE_EXHAUST",
+    "valves": [
+      "P8"
+    ],
+    "instruments": [],
+    "context": "(Phase-4) Branch from main line to full pipe exhaust for safety discharge"
+  },
+  {
+    "line_id": "L22",
+    "from_id": "CO2_SUPPLY",
+    "to_id": "COOLING_SECTION",
+    "valves": [
+      "P9"
+    ],
+    "instruments": [],
+    "context": "(Phase-4) CO2 cooling injection to control line temperature around T1"
+  },
+  {
+    "line_id": "MEAS-1000L_H2O2_TANK",
+    "from_id": "1000L_H2O2_TANK",
+    "to_id": "1000L_H2O2_TANK",
+    "valves": [],
+    "instruments": [
+      "LC_1000L",
+      "T0"
+    ],
+    "context": "Measurement of tank weight and temperature"
+  },
+  {
+    "line_id": "MEAS-145L_TANK_1",
+    "from_id": "145L_TANK_1",
+    "to_id": "145L_TANK_1",
+    "valves": [],
+    "instruments": [
+      "LC_145L_1"
+    ],
+    "context": "Weight measurement of first 145 L tank"
+  },
+  {
+    "line_id": "MEAS-145L_TANK_2",
+    "from_id": "145L_TANK_2",
+    "to_id": "145L_TANK_2",
+    "valves": [],
+    "instruments": [
+      "LC_145L_2"
+    ],
+    "context": "Weight measurement of second 145 L tank"
+  },
+  {
+    "line_id": "MEAS-145L_TANK_3",
+    "from_id": "145L_TANK_3",
+    "to_id": "145L_TANK_3",
+    "valves": [],
+    "instruments": [
+      "LC_145L_3"
+    ],
+    "context": "Weight measurement of third 145 L tank"
+  }
+]
+
 }

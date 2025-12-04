@@ -33,31 +33,26 @@ Step 7 - Identify utility_lines:
 
 Step 8 - Map all connections (process or pipeline lines):
 - Assign a unique "line_id" (use image tag or assign L1, L2, ...).
-- Define "from_id" and "to_id" based on origin and destination (equipment ID or system input/output).
+- Define "from_id" and "to_id" based on origin and destination nodes:
+    * equipment items (tanks, pumps, reactors, columns, etc.), and
+    * system boundary nodes derived from system_inputs/system_outputs (e.g., "Waste liquid", "Vent gas", "N2 supply").
+  Never use a valve or instrument ID as `from_id` or `to_id`.
 - For each connection, list:
     * valve_ids on the segment
     * instrument_ids on the segment
-    * list all valves, instruments does that line pass through
+    * list all valves and instruments that this line physically passes through or that clearly act on this flow path
     * flow_direction based strictly on arrow markers in the image
     * any contextual detail (e.g., “BF3 feed to R-101”)
-    * and for information keep this format for connection:
-        1. Every process/utility line segment must include:
-        - line_id
-        - from_id, to_id
-        - valves: [valve_ids on that physical segment]
-        - instruments: [instrument_ids on that physical segment]
-        - context (optional)
+    * if the user {description} defines explicit operational phases (e.g., Phase 1, Phase 2, ...), prepend the corresponding phase label to the context in the form "(Phase-1)", "(Phase-2)", etc., for every connection that belongs to that phase
+    * represent each process/utility line segment as a node-to-node connection (equipment-line-equipment). For each connection between from_id and to_id, the `valves` and `instruments` lists must include:
+        - all valves/instruments directly on that pipeline segment, and
+        - any valves/instruments mounted on the from_id or to_id equipment that clearly belong to this flow direction.
 
-        2. Instrument self-measurements:
-        - When an instrument measures/acts only on one equipment item (no distinct line segment), create a “self-connection”:
-            {
-            "line_id": "MEAS-<equipment_id>",
-            "from_id": "<equipment_id>",
-            "to_id":   "<equipment_id>",
-            "valves": [],
-            "instruments": ["<instrument_id> all on measurement on this equipment"],
-            "context": "<what is being measured/controlled>"
-            }
+- Do NOT create separate “self-measurement” connections like:
+    "line_id": "MEAS-<equipment_id>",
+    "from_id": "<equipment_id>",
+    "to_id": "<equipment_id>".
+  All measurements and controllers must be attached to real flow connections between nodes.
 
 Important Constraints:
 - Check about user prompt {description} for count of equipment, valve, instrument for information
@@ -68,9 +63,14 @@ Important Constraints:
 - Reuse all IDs consistently across connections, utilities, and references.
 - Extract and include `context` data wherever such visual or textual information is available.
 - keep input {description} from user prompt into "process_description"
+- When the user prompt {description} explicitly defines operational phases (e.g., "Phase 1", "Phase 2", ...), you must reflect this by prefixing the `context` of each connection with the appropriate phase label in the format "(Phase-1)", "(Phase-2)", "(Phase-3)", "(Phase-4)", etc., for all connections that belong to that phase.
+- Do NOT create any self-connection measurement lines (e.g., "MEAS-<equipment_id>"). Every instrument must be associated with at least one real flow connection between from_id and to_id, and listed in the `instruments` array of that connection.
+- Do NOT use valve or instrument tags as `from_id` or `to_id`. Endpoints must be equipment or clearly named system boundary nodes (derived from `system_inputs` / `system_outputs`, such as "Waste liquid", "Vent gas", "N2 supply").
+- Any drawing element that is only a valve or instrument symbol (ISA-style circles, valve symbols, etc.) must be represented only in the `valves` or `instruments` sections and referenced in connections. Do not add such pure symbols as equipment.
 
 **ID Naming Rules:**
-- Equipment: Use tag if shown (e.g., R-101); otherwise infer and assign (e.g., HX1, COL1).
+- Equipment: Use tag if shown (e.g., R-101); otherwise infer and assign a descriptive, role-based ID that reflects the equipment’s function or capacity (e.g., HX1 for heat exchanger, COL1 for column, or capacity-based names like 1000L_H2O2_TANK when applicable).
+- System inputs/outputs: In `system_inputs` and `system_outputs`, use clear, human-readable names (e.g., "Waste liquid to drain", "Nitrogen supply to tanks"). When these are used as boundary nodes in `from_id` / `to_id`, reuse a normalized version of the same name (e.g., "Waste liquid", "N2 supply to tanks"). Never use valve or instrument IDs as system input/output IDs.
 - Valves: Use tag if shown (e.g., V-101); else assign V1, V2...
 - Instruments: Use standard ISA code (e.g., TI1, PC1, LC1).
 - Connections: Use line tag if shown (e.g., L01); else assign L1, L2...

@@ -688,7 +688,7 @@ const handleStartAnalysis = async () => {
           <img src="~/assets/logo/logo_ku.png" alt="IDEKTEP Logo" class="w-17 h-17 rounded-full" />
           <img src="~/assets/logo/logo_che.png" alt="IDEKTEP Logo" class="w-20 h-20 rounded-full" />
         </div>
-        <span class="ml-3 text-gray-600 font-bold">KU ChE / CNP LAB</span>
+        <span class="ml-3 text-gray-400 font-black">KUChE / ENERIA LAB</span>
       </div>
     </div>
 

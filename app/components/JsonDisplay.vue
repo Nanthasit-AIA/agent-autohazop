@@ -306,7 +306,7 @@ const closeGraph = () => {
       </div>
 
       <!-- Section header (current section info + graph button) -->
-      <div class="flex items-center justify-between mb-2">
+      <div class="flex items-center justify-between mb-2 mt-3">
         <div class="flex items-center gap-2">
           <h2 class="text-lg font-black text-gray-600 ml-3">
             {{ currentSection?.label }}
