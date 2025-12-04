@@ -93,7 +93,7 @@ const outputTableHeaders = [
 
 const outputExampleRows: string[][] = [
   [
-    "L1 – D60-Storage → D60-Heater",
+    "D60-Storage → D60-Heater",
     "More",
     "Flow",
     "More flow",
@@ -103,13 +103,13 @@ const outputExampleRows: string[][] = [
     "4",
     "4",
     "5",
-    "5 (Intolerable)",
+    "5",
     "High-high pressure trip + PSV to flare",
     "Medium",
     "3",
     "3",
     "4",
-    "4 (Tolerable with ALARP)",
+    "4",
     "Install flow-limiting orifice; improve alarm response procedure",
     "2",
     "3",
@@ -225,16 +225,17 @@ const riskLevels = [
       <button type="button"
         class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-amber-200 bg-amber-50 text-sm font-black text-amber-900 hover:bg-amber-100 transition"
         @click="openHazardModal">
-        <span>⚠️ System Hazards : preview</span>
+        <i class="fi fi-br-triangle-warning text-md flex items-center justify-center"/>
+        <span> System Hazards : preview</span>
       </button>
       <button type="button" @click="showRiskMatrixModal = true"
-        class=" ml-5 px-4 py-1.5 bg-sky-100 text-sky-700 border border-sky-300 rounded-lg text-sm font-black hover:bg-sky-200 transition flex items-center gap-1">
-        <span>📊</span>
+        class=" ml-5 gap-2 px-4 py-1.5 bg-sky-100 text-sky-700 border border-sky-300 rounded-lg text-sm font-black hover:bg-sky-200 transition flex items-center gap-1">
+        <i class="fi fi-br-chart-simple text-md flex items-center justify-center"/>
         <span>Risk Matrix : preview</span>
       </button>
       <button type="button" @click="showOutputExampleModal = true"
-        class="flex ml-5 px-4 py-1.5 bg-green-100 text-green-700 border border-green-300 rounded-lg text-sm font-black hover:bg-green-200 transition items-center gap-1">
-        <span>📋</span>
+        class="flex gap-2 ml-5 px-4 py-1.5 bg-green-100 text-green-700 border border-green-300 rounded-lg text-sm font-black hover:bg-green-200 transition items-center gap-1">
+        <i class="fi fi-br-stats text-lg flex items-center justify-center" />
         <span>Output HAZOP Table : preview</span>
       </button>
     </div>
@@ -335,15 +336,15 @@ const riskLevels = [
 
           <!-- title -->
           <div class="flex items-center gap-3 border-b border-gray-100 py-2">
-            <div class="w-10 h-10 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">
-              ⚠️
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-2xl">
+              <i class="fi fi-br-triangle-warning text-lg flex items-center justify-center"/>
             </div>
             <div>
               <h2 class="text-2xl text-gray-900 font-black">
-                Chemical / material hazards analysis
+                Chemical / Material Hazards Analysis
               </h2>
               <p class="text-xs text-gray-500">
-                Severity × Likelihood → Risk level for each scenario.
+                Identifies substance-related hazards and evaluates their potential consequences
               </p>
             </div>
           </div>
@@ -396,49 +397,44 @@ const riskLevels = [
             <!-- RIGHT: hazard tiles with emoji -->
             <div class="md:flex-1 grid sm:grid-cols-2 gap-3 ">
               <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>🧍‍♂️☠️</span>
+                <i class="fi fi-br-flask-poison text-md flex items-center justify-center" />
                 <span>Personnel poisoning</span>
               </div>
 
               <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>💥</span>
-                <span>Explosion</span>
-              </div>
-
-              <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>🧪</span>
+                <i class="fi fi-br-flask text-md flex items-center justify-center" />
                 <span>Corrosion</span>
               </div>
 
               <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>🔥</span>
-                <span>Fire</span>
+                <i class="fi fi-br-volcano text-md flex items-center justify-center" />
+                <span>Explosion</span>
               </div>
 
               <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>🔥🖐️</span>
-                <span>Burns</span>
-              </div>
-
-              <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>⚗️⚡</span>
+                <i class="fi fi-br-bolt text-md flex items-center justify-center" />
                 <span>Runaway reaction</span>
               </div>
 
               <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>😮‍💨</span>
+                <i class="fi fi-br-fire-flame-curved text-md flex items-center justify-center" />
+                <span>Fire</span>
+              </div>
+
+              <div class="rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
+                <i class="fi fi-br-wind text-md flex items-center justify-center" />
                 <span>Asphyxiation</span>
               </div>
 
               <div
                 class="sm:col-span-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>⚙️❌</span>
+                <i class="fi fi-br-engine-warning text-md flex items-center justify-center" />
                 <span>Process equipment damage / failure</span>
               </div>
 
               <div
                 class="sm:col-span-2 rounded-xl bg-amber-50 px-4 py-3 text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <span>🌫️🌊🌍</span>
+                <i class="fi fi-br-smog text-md flex items-center justify-center" />
                 <span>Environmental pollution (air / water / soil)</span>
               </div>
             </div>
@@ -463,7 +459,7 @@ const riskLevels = [
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-2xl">
-                📊
+                <i class="fi fi-br-chart-simple text-lg flex items-center justify-center"/>
               </div>
               <div>
                 <h2 class="text-2xl text-gray-900 font-black">
@@ -492,7 +488,7 @@ const riskLevels = [
                     Risk Level Table
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 ml-5">
+                <p class="text-xs text-gray-500 ml-4">
                   Use this table as a visual guide when assigning risk levels to each
                   HAZOP deviation.
                 </p>
@@ -593,8 +589,8 @@ const riskLevels = [
           <!-- header -->
           <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
             <div class="flex items-center gap-3">
-              <div class="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center text-2xl">
-                📋
+              <div class="w-10 h-10 rounded-xl bg-green-100 text-green-700 flex items-center justify-center text-2xl">
+                <i class="fi fi-br-stats text-lg flex items-center justify-center" />
               </div>
               <div>
                 <h2 class="text-2xl text-gray-900 font-black">
