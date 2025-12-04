@@ -93,7 +93,7 @@ const outputTableHeaders = [
 
 const outputExampleRows: string[][] = [
   [
-    "L1 – D60-Storage → D60-Heater",
+    "D60-Storage → D60-Heater",
     "More",
     "Flow",
     "More flow",
@@ -103,13 +103,13 @@ const outputExampleRows: string[][] = [
     "4",
     "4",
     "5",
-    "5 (Intolerable)",
+    "5",
     "High-high pressure trip + PSV to flare",
     "Medium",
     "3",
     "3",
     "4",
-    "4 (Tolerable with ALARP)",
+    "4",
     "Install flow-limiting orifice; improve alarm response procedure",
     "2",
     "3",
@@ -341,10 +341,10 @@ const riskLevels = [
             </div>
             <div>
               <h2 class="text-2xl text-gray-900 font-black">
-                Chemical / material hazards analysis
+                Chemical / Material Hazards Analysis
               </h2>
               <p class="text-xs text-gray-500">
-                Severity × Likelihood → Risk level for each scenario.
+                Identifies substance-related hazards and evaluates their potential consequences
               </p>
             </div>
           </div>
@@ -488,7 +488,7 @@ const riskLevels = [
                     Risk Level Table
                   </div>
                 </div>
-                <p class="text-xs text-gray-500 ml-5">
+                <p class="text-xs text-gray-500 ml-4">
                   Use this table as a visual guide when assigning risk levels to each
                   HAZOP deviation.
                 </p>

@@ -525,7 +525,7 @@ const getPath = (
               
               <h2 class="text-2xl font-black text-gray-900">
                 <i class="fi fi-br-circle-nodes text-lg mr-2"/>
-                Pipeline Graph Preview
+                Node Connections visualization
                 <span class="text-sm font-bold text-gray-500 ml-2">
                   ({{ connections.length }} connections)
                 </span>
