@@ -10,6 +10,8 @@ from langchain.callbacks import get_openai_callback
 
 from decorators import logger, timeit_log
 from module.llm_module import get_chat_model
+import sys
+sys.stdout.reconfigure(encoding="utf-8")
 
 @timeit_log
 def get_hazop_fewshot_prompt():
@@ -119,12 +121,25 @@ def get_hazop_fewshot_prompt():
             • Generate a specific, realistic **Consequence**.
             • Specify at least one relevant **Safeguard** (instrument, procedure, interlock, etc).
             • Provide a unique **Recommendation** directly linked to the Cause.
-            • Assign **Unmitigated** and **Mitigated Risk**: use 1-5 for Severity (S) and Likelihood (L), compute RR = S * L.
+            • Assign **Unmitigated** and **Mitigated Risk**:
+                -Choose Severity (S) = 1 to 5
+                -Choose Likelihood (L) = 1 to 5
+                -Compute Risk Level (RL) using the Risk Assessment Matrix below.
+                -by follow this scale -Severity scale: 5 major disaster; 4 serious injury/damage; 3 medical treatment/equipment failure; 2 minor treatment/abnormal equipment; 1 minor injury/no impact.
+                Likelihood scale: 5 often; 4 likely; 3 unlikely; 2 very unlikely; 1 extremely unlikely.'
             • Apply this Risk Matrix:
-                - RR 1-4 = Low
-                - RR 5-12 = Medium
-                - RR 13-25 = High
-
+                Risk Level Matrix (S*L → RL):
+                S5: L5=5, L4=5, L3=4, L2=3, L1=2
+                S4: L5=5, L4=4, L3=4, L2=3, L1=2
+                S3: L5=4, L4=4, L3=3, L2=3, L1=2
+                S2: L5=3, L4=3, L3=3, L2=2, L1=1
+                S1: L5=2, L4=2, L3=2, L2=1, L1=1
+                RL meaning: 1-2 acceptable; 3-4 significant; 5 critical. and RL IS REPRESENT BY RR in (RR Before Safeguards,RR,RR After Recommendation) AND MAP BY Risk Level Matrix (S*L → RL):
+                and IMPORTANT** (RR Before Safeguards,RR,RR After Recommendation) RETURN ONLY 1-5 MAP BY Risk Level Matrix:
+            • Apply this For Unmitigated Risk Category , Mitigated Risk Category followed from Risk Level Matrix (S*L → RL) **RETURN ONLY Low, Medium, High or N/A**:
+                - RL 1-2 = Low
+                - RL 3-4 = Medium
+                - RL 5 = High
             4. For any mathematical or category mismatch, silently correct it.
 
             5. Responsibility field must be "Engineering" or "Maintenance" or "Operations".
@@ -522,8 +537,11 @@ def list_all_connections(pid_data: dict):
     if "choices" in pid_data:
         # old style: OpenAI chat completion wrapper
         parsed = pid_data["choices"][0]["message"]["parsed"]
+    elif "pid_data" in pid_data and isinstance(pid_data["pid_data"], dict):
+        # new style: your file wrapper with metadata
+        parsed = pid_data["pid_data"]
     else:
-        # new style: already-parsed P&ID JSON from frontend
+        # already the bare P&ID JSON
         parsed = pid_data
 
     connections = parsed.get("connections", [])
@@ -549,7 +567,6 @@ def list_all_connections(pid_data: dict):
                 "process_description": process_description,
             }
         )
-
     return query_infos
 
 @timeit_log
@@ -564,8 +581,8 @@ def run_hazop_agent(
     token_limit: int = 10000,
 ) -> Generator[Tuple[str, int], None, None]:
     valid_guide_ws = [
-    "No", "More", "Less", "As well as", "Part of", "Reverse",
-    "Other than", "Early", "Late", "Before", "After"
+        "No", "More", "Less", "As well as", "Part of", "Reverse",
+        "Other than", "Early", "Late", "Before", "After"
     ]
 
     valid_params = [
@@ -574,38 +591,24 @@ def run_hazop_agent(
         "Maintenance", "Operation Timing", "Concentration"
     ]
 
-    def parse_llm_result_to_rows(result_text: str) -> list[list[str]]:
-        rows: list[list[str]] = []
-        for line in str(result_text).strip().splitlines():
-            if not line.strip():
-                continue
-
-            parts = [cell.strip() for cell in line.split(",")]
-
-            # Strict check – if LLM row is malformed, we skip it and log later
-            if len(parts) != len(headers):
-                # you will log this in the caller; here we just skip
-                continue
-            
-            rows.append(parts)
-
-        return rows
-
+    # --- 1) Your detailed single-line parser (unchanged logic) ---
     @timeit_log
-    def parse_llm_result(raw_out: str, i=5) -> list:
-        parts = [p.strip() for p in raw_out.split(",")]
+    def parse_llm_result(raw_out: str, i: int = 5) -> list[list[str]]:
+        parts = [p.strip() for p in str(raw_out).split(",")]
         result = {col: "" for col in headers}
 
+        # base fields
         result["Node"] = parts[0]
         result["Guide Word"] = parts[1] if parts[1] in valid_guide_ws else ""
         result["Parameter"] = parts[2] if parts[2] in valid_params else ""
         result["Deviation"] = parts[3]
         result["Cause"] = parts[4]
 
-        conseq = []
-        safeg = []
-        recomm = []
+        conseq: list[str] = []
+        safeg: list[str] = []
+        recomm: list[str] = []
 
+        # --- Consequence + Unmitigated Risk Category ---
         while i < len(parts):
             if parts[i] in valid_risk_categories:
                 result["Unmitigated Risk Category"] = parts[i]
@@ -615,11 +618,13 @@ def run_hazop_agent(
             i += 1
         result["Consequence"] = "; ".join(conseq)
 
-        result["S Before Safeguards"] = int(parts[i+1]) if parts[i+1].isdigit() else parts[i+1]
-        result["L Before Safeguards"] = int(parts[i+2]) if parts[i+2].isdigit() else parts[i+2]
-        result["RR Before Safeguards"] = int(parts[i+3]) if parts[i+3].isdigit() else parts[i+3]
-        result["Overall Risk"] = parts[i+4]
+        # S/L/RR before safeguards + Overall Risk (unmitigated)
+        result["S Before Safeguards"] = int(parts[i + 1]) if parts[i + 1].isdigit() else parts[i + 1]
+        result["L Before Safeguards"] = int(parts[i + 2]) if parts[i + 2].isdigit() else parts[i + 2]
+        result["RR Before Safeguards"] = int(parts[i + 3]) if parts[i + 3].isdigit() else parts[i + 3]
+        result["Overall Risk"] = parts[i + 4]
 
+        # --- Safeguards + Mitigated Risk Category ---
         j = i + 5
         while j < len(parts):
             if parts[j] in valid_risk_categories:
@@ -630,11 +635,13 @@ def run_hazop_agent(
             j += 1
         result["Safeguards"] = "; ".join(safeg)
 
-        result["S"] = int(parts[j+1]) if parts[j+1].isdigit() else parts[j+1]
-        result["L"] = int(parts[j+2]) if parts[j+2].isdigit() else parts[j+2]
-        result["RR"] = int(parts[j+3]) if parts[j+3].isdigit() else parts[j+3]
-        result["Overall Risk"] = parts[j+4]
+        # S/L/RR after safeguards + Overall Risk (mitigated)
+        result["S"] = int(parts[j + 1]) if parts[j + 1].isdigit() else parts[j + 1]
+        result["L"] = int(parts[j + 2]) if parts[j + 2].isdigit() else parts[j + 2]
+        result["RR"] = int(parts[j + 3]) if parts[j + 3].isdigit() else parts[j + 3]
+        result["Overall Risk"] = parts[j + 4]
 
+        # --- Recommendations + final S/L/RR + Responsibility ---
         k = j + 5
         while k < len(parts) - 4:
             recomm.append(parts[k])
@@ -646,11 +653,39 @@ def run_hazop_agent(
         result["RR After Recommendation"] = int(parts[k]) if parts[k].isdigit() else parts[k]; k += 1
         result["Responsibility"] = parts[k]
 
+        # return as a list-of-rows for compatibility with rest of code
         return [[result[col] for col in headers]]
 
+    # --- 2) Wrapper: use parse_llm_result for each line of the LLM output ---
+    def parse_llm_result_to_rows(result_text: str) -> list[list[str]]:
+        """
+        Turns the whole LLM output (possibly multi-line) into list[list[str]]
+        by calling parse_llm_result() on each non-empty line.
+        """
+        rows: list[list[str]] = []
+
+        for line in str(result_text).strip().splitlines():
+            if not line.strip():
+                continue
+
+            try:
+                line_rows = parse_llm_result(line)
+            except Exception:
+                # Let caller log the malformed output; we just skip bad lines here
+                continue
+
+            # parse_llm_result already returns a list of rows; extend and
+            # also defend against wrong length (just in case).
+            for r in line_rows:
+                if len(r) == len(headers):
+                    rows.append(r)
+
+        return rows
+
     query_infos = list_all_connections(pid_data)
+    print(query_infos)
     valid_risk_categories = ["Low", "Medium", "High", "N/A"]
-    parsed_rows = []
+    
     headers = [
         "Node", "Guide Word", "Parameter", "Deviation", "Cause", "Consequence", 
         "Unmitigated Risk Category", "S Before Safeguards", "L Before Safeguards", 
@@ -680,7 +715,7 @@ def run_hazop_agent(
         guide_word = sel.get("guide_word")
 
         if not line_id or not param or not guide_word:
-            continue  # skip incomplete selections
+            continue
 
         info = info_by_line.get(line_id)
         if not info:
@@ -702,8 +737,9 @@ def run_hazop_agent(
             try:
                 result = hazop_chain.run(**input_data)
 
-                # Parse result into structured rows (safe)
+                # ⬇️ per-selection parsing – NO global parsed_rows
                 rows = parse_llm_result_to_rows(result)
+
                 if not rows:
                     logger.warning(
                         f"[Warning] No valid rows for {info['line_id']}:{param}:{guide_word} "
@@ -721,13 +757,9 @@ def run_hazop_agent(
                     error_df.to_csv(error_log_path, index=False)
                     continue
 
-                # extend global list
-                parsed_rows.extend(rows)
-
             except Exception as e:
                 logger.error(f"[Error] {info['line_id']}:{param}:{guide_word} — {e}")
                 continue
-
 
             if cb.total_tokens > token_limit:
                 logger.warning(f"[Skipped] {line_id}:{param}:{guide_word} — {cb.total_tokens} tokens")
@@ -735,32 +767,37 @@ def run_hazop_agent(
 
             tokens_used = cb.total_tokens
 
-        # Log RawOutput
+        # Log raw LLM output
         response_entry = {
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "LineID": line_id,
             "Parameter": param,
             "GuideWord": guide_word,
-            "RawOutput": result
+            "RawOutput": result,
         }
         llm_response_df = pd.concat([llm_response_df, pd.DataFrame([response_entry])], ignore_index=True)
         llm_response_df.to_csv(llm_response_log_path, index=False)
 
-        if not parsed_rows:
-            print(f"[Warning] No valid rows for {line_id}:{param}:{guide_word}")
-            error_entry = {
-                "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                "LineID": line_id,
-                "Parameter": param,
-                "GuideWord": guide_word,
-                "RawOutput": result,
-                "Reason": f"Invalid or no rows parsed (expected {len(headers)} columns)"
-            }
-            error_df = pd.concat([error_df, pd.DataFrame([error_entry])], ignore_index=True)
-            error_df.to_csv(error_log_path, index=False)
-            continue
+        # Build DataFrame ONLY from current selection's rows
+        df_parsed = pd.DataFrame(rows, columns=headers)
 
-        # Token log
+        # --- merge into parsed_excel_path ---
+        if os.path.exists(parsed_excel_path):
+            df_existing = pd.read_excel(parsed_excel_path)
+            df_existing = df_existing.loc[:, ~df_existing.columns.duplicated()]
+            df_existing = df_existing.reindex(columns=headers)
+            df_parsed = df_parsed.reindex(columns=headers)
+            df_combined = pd.concat([df_existing, df_parsed], ignore_index=True)
+        else:
+            df_combined = df_parsed.reindex(columns=headers)
+
+        df_combined.to_excel(parsed_excel_path, index=False)
+
+        # --- main HAZOP output ---
+        df = pd.concat([df, df_parsed], ignore_index=True)
+        df.to_excel(excel_path, index=False)
+
+        # token log
         token_row = {
             "Timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             "LineID": line_id,
@@ -769,40 +806,9 @@ def run_hazop_agent(
             "Model": model_name,
             "PromptTokens": cb.prompt_tokens,
             "CompletionTokens": cb.completion_tokens,
-            "TotalTokens": cb.total_tokens
+            "TotalTokens": cb.total_tokens,
         }
         token_df = pd.concat([token_df, pd.DataFrame([token_row])], ignore_index=True)
         token_df.to_csv(token_log_path, index=False)
-
-        # Append to parsed output log
-        # Build fresh DataFrame for this iteration
-        df_parsed = pd.DataFrame(parsed_rows, columns=headers)
-
-        # --- NEW: robust merge into parsed_excel_path ---
-        if os.path.exists(parsed_excel_path):
-            df_existing = pd.read_excel(parsed_excel_path)
-
-            # 1) Drop duplicate column names if any
-            df_existing = df_existing.loc[:, ~df_existing.columns.duplicated()]
-
-            # 2) Ensure the column order & set is exactly `headers`
-            #    (missing columns will be filled with NaN)
-            df_existing = df_existing.reindex(columns=headers)
-
-            # 3) Same for new data (defensive)
-            df_parsed = df_parsed.reindex(columns=headers)
-
-            # Now rows can be safely concatenated
-            df_combined = pd.concat([df_existing, df_parsed], ignore_index=True)
-        else:
-            # First time: just ensure correct columns
-            df_combined = df_parsed.reindex(columns=headers)
-
-        df_combined.to_excel(parsed_excel_path, index=False)
-
-
-        # Append to main HAZOP output
-        df = pd.concat([df, df_parsed], ignore_index=True)
-        df.to_excel(excel_path, index=False)
 
         yield f"{line_id}:{param}:{guide_word}", tokens_used

@@ -27,7 +27,6 @@ logs
 *.pyc
 *.pyo
 *.pyd
-/backend/static/hazop
 /backend/static/hazop_runs
 
 
