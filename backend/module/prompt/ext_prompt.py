@@ -69,7 +69,7 @@ Important Constraints:
 - Any drawing element that is only a valve or instrument symbol (ISA-style circles, valve symbols, etc.) must be represented only in the `valves` or `instruments` sections and referenced in connections. Do not add such pure symbols as equipment.
 
 **ID Naming Rules:**
-- Equipment: Use tag if shown (e.g., R-101); otherwise infer and assign a descriptive, role-based ID that reflects the equipment’s function or capacity (e.g., HX1 for heat exchanger, COL1 for column, or capacity-based names like 1000L_H2O2_TANK when applicable).
+- Equipment: Use tag if shown (e.g., R-101); otherwise infer and assign a descriptive, role-based ID that reflects the equipment’s function or capacity (e.g., HX1 for heat exchanger, COL1 for column, or capacity-based names like 1000L_H2O2_TANK when applicable) and LAST OPTION IS RETURN E1, E2 etc..
 - System inputs/outputs: In `system_inputs` and `system_outputs`, use clear, human-readable names (e.g., "Waste liquid to drain", "Nitrogen supply to tanks"). When these are used as boundary nodes in `from_id` / `to_id`, reuse a normalized version of the same name (e.g., "Waste liquid", "N2 supply to tanks"). Never use valve or instrument IDs as system input/output IDs.
 - Valves: Use tag if shown (e.g., V-101); else assign V1, V2...
 - Instruments: Use standard ISA code (e.g., TI1, PC1, LC1).

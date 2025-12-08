@@ -1,0 +1,7 @@
+Timestamp,LineID,Parameter,GuideWord,Model,PromptTokens,CompletionTokens,TotalTokens
+2025-12-08 06:37:59,L1,Temperature,More,gpt-4.1-2025-04-14,5825,3971,9796
+2025-12-08 06:38:56,L1,Temperature,Less,gpt-4.1-2025-04-14,5825,4135,9960
+2025-12-08 06:39:59,L2,Temperature,More,gpt-4.1-2025-04-14,5775,3958,9733
+2025-12-08 06:40:41,L2,Temperature,Less,gpt-4.1-2025-04-14,5775,3425,9200
+2025-12-08 06:41:44,L3,Pressure,More,gpt-4.1-2025-04-14,5833,4114,9947
+2025-12-08 06:42:38,L3,Pressure,Less,gpt-4.1-2025-04-14,5833,3696,9529
