@@ -102,13 +102,13 @@ def get_hazop_fewshot_prompt():
             ───────────────────────────────────────────────────────
             MANDATORY RULES (DO NOT BREAK)
 
-            1. You must return **exactly 50 rows** per response — **no more, no less**.
-            - Each row must contain one unique Cause from the **MANDATORY ENGINEERING CAUSE CHECKLIST**.
-            - No omission, repetition, or reordering is allowed.
-            - If fewer than 50 rows are returned, you will fail the task.
+            1. You must return **exactly as many rows as there are causes in the MANDATORY ENGINEERING CAUSE CHECKLIST** — no more, no less.  
+            - Each row must contain one unique Cause from the checklist.  
+            - All listed causes (1 through N) must appear once — no omission, duplication, or reordering.  
+            - Row count must always equal the number of causes in the checklist (auto-calculate N).
 
             2. Output format:
-            • Return ONLY the 50 valid **CSV rows**, with 21 comma-separated fields in this exact order:
+            • Return ONLY valid CSV rows, with **22 comma-separated fields** in this exact order:
                 ```
                 Node, Guide Word, Parameter, Deviation, Cause, Consequence, Unmitigated Risk Category,
                 S Before Safeguards, L Before Safeguards, RR Before Safeguards, Overall Risk,
@@ -118,23 +118,17 @@ def get_hazop_fewshot_prompt():
             • No Markdown, no code block fences, no headers, no comments.
 
             3. For each Cause:
-            • Generate a specific, realistic **Consequence**.
+            • Generate a specific, realistic **Consequence**, including chemical/material hazards by check Input/Output Substance where relevant:
+                - Personnel poisoning, corrosion, burns, asphyxiation  
+                - Environmental pollution (air/water/soil)  
+                - Explosion, fire, runaway reaction  
+                - Process equipment damage/failure  
+                - Product Quality
             • Specify at least one relevant **Safeguard** (instrument, procedure, interlock, etc).
             • Provide a unique **Recommendation** directly linked to the Cause.
             • Assign **Unmitigated** and **Mitigated Risk**:
-                -Choose Severity (S) = 1 to 5
-                -Choose Likelihood (L) = 1 to 5
-                -Compute Risk Level (RL) using the Risk Assessment Matrix below.
-                -by follow this scale -Severity scale: 5 major disaster; 4 serious injury/damage; 3 medical treatment/equipment failure; 2 minor treatment/abnormal equipment; 1 minor injury/no impact.
-                Likelihood scale: 5 often; 4 likely; 3 unlikely; 2 very unlikely; 1 extremely unlikely.'
-            • Apply this Risk Matrix:
-                Risk Level Matrix (S*L → RL):
-                S5: L5=5, L4=5, L3=4, L2=3, L1=2
-                S4: L5=5, L4=4, L3=4, L2=3, L1=2
-                S3: L5=4, L4=4, L3=3, L2=3, L1=2
-                S2: L5=3, L4=3, L3=3, L2=2, L1=1
-                S1: L5=2, L4=2, L3=2, L2=1, L1=1
-                RL meaning: 1-2 acceptable; 3-4 significant; 5 critical. and RL IS REPRESENT BY RR in (RR Before Safeguards,RR,RR After Recommendation) AND MAP BY Risk Level Matrix (S*L → RL):
+                Severity S: S5 fatality/off-site env loss>300M/dt>6mo; S4 permanent disability/neighbor env loss30-300M/dt1-6mo; S3 treatable injury/area env loss3-30M/dt1-4wk; S2 minor injury/unit loss0.015-3M/dt4h-1wk; S1 negligible/equip loss<0.015M/dt<4h. Likelihood L: L5 often p≥1e-1; L4 likely 1e-1>p≥1e-2; L3 unlikely 1e-2>p≥1e-3; L2 very unlikely 1e-3>p≥1e-4; L1 extremely unlikely p<1e-4. Risk Matrix RL(S,L): S5:5,5,4,3,2; S4:5,4,4,3,2; S3:4,4,3,3,2; S2:3,3,3,2,1; S1:2,2,2,1,1. Risk Category: RL1-2 Low; RL3-4 Medium; RL5 High. RR fields return RL 1-5 only.
+                RL meaning: 1-2 Low; 3-4 Medium; 5 High. and RL IS REPRESENT BY RR in (RR Before Safeguards,RR,RR After Recommendation) AND MAP BY Risk Level Matrix (S*L → RL):
                 and IMPORTANT** (RR Before Safeguards,RR,RR After Recommendation) RETURN ONLY 1-5 MAP BY Risk Level Matrix:
             • Apply this For Unmitigated Risk Category , Mitigated Risk Category followed from Risk Level Matrix (S*L → RL) **RETURN ONLY Low, Medium, High or N/A**:
                 - RL 1-2 = Low
@@ -146,60 +140,60 @@ def get_hazop_fewshot_prompt():
 
             6. You MUST auto-validate that 50 rows are output, each using a different Cause from the checklist.
             
-            7. Row Count Validation: Before emitting output, silently count CSV lines. If ≠ 50, regenerate internally.
+            7. Row Count Validation: Before emitting output, silently count CSV lines. If ≠ NUMBER OF MANDATORY ENGINEERING CAUSE CHECKLIST, regenerate internally.
 
             ───────────────────────────────────────────────────────
             MANDATORY ENGINEERING CAUSE CHECKLIST (MUST appear once each)
-            1. Pump failure  
-            2. Valve stuck closed  
-            3. Valve stuck open  
-            4. Control valve failure  
-            5. Abmormal source  
-            6. Blocked line  
-            7. Line rupture  
-            8. Leakage in pipe or flange  
-            9. Air entrainment  
-            10. Vapor lock  
-            11. Cavitation  
-            12. Flashing  
-            13. Slug flow  
-            14. Fouling in heat exchanger  
-            15. Tube rupture in heat exchanger  
-            16. Cooling water failure  
-            17. Steam supply failure  
-            18. Instrument failure - sensor  
-            19. Instrument failure - transmitter  
-            20. Instrument failure - controller  
-            21. Instrument failure - valve actuator  
-            22. Instrument calibration drift  
-            23. Controller setpoint error  
-            24. PID tuning error  
-            25. Power failure (main)  
-            26. Power fluctuation or dip  
-            27. UPS failure  
-            28. Alarm failure  
-            29. Interlock logic error  
-            30. Interlock bypassed  
-            31. PSV stuck closed  
-            32. PSV stuck open  
-            33. PSV setpoint incorrect  
-            34. Human error - startup  
-            35. Human error - shutdown  
-            36. Human error - normal operation  
-            37. Operator misreads gauge  
-            38. Incorrect manual valve alignment  
-            39. Maintenance error - reinstatement  
-            40. Maintenance error - bypass left open  
-            41. Utility outage  
-            42. Incorrect mixing ratio  
-            43. Ambient temperature  
-            44. Phase separation error  
-            45. Tank overfill  
-            46. Wrong phase (liquid/vapor)  
-            47. Wrong chemical added  
-            48. Mixing incompatible materials  
-            49. Safety relief device blocked  
-            50. Incorrect procedure followed  
+            1.Pressure instrument failure (gauge; transmitter; sensor)
+            2.Temperature instrument failure (thermometer; transmitter; sensor)
+            3.Level instrument failure (indicator; transmitter; sensor)
+            4.Flow instrument failure (meter; sensor; transmitter)
+            5.Incorrect instrument calibration or setpoint
+            6.Control valve malfunction (stuck; leakage; actuator failure)
+            7.Incorrect valve selection or specification
+            8.Proportional/regulating valve malfunction
+            9.Pneumatic valve failure or loss of actuator signal
+            10.Vent valve malfunction (fails closed/open during transfer or discharge)
+            11.Pipeline leakage (joint failure; crack; corrosion; gasket)
+            12.Pipeline blockage or obstruction (fouling; deposits; freezing; solids)
+            13.Incorrect installation or poor layout of piping/equipment
+            14.Vessel leakage or rupture (design or fatigue failure)
+            15.Pump mechanical failure (seal; impeller; shaft; cavitation)
+            16.Compressor or fan mechanical failure (motor; bearing; impeller)
+            17.Vacuum pump failure (cannot achieve required vacuum)
+            18.Refrigerant/utility line rupture or internal leak
+            19.Cylinder rupture or containment breach
+            20.Drain hole blockage or inadequate drainage
+            21.Equipment overheating (heater runaway; thermal stress)
+            22.Abnormal wear/erosion leading to loss of containment
+            23.Abnormal utility supply pressure (too high or too low)
+            24.Abnormal cryogenic source (LN2 evaporation; boil-off; loss of supply)
+            25.Abnormal water supply (insufficient cooling or cleaning water)
+            26.Abnormal gas supply (N₂; compressed air; other utility failure)
+            27.Power failure (loss of electricity to motors; fans; instruments)
+            28.Cooling system failure (no circulation; fouling; exchanger blocked)
+            29.Heating system failure (heater not starting or insufficient duty)
+            30.Heating system uncontrolled (heater operating without cutoff)
+            31.Utility connection leakage (joints; hoses; couplings)
+            32.Pressure regulator malfunction (failure of PRV or regulator valve)
+            33.Upstream overpressure (abnormal feed source pressure)
+            34.Downstream restriction (blockage; closed valve; isolation)
+            35.Reverse flow due to pressure imbalance or check valve failure
+            36.Reaction runaway / abnormal process temperature rise
+            37.Abnormal mixing ratio (incorrect blending; poor agitation)
+            38.Incorrect feed ratio or dosage deviation
+            39.Abnormal circulation imbalance (inlet > outlet; unequal flows)
+            40.Vessel operating empty or insufficient level (dry running)
+            41.Vessel operating overfilled (high level)
+            42.Internal decomposition of process medium (gas release; thermal breakdown)
+            43.Ambient high temperature (external fire; hot weather)
+            44.Ambient low temperature (cold weather; freezing)
+            45.External mechanical impact or vibration
+            46.Abnormal source contamination (impurities; off-spec feed)
+            47.Human error in operation (wrong valve; wrong sequence)
+            48.Incorrect operating sequence (early or late action)
+            49.Insufficient operating time (too short cycle; premature termination)
+            50.Excessive operating time (too long cycle, delayed termination) 
 
             ───────────────────────────────────────────────────────
             DO NOT continue if data is not between tags:
@@ -225,152 +219,6 @@ def get_hazop_fewshot_prompt():
 
 
     """
-
-    role_and_rules = """
-        Act like the world's most deterministic, IEC 61882-compliant **Process Safety Engineer AI**.
-
-        OBJECTIVE  
-        • Generate a fully auditable, regulation-grade **HAZOP worksheet** in **strict UTF-8 comma-separated CSV** (Open-PHA compatible) using *only* the structured JSON that appears between the required tags.
-        
-        <START-DATA>
-        [
-            Line ID: {line_id}
-            Node: {node}
-            Valves: {valves}
-            Instruments: {instruments}
-            Context: {context}
-            Process Description:
-            {process_description}
-        ]
-        <END-DATA>
-
-        Do **not** begin the HAZOP until JSON appears between the tags.
-
-        -------------------------------------------------------------------------------
-        GLOBAL RULES (enforced at every step)  
-        1. Treat each object in the JSON array as a distinct **Node**.  
-        2.  Form *Deviations* only by valid combinations of the **Guide Words** and **Parameters** provided below—never duplicate a word between the two lists. 
-        3. For **every** Deviation, expand **all 50 Causes** from the mandatory checklist:**one unique row per cause, no omissions, no merging, no re-ordering**. 
-        3.1 IMPORTANT 50-All MANDATORY ENGINEERING CAUSE CHECKLIST must be used and show in answer
-        4. Every CSV cell must contain concrete, specific text—no “TBD”, blanks, or generic statements.  
-        5. **Risk Rating (RR)** = Severity * Likelihood. Map RR → Risk Category (Low, Medium, High) using the embedded 5*5 matrix. 
-        6. Each Recommendation must directly address its corresponding Cause. 
-        7. Autovalidate logic before release; silently correct any math error,category mis-alignment, or Guide-Word/Parameter mismatch.
-        8. **Output only the CSV data rows**—no headers, commentary, Markdown, or code-block fences.
-   
-        -------------------------------------------------------------------------------
-        APPROVED GUIDE WORDS  
-        • {guide_word}  
-
-        APPROVED PARAMETERS  
-        • {parameter}  
-
-        EXAMPLE DEVIATION PAIRS  
-        No + Flow → No Flow/ More + Pressure → High Pressure/ Other than + Composition → Off-Spec
-        
-        -------------------------------------------------------------------------------
-        MANDATORY ENGINEERING CAUSE CHECKLIST (appear **verbatim**—exactly once per Deviation) 
-        Use the following 50 causes **internally**; they must each appear once per Deviation.  
-        1. Pump failure  
-        2. Valve stuck closed  
-        3. Valve stuck open  
-        4. Control valve failure  
-        5. Abmormal source  
-        6. Blocked line  
-        7. Line rupture  
-        8. Leakage in pipe or flange  
-        9. Air entrainment  
-        10. Vapor lock  
-        11. Cavitation  
-        12. Flashing  
-        13. Slug flow  
-        14. Fouling in heat exchanger  
-        15. Tube rupture in heat exchanger  
-        16. Cooling water failure  
-        17. Steam supply failure  
-        18. Instrument failure - sensor  
-        19. Instrument failure - transmitter  
-        20. Instrument failure - controller  
-        21. Instrument failure - valve actuator  
-        22. Instrument calibration drift  
-        23. Controller setpoint error  
-        24. PID tuning error  
-        25. Power failure (main)  
-        26. Power fluctuation or dip  
-        27. UPS failure  
-        28. Alarm failure  
-        29. Interlock logic error  
-        30. Interlock bypassed  
-        31. PSV stuck closed  
-        32. PSV stuck open  
-        33. PSV setpoint incorrect  
-        34. Human error - startup  
-        35. Human error - shutdown  
-        36. Human error - normal operation  
-        37. Operator misreads gauge  
-        38. Incorrect manual valve alignment  
-        39. Maintenance error - reinstatement  
-        40. Maintenance error - bypass left open  
-        41. Utility outage  
-        42. Incorrect mixing ratio  
-        43. Ambient temperature  
-        44. Phase separation error  
-        45. Tank overfill  
-        46. Wrong phase (liquid/vapor)  
-        47. Wrong chemical added  
-        48. Mixing incompatible materials  
-        49. Safety relief device blocked  
-        50. Incorrect procedure followed  
-        *(Checklist is for your reference only— refine act like human by follow data in <START-DATA>..<END-DATA>.)*
-
-        -------------------------------------------------------------------------------
-        STEP-BY-STEP WORKFLOW
-        **Step 0 - Data Ingestion**  
-        • Parse the JSON array between <START-DATA>…<END-DATA>. 
-        • Store: Line ID, Node, Valves, Instruments, Context, Process Description.
-
-        **Step 1 - Parameter Identification**  
-        • Derive the applicable *Parameters* for each Node using Context + Process Description.
-
-        **Step 2 - Deviation Generation**  
-        • Pair each identified **APPROVED PARAMETERS** with every valid **APPROVED GUIDE WORDS** to create Deviations.
-
-        **Step 3 - Cause Expansion**  
-        • For each Deviation, output 50 rows—one for each Cause in the checklist and **All 50-MANDATORY ENGINEERING CAUSE CHECKLIST must be used and show in output**.
-
-        **Step 4 - Consequence, Safeguard & Recommendation**  
-        • Craft a Node-specific engineering-realistic Consequence for each Cause. 
-        • Enumerate all explicit or implied Safeguards (valves, instruments, interlocks, procedures); separate multiples with semicolons. 
-        • Propose one actionable Recommendation that directly mitigates the Cause.
-
-        **Step 5 - Risk Evaluation (Unmitigated & Mitigated)**  
-        • Assign Severity (S) and Likelihood (L) before safeguards; compute RR and Category.  
-        • Re-evaluate S and/or L *after* implementing the Recommendation; recalculate RR and Category.
-
-        **Step 6 - CSV Assembly**  
-        Populate **exactly** these 21 columns **in the order shown**—omit the header row:  
-        Node, Guide Word, Parameter, Deviation, Cause, Consequence, Unmitigated Risk Category, S Before Safeguards, L Before Safeguards, RR Before Safeguards, Overall Risk, Safeguards, Mitigated Risk Category, S, L, RR, Overall Risk, Recommendations, S After Recommendation, L After Recommendation, RR After Recommendation, Responsibility
-
-        **Step 7 - Validation Loop**  
-        • Auto-check every row for completeness, uniqueness, logical consistency, math correctness, and category alignment.  
-        • Iterate silently until *All-output-answer must have 50 cause in checklist* checks pass.
-
-        **Step 8 - Output**  
-        • Emit the CSV data rows *only*—no header, no extra text, no Markdown fences.
-
-        -------------------------------------------------------------------------------
-        RISK MATRIX (5*5 example)  
-        Severity (1-5) * Likelihood (1-5) → RR  
-        1-4 = Low / 5-12 = Medium/ 13-25 = High  
-
-        -------------------------------------------------------------------------------
-        CONFIDENTIALITY  
-        All chain-of-thought, intermediate reasoning, calculations, and notes must remain internal.
-        Expose **only** the validated CSV output.
-
-        Take a deep breath and work on this problem step-by-step.
-        """
-
     cot_suffix = """
         Analyze the line below using HAZOP methodology.
 
@@ -578,11 +426,11 @@ def run_hazop_agent(
     llm_response_log_path: str,
     parsed_excel_path: str,
     selections: List[Dict[str, str]],  # NEW
-    token_limit: int = 10000,
+    token_limit: int = 20000,
 ) -> Generator[Tuple[str, int], None, None]:
     valid_guide_ws = [
         "No", "More", "Less", "As well as", "Part of", "Reverse",
-        "Other than", "Early", "Late", "Before", "After"
+        "Other than", "Early", "Late", "Before", "After", "No/Low"
     ]
 
     valid_params = [

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, toRefs, withDefaults, ref } from "vue";
+import { computed, toRefs, ref } from "vue";
 
 interface HazopRun {
   line_id: string;
