@@ -33,7 +33,8 @@ type GuideWord =
   | "Early"
   | "Late"
   | "Before"
-  | "After";
+  | "After"
+  | "No/Low";
 
 const deviationTypes: DeviationType[] = [
   "Flow",
@@ -68,6 +69,7 @@ const validGuideWords: GuideWord[] = [
   "Late",
   "Before",
   "After",
+  "No/Low",
 ];
 
 // base options for main 6 parameters
