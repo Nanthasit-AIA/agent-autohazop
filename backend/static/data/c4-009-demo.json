@@ -1,0 +1,690 @@
+{
+  "pid_data": {
+    "process_description": "PROCESS OVERVIEW : The Butene-2 tower C-220 is a 23.5 m tall, 2.6 m diameter distillation column designed to remove heavier components (mainly Butene-2 and n-Butane) from a lighter stream rich in Butene-1 and Iso-butane. Overhead vapor is totally condensed in the ground-mounted water-cooled condenser E-225 and collected in the horizontal reflux drum V-225, from where duplicate centrifugal reflux pumps P225A/B provide reflux to the column top and forward the net Butene-1-rich product to the downstream Butene-1 column C-230. Bottom heavies are cooled and sent to the refinery.\nPROCESS INITIATION : The process starts when mixed C4 feed enters C-220 at an intermediate tray from the upstream unit (from R-210). Heat is supplied at the bottom (reboiler circuit), vapor rises, and lighter components concentrate toward the top. Overhead vapor leaves at approximately 66 °C and 8.2 kg/cm²g, is fully condensed in E-225, and the condensate is pushed by column pressure into V-225 at approximately 67 °C.\nPROCESS END: The process ends with two products: Bottom stream rich in Butene-2 and n-Butane is withdrawn at approximately 79 °C, cooled in E-227, combined with MTBER, and routed to the refinery. And Overhead liquid collected in V-225 is pumped by P225A/B; part is returned as reflux to the top of C-220, and the net overhead product (rich in Butene-1 and Iso-butane) is sent forward to C-230 (to V-113).\nPROCESS DESCRIPTION: The Butene-2 separation system is centered on the distillation column C-220, which is provided with heat input via the reboiler circuit E-220 to drive vapor–liquid equilibrium and component separation. Mixed C4 feed enters C-220 at an intermediate tray from the upstream unit (R-210). Thermal energy supplied by E-220 generates upward vapor flow, allowing lighter components (Butene-1 and Iso-butane) to concentrate toward the top of the column while heavier components (Butene-2 and n-Butane) are enriched in the bottom section. Overhead vapor from C-220 exits the column at approximately 66 °C and 8.2 kg/cm²g and is routed to the ground-mounted, water-cooled condenser E-225, where it is totally condensed. The condensate flows by column pressure into the horizontal reflux drum V-225 (1.8 m ID × 3.81 m T/T) at approximately 67 °C. Liquid accumulated in V-225 is withdrawn by the duplicate centrifugal reflux pumps P225A/B (83 m³/h, 70.4 m head each). A controlled portion of the pump discharge is returned to the top of C-220 as reflux to maintain separation efficiency, while the remaining net overhead liquid product, rich in Butene-1 and Iso-butane, is forwarded to the downstream Butene-1 column C-230 (via V-113).The bottom product from C-220, rich in Butene-2 and n-Butane, is withdrawn at approximately 79 °C, cooled in E-227, combined with MTBER, and routed to the refinery. Reflux flow to C-220 is manually adjusted based on laboratory analysis of a continuous sample drawn from The 117th tray of the tower uses Pump-221A/B, with the operating target of maintaining ≤ 2 % n-Butane in the overhead product.\nFILE HANDLE:  The section is fully instrumented with temperature, pressure, level, and flow controls, alarms, and safety relief valves as detailed in PID 2-04, 2-05, 2-06 and mainstream C4-009. Also, examine the additional images highlighting streams in green labeled C4-009 and the main PFD image focusing on C-220, P225AB, and V-225.",
+    "system_inputs": [
+      "Mixed C4 feed from R-210",
+      "MTBER from upstream MTBE system",
+      "Cooling water supply",
+      "Steam or hot oil to reboiler E-220",
+      "Electric power to pumps P-221A/B and P-225A/B",
+      "Instrument air to control valves and instruments"
+    ],
+    "system_outputs": [
+      "Overhead Butene-1 / Iso-butane product to C-230 (via V-113)",
+      "Bottom Butene-2 / n-Butane product to refinery",
+      "Cooling water return",
+      "Reboiler condensate / return from E-220 circuit",
+      "Vents to atmosphere via PSV/vent headers",
+      "Drains to wastewater / oily water system"
+    ],
+    "equipment": [
+      {
+        "id": "C-220",
+        "name": "Butene-2 Tower",
+        "type": "distillation_column",
+        "context": "Main fractionation column separating mixed C4s into overhead Butene-1/Iso-butane and bottom Butene-2/n-Butane; equipped with reboiler circuit and multiple side draws/sampling trays."
+      },
+      {
+        "id": "E-220",
+        "name": "C-220 Reboiler",
+        "type": "heat_exchanger",
+        "context": "Reboiler providing heat input to bottom of C-220 via external heating medium (steam/hot oil) to generate vapor for separation."
+      },
+      {
+        "id": "E-225",
+        "name": "Overhead Condenser",
+        "type": "heat_exchanger",
+        "context": "Ground-mounted water-cooled condenser that fully condenses C-220 overhead vapor before V-225."
+      },
+      {
+        "id": "V-225",
+        "name": "Overhead Reflux Drum",
+        "type": "drum",
+        "context": "Horizontal reflux drum receiving total condenser outlet from E-225, providing liquid inventory for reflux and overhead product."
+      },
+      {
+        "id": "P-225A",
+        "name": "Reflux / Overhead Product Pump A",
+        "type": "pump",
+        "context": "Centrifugal pump (83 m3/h, 70.4 m head) taking suction from V-225 to supply reflux to C-220 and net overhead to C-230."
+      },
+      {
+        "id": "P-225B",
+        "name": "Reflux / Overhead Product Pump B",
+        "type": "pump",
+        "context": "Spare/parallel centrifugal reflux pump for V-225 service."
+      },
+      {
+        "id": "E-227",
+        "name": "Bottom Product Cooler",
+        "type": "heat_exchanger",
+        "context": "Cooler for C-220 bottom stream before combining with MTBER and routing to refinery."
+      },
+      {
+        "id": "P-221A",
+        "name": "Sample Pump A",
+        "type": "pump",
+        "context": "Sample pump drawing continuous sample from 117th tray of C-220 for lab analysis to control overhead composition."
+      },
+      {
+        "id": "P-221B",
+        "name": "Sample Pump B",
+        "type": "pump",
+        "context": "Spare/parallel sample pump for 117th tray sampling from C-220."
+      },
+      {
+        "id": "C-230",
+        "name": "Butene-1 Column",
+        "type": "distillation_column",
+        "context": "Downstream distillation column receiving Butene-1 rich overhead product from C-220 via V-113 (shown as system boundary)."
+      },
+      {
+        "id": "V-113",
+        "name": "Intermediate Drum to C-230",
+        "type": "drum",
+        "context": "Boundary vessel on downstream Butene-1 column system; receives net overhead liquid from C-220 reflux pumps."
+      }
+    ],
+    "valves": [
+      {
+        "id": "V1",
+        "type": "isolation",
+        "location": "Mixed C4 feed line from R-210 to C-220 feed tray",
+        "context": "Feed isolation valve on upstream mixed C4 feed to C-220."
+      },
+      {
+        "id": "V2",
+        "type": "isolation",
+        "location": "Overhead vapor line from C-220 to E-225 inlet",
+        "context": "Isolation valve for condenser E-225 inlet vapor."
+      },
+      {
+        "id": "V3",
+        "type": "isolation",
+        "location": "E-225 condensate outlet line to V-225",
+        "context": "Isolation valve between condenser E-225 and reflux drum V-225."
+      },
+      {
+        "id": "V4",
+        "type": "isolation",
+        "location": "V-225 outlet header to P-225A/B suction",
+        "context": "Suction isolation valve for reflux/product pumps P-225A/B."
+      },
+      {
+        "id": "FV-P225A-OUT",
+        "type": "control",
+        "location": "Discharge of pump P-225A towards reflux/product header",
+        "context": "Flow control valve regulating reflux/product flow from P-225A discharge."
+      },
+      {
+        "id": "FV-P225B-OUT",
+        "type": "control",
+        "location": "Discharge of pump P-225B towards reflux/product header",
+        "context": "Flow control valve regulating reflux/product flow from P-225B discharge."
+      },
+      {
+        "id": "V5",
+        "type": "isolation",
+        "location": "Reflux return line from pump discharge to C-220 top",
+        "context": "Manual isolation valve for reflux return to C-220 top tray."
+      },
+      {
+        "id": "FV-REFLUX",
+        "type": "control",
+        "location": "Reflux return line to C-220 top",
+        "context": "Flow control valve adjusting reflux rate to C-220 based on analysis/operating targets."
+      },
+      {
+        "id": "V6",
+        "type": "isolation",
+        "location": "Net overhead product line from reflux header to V-113 / C-230",
+        "context": "Isolation valve for net overhead product transfer to downstream column."
+      },
+      {
+        "id": "V7",
+        "type": "isolation",
+        "location": "Bottoms outlet from C-220 to E-227 inlet",
+        "context": "Bottoms isolation valve from column to bottom product cooler."
+      },
+      {
+        "id": "V8",
+        "type": "isolation",
+        "location": "E-227 outlet to refinery transfer line",
+        "context": "Bottom product transfer isolation to refinery after cooling and MTBER blending."
+      },
+      {
+        "id": "CV1",
+        "type": "check",
+        "location": "Pump P-225A discharge",
+        "context": "Non-return valve preventing backflow through pump P-225A."
+      },
+      {
+        "id": "CV2",
+        "type": "check",
+        "location": "Pump P-225B discharge",
+        "context": "Non-return valve preventing backflow through pump P-225B."
+      },
+      {
+        "id": "PSV-220-OVHD",
+        "type": "safety_relief",
+        "location": "Overhead system of C-220 / V-225",
+        "context": "Pressure safety valve protecting overhead condenser/reflux drum system, venting to flare or safe location."
+      },
+      {
+        "id": "PSV-220-BTM",
+        "type": "safety_relief",
+        "location": "Bottom / reboiler side of C-220",
+        "context": "Pressure safety valve protecting C-220 bottom/reboiler circuit."
+      },
+      {
+        "id": "V9",
+        "type": "isolation",
+        "location": "Cooling water supply to E-225",
+        "context": "Cooling water inlet isolation to condenser E-225."
+      },
+      {
+        "id": "V10",
+        "type": "isolation",
+        "location": "Cooling water return from E-225",
+        "context": "Cooling water outlet isolation from condenser E-225."
+      },
+      {
+        "id": "V11",
+        "type": "isolation",
+        "location": "Cooling water supply to E-227",
+        "context": "Cooling water inlet isolation to bottom product cooler E-227."
+      },
+      {
+        "id": "V12",
+        "type": "isolation",
+        "location": "Cooling water return from E-227",
+        "context": "Cooling water outlet isolation from bottom product cooler E-227."
+      },
+      {
+        "id": "V13",
+        "type": "isolation",
+        "location": "Heating medium inlet to reboiler E-220",
+        "context": "Isolation valve on hot medium supply to E-220."
+      },
+      {
+        "id": "V14",
+        "type": "isolation",
+        "location": "Heating medium outlet from reboiler E-220",
+        "context": "Isolation valve on hot medium return from E-220."
+      },
+      {
+        "id": "V15",
+        "type": "drain",
+        "location": "Bottom of C-220",
+        "context": "Drain valve for column bottom / maintenance."
+      },
+      {
+        "id": "V16",
+        "type": "vent",
+        "location": "Top of C-220 / overhead system",
+        "context": "Manual vent valve for depressurization / purging."
+      },
+      {
+        "id": "V17",
+        "type": "isolation",
+        "location": "MTBER blending line into bottom product transfer",
+        "context": "Isolation valve controlling MTBER addition into bottom product to refinery."
+      }
+    ],
+    "instruments": [
+      {
+        "id": "TI-220-OVHD",
+        "function": "Measures overhead vapor temperature from C-220 before E-225",
+        "location": "Overhead vapor line from C-220 to E-225",
+        "context": "Used to monitor overhead column temperature around 66 °C."
+      },
+      {
+        "id": "PI-220-OVHD",
+        "function": "Measures overhead vapor pressure",
+        "location": "Overhead system near C-220 top / E-225 inlet",
+        "context": "Used to monitor column overhead pressure (~8.2 kg/cm²g)."
+      },
+      {
+        "id": "LI-225",
+        "function": "Measures liquid level in reflux drum V-225",
+        "location": "V-225 shell",
+        "context": "Provides level indication and alarm to protect pumps P-225A/B."
+      },
+      {
+        "id": "LC-225",
+        "function": "Controls liquid level in V-225 by adjusting net overhead product flow",
+        "location": "V-225 outlet / overhead product line",
+        "context": "Level controller outputs to product flow control valve to maintain V-225 level."
+      },
+      {
+        "id": "FI-REFLUX",
+        "function": "Indicates reflux flow to C-220 top",
+        "location": "Reflux return line from reflux header to C-220",
+        "context": "Operator monitors reflux rate against composition targets."
+      },
+      {
+        "id": "FC-REFLUX",
+        "function": "Controls reflux flow to C-220",
+        "location": "Associated with FV-REFLUX in reflux line",
+        "context": "Flow controller adjusts reflux control valve to maintain setpoint."
+      },
+      {
+        "id": "TI-220-BTM",
+        "function": "Measures bottom product temperature leaving C-220",
+        "location": "Bottoms outlet line from C-220 to E-227",
+        "context": "Used to monitor bottom temperature around 79 °C for separation quality."
+      },
+      {
+        "id": "PI-220-BTM",
+        "function": "Measures pressure at C-220 bottom",
+        "location": "Bottom region of C-220 / reboiler circuit",
+        "context": "Used for column bottom pressure monitoring and protection."
+      },
+      {
+        "id": "TI-227-OUT",
+        "function": "Measures cooled bottom product temperature downstream of E-227",
+        "location": "E-227 outlet line to refinery",
+        "context": "Ensures bottom product meets temperature limits for downstream handling."
+      },
+      {
+        "id": "FI-BOTTOM",
+        "function": "Indicates bottom product flow to refinery",
+        "location": "Bottom product line after E-227 and MTBER addition",
+        "context": "Flow indication for mass balance and refinery feed control."
+      },
+      {
+        "id": "PI-225",
+        "function": "Measures pressure in reflux drum V-225",
+        "location": "Top of V-225",
+        "context": "Monitors drum pressure tied to overhead condenser duty and column pressure control."
+      },
+      {
+        "id": "TI-225",
+        "function": "Measures condensate temperature in V-225",
+        "location": "V-225 liquid zone",
+        "context": "Monitors condenser performance and subcooling."
+      },
+      {
+        "id": "FI-FEED",
+        "function": "Indicates mixed C4 feed flow from R-210 into C-220",
+        "location": "Feed line from upstream R-210 to C-220",
+        "context": "Used for throughput and column load monitoring."
+      },
+      {
+        "id": "AI-117TRAY",
+        "function": "Analyzes composition of sample from 117th tray of C-220",
+        "location": "Sample line from C-220 117th tray and P-221A/B discharge",
+        "context": "Laboratory / analyzer input used to maintain ≤ 2% n-Butane in overhead product."
+      },
+      {
+        "id": "PI-STEAM-220",
+        "function": "Indicates heating medium (steam/hot oil) pressure at E-220",
+        "location": "Heating medium supply line to E-220",
+        "context": "Used to monitor driving force for reboiler duty."
+      },
+      {
+        "id": "TI-STEAM-220",
+        "function": "Indicates heating medium temperature to E-220",
+        "location": "Heating medium supply to E-220",
+        "context": "Monitors reboiler energy input quality."
+      },
+      {
+        "id": "FI-COOL-225",
+        "function": "Indicates cooling water flow to E-225",
+        "location": "Cooling water inlet line to E-225",
+        "context": "Ensures adequate condenser cooling duty."
+      },
+      {
+        "id": "FI-COOL-227",
+        "function": "Indicates cooling water flow to E-227",
+        "location": "Cooling water inlet line to E-227",
+        "context": "Ensures sufficient cooling for bottom product."
+      },
+      {
+        "id": "PSV-ALM-220-OVHD",
+        "function": "High pressure alarm associated with overhead PSV-220-OVHD",
+        "location": "Overhead system near PSV-220-OVHD",
+        "context": "Provides alarm when overhead pressure approaches relief setpoint."
+      },
+      {
+        "id": "PSV-ALM-220-BTM",
+        "function": "High pressure alarm associated with bottom PSV-220-BTM",
+        "location": "Bottom system near PSV-220-BTM",
+        "context": "Provides alarm when bottom/reboiler pressure approaches relief setpoint."
+      }
+    ],
+    "utility_lines": [
+      {
+        "utility_type": "Cooling water to E-225",
+        "valves": [
+          "V9",
+          "V10"
+        ],
+        "flow_direction": "into and out of E-225",
+        "context": "Cooling water supply and return serving overhead condenser E-225."
+      },
+      {
+        "utility_type": "Cooling water to E-227",
+        "valves": [
+          "V11",
+          "V12"
+        ],
+        "flow_direction": "into and out of E-227",
+        "context": "Cooling water supply and return serving bottom product cooler E-227."
+      },
+      {
+        "utility_type": "Heating medium to E-220",
+        "valves": [
+          "V13",
+          "V14"
+        ],
+        "flow_direction": "into and out of E-220",
+        "context": "Steam or hot oil reboiler circuit to provide heat to C-220 bottom."
+      },
+      {
+        "utility_type": "Instrument air",
+        "valves": [],
+        "flow_direction": "into control valves and instruments",
+        "context": "Instrument air distribution to control valves (e.g., FV-REFLUX, FV-P225A-OUT, FV-P225B-OUT) and pneumatic instruments."
+      }
+    ],
+    "connections": [
+      {
+        "line_id": "L1",
+        "from_id": "Mixed C4 feed from R-210",
+        "to_id": "C-220",
+        "valves": [
+          "V1"
+        ],
+        "instruments": [
+          "FI-FEED"
+        ],
+        "context": "Mixed C4 feed from upstream reactor R-210 entering intermediate tray of C-220."
+      },
+      {
+        "line_id": "L2",
+        "from_id": "C-220",
+        "to_id": "E-225",
+        "valves": [
+          "V2"
+        ],
+        "instruments": [
+          "TI-220-OVHD",
+          "PI-220-OVHD"
+        ],
+        "context": "Overhead vapor from C-220 routed to total condenser E-225."
+      },
+      {
+        "line_id": "L3",
+        "from_id": "E-225",
+        "to_id": "V-225",
+        "valves": [
+          "V3"
+        ],
+        "instruments": [
+          "TI-225"
+        ],
+        "context": "Condensate from E-225 flowing by column pressure into reflux drum V-225."
+      },
+      {
+        "line_id": "L4",
+        "from_id": "V-225",
+        "to_id": "P-225A",
+        "valves": [
+          "V4"
+        ],
+        "instruments": [
+          "LI-225",
+          "PI-225"
+        ],
+        "context": "Suction from reflux drum V-225 to reflux/product pump P-225A."
+      },
+      {
+        "line_id": "L5",
+        "from_id": "V-225",
+        "to_id": "P-225B",
+        "valves": [
+          "V4"
+        ],
+        "instruments": [
+          "LI-225",
+          "PI-225"
+        ],
+        "context": "Suction from reflux drum V-225 to reflux/product pump P-225B (parallel path)."
+      },
+      {
+        "line_id": "L6",
+        "from_id": "P-225A",
+        "to_id": "C-220",
+        "valves": [
+          "CV1",
+          "FV-P225A-OUT",
+          "V5",
+          "FV-REFLUX"
+        ],
+        "instruments": [
+          "FI-REFLUX",
+          "FC-REFLUX"
+        ],
+        "context": "Reflux flow from P-225A discharge back to C-220 column top to maintain separation efficiency."
+      },
+      {
+        "line_id": "L7",
+        "from_id": "P-225B",
+        "to_id": "C-220",
+        "valves": [
+          "CV2",
+          "FV-P225B-OUT",
+          "V5",
+          "FV-REFLUX"
+        ],
+        "instruments": [
+          "FI-REFLUX",
+          "FC-REFLUX"
+        ],
+        "context": "Reflux flow from P-225B discharge back to C-220 column top (spare/parallel service)."
+      },
+      {
+        "line_id": "L8",
+        "from_id": "P-225A",
+        "to_id": "V-113",
+        "valves": [
+          "CV1",
+          "FV-P225A-OUT",
+          "V6"
+        ],
+        "instruments": [
+          "LC-225"
+        ],
+        "context": "Net overhead liquid product from P-225A to downstream drum V-113 / Butene-1 column C-230, controlled by V-225 level."
+      },
+      {
+        "line_id": "L9",
+        "from_id": "P-225B",
+        "to_id": "V-113",
+        "valves": [
+          "CV2",
+          "FV-P225B-OUT",
+          "V6"
+        ],
+        "instruments": [
+          "LC-225"
+        ],
+        "context": "Net overhead liquid product from P-225B to V-113 / C-230 (parallel path)."
+      },
+      {
+        "line_id": "L10",
+        "from_id": "C-220",
+        "to_id": "E-227",
+        "valves": [
+          "V7"
+        ],
+        "instruments": [
+          "TI-220-BTM",
+          "PI-220-BTM"
+        ],
+        "context": "Bottom product rich in Butene-2 and n-Butane leaving C-220 and entering bottom product cooler E-227."
+      },
+      {
+        "line_id": "L11",
+        "from_id": "E-227",
+        "to_id": "Bottom Butene-2 / n-Butane product to refinery",
+        "valves": [
+          "V8",
+          "V17"
+        ],
+        "instruments": [
+          "TI-227-OUT",
+          "FI-BOTTOM"
+        ],
+        "context": "Cooled bottom product from E-227, blended with MTBER, routed to refinery as Butene-2/n-Butane product."
+      },
+      {
+        "line_id": "L12",
+        "from_id": "MTBER from upstream MTBE system",
+        "to_id": "E-227",
+        "valves": [
+          "V17"
+        ],
+        "instruments": [],
+        "context": "MTBER blending line joining cooled bottom product downstream of E-227 before transfer to refinery."
+      },
+      {
+        "line_id": "L13",
+        "from_id": "117th tray sample point on C-220",
+        "to_id": "P-221A",
+        "valves": [],
+        "instruments": [
+          "AI-117TRAY"
+        ],
+        "context": "Continuous sample from 117th tray of C-220 to sample pump P-221A for laboratory/analyzer analysis."
+      },
+      {
+        "line_id": "L14",
+        "from_id": "117th tray sample point on C-220",
+        "to_id": "P-221B",
+        "valves": [],
+        "instruments": [
+          "AI-117TRAY"
+        ],
+        "context": "Parallel sampling path from 117th tray of C-220 to sample pump P-221B."
+      },
+      {
+        "line_id": "L15",
+        "from_id": "Heating medium to reboiler E-220",
+        "to_id": "E-220",
+        "valves": [
+          "V13"
+        ],
+        "instruments": [
+          "PI-STEAM-220",
+          "TI-STEAM-220"
+        ],
+        "context": "Heating medium supply to reboiler E-220 providing heat to C-220 bottom."
+      },
+      {
+        "line_id": "L16",
+        "from_id": "E-220",
+        "to_id": "Reboiler condensate / return from E-220 circuit",
+        "valves": [
+          "V14"
+        ],
+        "instruments": [],
+        "context": "Heating medium return/condensate from reboiler E-220 to utility system."
+      },
+      {
+        "line_id": "L17",
+        "from_id": "Cooling water supply",
+        "to_id": "E-225",
+        "valves": [
+          "V9"
+        ],
+        "instruments": [
+          "FI-COOL-225"
+        ],
+        "context": "Cooling water supply line to overhead condenser E-225."
+      },
+      {
+        "line_id": "L18",
+        "from_id": "E-225",
+        "to_id": "Cooling water return",
+        "valves": [
+          "V10"
+        ],
+        "instruments": [],
+        "context": "Cooling water return from E-225 to cooling water system."
+      },
+      {
+        "line_id": "L19",
+        "from_id": "Cooling water supply",
+        "to_id": "E-227",
+        "valves": [
+          "V11"
+        ],
+        "instruments": [
+          "FI-COOL-227"
+        ],
+        "context": "Cooling water supply line to bottom product cooler E-227."
+      },
+      {
+        "line_id": "L20",
+        "from_id": "E-227",
+        "to_id": "Cooling water return",
+        "valves": [
+          "V12"
+        ],
+        "instruments": [],
+        "context": "Cooling water return from E-227 to cooling water system."
+      },
+      {
+        "line_id": "L21",
+        "from_id": "C-220",
+        "to_id": "Vents to atmosphere via PSV/vent headers",
+        "valves": [
+          "PSV-220-OVHD",
+          "V16"
+        ],
+        "instruments": [
+          "PSV-ALM-220-OVHD"
+        ],
+        "context": "Overhead relief and vent path from C-220/V-225 system to safe vent/flare header."
+      },
+      {
+        "line_id": "L22",
+        "from_id": "C-220",
+        "to_id": "Vents to atmosphere via PSV/vent headers",
+        "valves": [
+          "PSV-220-BTM"
+        ],
+        "instruments": [
+          "PSV-ALM-220-BTM"
+        ],
+        "context": "Bottom/reboiler relief path from C-220 bottom system to safe vent/flare header."
+      },
+      {
+        "line_id": "L23",
+        "from_id": "C-220",
+        "to_id": "Drains to wastewater / oily water system",
+        "valves": [
+          "V15"
+        ],
+        "instruments": [],
+        "context": "Drain connection from C-220 bottom to wastewater or oily water system."
+      }
+    ]
+  },
+  "metadata": {
+    "id": "resp_07b46f459e1421fa00693e6c6222e48194a1618b83a1ff7f03",
+    "created": null,
+    "model": "gpt-5.1-2025-11-13",
+    "tokens": {
+      "prompt": 3773,
+      "completion": 5136,
+      "total": 8909
+    },
+    "response_type": "json_schema",
+    "reasoning_effort": "none",
+    "verbosity": "medium",
+    "latency_s": 59.2821
+  }
+}

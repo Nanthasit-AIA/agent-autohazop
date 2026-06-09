@@ -27,6 +27,12 @@ interface NodeItem {
   name: string;
   range?: string;
   context?: string;
+  nodeBoundary?: string;
+  flowDirection?: string;
+  source?: "connections" | "line_level_connections";
+  equipmentSummary?: string;
+  valveSummary?: string;
+  instrumentSummary?: string;
 }
 
 type DeviationType =
@@ -181,70 +187,140 @@ const handleExit = () => {
   resetAllState();
 };
 
+// ---- JSON normalization helpers ----
+const unwrapPidRoot = (data: any): any | null => {
+  if (!data || typeof data !== "object") return null;
+
+  // OpenAI parsed response wrapper: { choices: [{ message: { parsed: {...} } }] }
+  const choicesParsed = data?.choices?.[0]?.message?.parsed;
+  if (choicesParsed && typeof choicesParsed === "object") return choicesParsed;
+
+  // Backend search/full wrapper: { pid_data: {...}, metadata: {...} }
+  if (data.pid_data && typeof data.pid_data === "object") return data.pid_data;
+
+  // Generic wrapper used by some extraction scripts: { parsed: {...} }
+  if (data.parsed && typeof data.parsed === "object") return data.parsed;
+
+  return data;
+};
+
+const pidRoot = computed<any | null>(() => unwrapPidRoot(jsonData.value));
+
+const toDisplayText = (value: any, fallback = ""): string => {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => toDisplayText(item))
+      .filter(Boolean)
+      .join("; ");
+  }
+  if (typeof value === "object") {
+    return (
+      value.name ??
+      value.id ??
+      value.tag ??
+      value.type ??
+      value.utility_type ??
+      JSON.stringify(value)
+    );
+  }
+  return String(value);
+};
+
+const idListToDetails = (ids: any[], catalog: any[]): any[] => {
+  if (!Array.isArray(ids)) return [];
+  if (!Array.isArray(catalog)) return ids;
+
+  const byId = new Map(
+    catalog
+      .filter((item) => item && typeof item === "object" && item.id)
+      .map((item) => [String(item.id), item])
+  );
+
+  return ids.map((id) => {
+    const key = String(id);
+    return byId.get(key) ?? id;
+  });
+};
+
+const getPidConnections = (root: any | null): any[] => {
+  if (!root || typeof root !== "object") return [];
+  return Array.isArray(root.connections) ? root.connections : [];
+};
+
+const getPidLineLevelConnections = (root: any | null): any[] => {
+  if (!root || typeof root !== "object") return [];
+  return Array.isArray(root.line_level_connections) ? root.line_level_connections : [];
+};
+
+const buildConnectionTitle = (conn: any, index: number, source: "connections" | "line_level_connections") => {
+  const lineId = conn?.line_id ?? `${source === "connections" ? "NODE" : "LINE"}-${index + 1}`;
+  const nodeName = conn?.node ?? conn?.name ?? "";
+  const from = conn?.from_id ?? "";
+  const to = conn?.to_id ?? "";
+  const range = from && to ? `${from} → ${to}` : "";
+
+  if (nodeName) return `${lineId} | ${nodeName}`;
+  if (range) return `${lineId} | ${range}`;
+  return String(lineId);
+};
+
+const mapConnectionForGraph = (
+  conn: any,
+  index: number,
+  source: "connections" | "line_level_connections"
+): Connection => ({
+  line_id: String(conn?.line_id ?? `${source}-${index + 1}`),
+  from_id: String(conn?.from_id ?? conn?.node ?? ""),
+  to_id: String(conn?.to_id ?? ""),
+  context: [
+    conn?.node ? `Node: ${conn.node}` : "",
+    conn?.node_boundary ? `Boundary: ${conn.node_boundary}` : "",
+    conn?.flow_direction ? `Flow: ${conn.flow_direction}` : "",
+    conn?.context ? String(conn.context) : "",
+  ]
+    .filter(Boolean)
+    .join("\n"),
+});
+
 // ---- system inputs / outputs for hazards popup ----
 const systemInputs = computed<string[]>(() => {
-  const data = jsonData.value;
-  if (!data) return [];
-
-  // handle both { system_inputs: [...] } and { pid_data: { system_inputs: [...] } }
-  const root = Array.isArray((data as any).system_inputs)
-    ? (data as any)
-    : (data as any).pid_data &&
-      Array.isArray((data as any).pid_data.system_inputs)
-      ? (data as any).pid_data
-      : null;
-
-  if (!root) return [];
-
-  return (root.system_inputs as any[]).map((item, idx) => {
-    if (typeof item === "string") return item;
-    // common schema: { name: "...", id: "...", type: "...", ... }
-    return item.name ?? item.id ?? `input_${idx}`;
-  });
-});
-
-const systemOutputs = computed<string[]>(() => {
-  const data = jsonData.value;
-  if (!data) return [];
-
-  const root = Array.isArray((data as any).system_outputs)
-    ? (data as any)
-    : (data as any).pid_data &&
-      Array.isArray((data as any).pid_data.system_outputs)
-      ? (data as any).pid_data
-      : null;
-
-  if (!root) return [];
-
-  return (root.system_outputs as any[]).map((item, idx) => {
-    if (typeof item === "string") return item;
-    return item.name ?? item.id ?? `output_${idx}`;
-  });
-});
-const showConnectionPreview = ref(false);
-
-const connectionPreview = computed<Connection[]>(() => {
-  const d = jsonData.value;
-  if (!d || typeof d !== "object") return [];
-
-  const root = Array.isArray((d as any).connections)
-    ? (d as any)
-    : (d as any).pid_data && Array.isArray((d as any).pid_data.connections)
-      ? (d as any).pid_data
-      : null;
-
-  if (!root) return [];
-
-  return (root.connections as any[]).map(
-    (c, idx): Connection => ({
-      line_id: String(c.line_id ?? `L${idx + 1}`),
-      from_id: String(c.from_id ?? ""),
-      to_id: String(c.to_id ?? ""),
-      context: c.context ? String(c.context) : "",
-    })
+  const root = pidRoot.value;
+  if (!root || !Array.isArray(root.system_inputs)) return [];
+  return root.system_inputs.map((item: any, idx: number) =>
+    toDisplayText(item, `input_${idx}`)
   );
 });
 
+const systemOutputs = computed<string[]>(() => {
+  const root = pidRoot.value;
+  if (!root || !Array.isArray(root.system_outputs)) return [];
+  return root.system_outputs.map((item: any, idx: number) =>
+    toDisplayText(item, `output_${idx}`)
+  );
+});
+
+const showConnectionPreview = ref(false);
+
+const connectionPreview = computed<Connection[]>(() => {
+  const root = pidRoot.value;
+  const grouped = getPidConnections(root).map((conn, idx) =>
+    mapConnectionForGraph(conn, idx, "connections")
+  );
+  const lineLevel = getPidLineLevelConnections(root).map((conn, idx) =>
+    mapConnectionForGraph(conn, idx, "line_level_connections")
+  );
+
+  const seen = new Set<string>();
+  return [...grouped, ...lineLevel].filter((conn) => {
+    const key = String(conn.line_id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+});
 
 // ----------------- HAZOP analysis status + runs -----------------
 interface HazopRun {
@@ -480,29 +556,67 @@ const onStartExtract = async (payload: StartExtractPayload) => {
 const nodes = ref<NodeItem[]>([]);
 
 const buildNodesFromJson = (data: any): NodeItem[] => {
-  if (!data || typeof data !== "object") return [];
-  const root = Array.isArray(data.connections)
-    ? data
-    : data.pid_data && Array.isArray(data.pid_data.connections)
-      ? data.pid_data
-      : null;
+  const root = unwrapPidRoot(data);
+  if (!root || typeof root !== "object") return [];
 
-  if (!root) return [];
+  const equipmentCatalog = Array.isArray(root.equipment) ? root.equipment : [];
+  const valveCatalog = Array.isArray(root.valves) ? root.valves : [];
+  const instrumentCatalog = Array.isArray(root.instruments) ? root.instruments : [];
 
-  const connections = root.connections as any[];
-
-  return connections.map((conn: any, index: number): NodeItem => {
-    const lineId = conn.line_id ?? `L${index + 1}`;
-    const from = conn.from_id ?? "";
-    const to = conn.to_id ?? "";
+  const toNodeItem = (
+    conn: any,
+    index: number,
+    source: "connections" | "line_level_connections"
+  ): NodeItem => {
+    const lineId = conn?.line_id ?? `${source === "connections" ? "NODE" : "LINE"}-${index + 1}`;
+    const from = conn?.from_id ?? "";
+    const to = conn?.to_id ?? "";
     const range = from && to ? `${from} → ${to}` : undefined;
 
+    const includedEquipment = Array.isArray(conn?.included_equipment)
+      ? conn.included_equipment
+      : [from, to].filter(Boolean);
+
+    const valveIds = Array.isArray(conn?.valves) ? conn.valves : [];
+    const instrumentIds = Array.isArray(conn?.instruments) ? conn.instruments : [];
+
+    const equipmentSummary = toDisplayText(
+      idListToDetails(includedEquipment, equipmentCatalog)
+    );
+    const valveSummary = toDisplayText(idListToDetails(valveIds, valveCatalog));
+    const instrumentSummary = toDisplayText(
+      idListToDetails(instrumentIds, instrumentCatalog)
+    );
+
+    const displayName = buildConnectionTitle(conn, index, source);
+
     return {
-      id: lineId,
-      name: `${lineId}${range ? ` (${range})` : ""}`,
+      id: String(lineId),
+      name: displayName,
       range,
-      context: conn.context ?? "",
+      context: conn?.context ?? "",
+      nodeBoundary: conn?.node_boundary ?? "",
+      flowDirection: conn?.flow_direction ?? "",
+      source,
+      equipmentSummary,
+      valveSummary,
+      instrumentSummary,
     };
+  };
+
+  const groupedNodes = getPidConnections(root).map((conn, idx) =>
+    toNodeItem(conn, idx, "connections")
+  );
+  const lineLevelNodes = getPidLineLevelConnections(root).map((conn, idx) =>
+    toNodeItem(conn, idx, "line_level_connections")
+  );
+
+  const seen = new Set<string>();
+  return [...groupedNodes, ...lineLevelNodes].filter((node) => {
+    const key = String(node.id);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
   });
 };
 
@@ -525,6 +639,23 @@ const currentNode = computed<NodeItem | undefined>(() => {
   const id = currentNodeId.value;
   if (id == null) return undefined;
   return nodes.value.find((n: NodeItem) => n.id === id);
+});
+
+
+const currentNodeContextForDeviation = computed(() => {
+  const node = currentNode.value;
+  if (!node) return "";
+
+  return [
+    node.context ? `Context: ${node.context}` : "",
+    node.nodeBoundary ? `Boundary: ${node.nodeBoundary}` : "",
+    node.flowDirection ? `Flow direction: ${node.flowDirection}` : "",
+    node.equipmentSummary ? `Equipment: ${node.equipmentSummary}` : "",
+    node.valveSummary ? `Valves: ${node.valveSummary}` : "",
+    node.instrumentSummary ? `Instruments: ${node.instrumentSummary}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
 });
 
 const currentDeviationModel = computed<Record<ParamName, GuideWord[]>>({
@@ -738,8 +869,8 @@ const handleStartAnalysis = async () => {
             v-model:outputFolder="outputFolder" v-model:allSelections="nodeDeviationSelections"
             :allNodes="selectedNodesDetailed" :totalNodes="selectedNodesDetailed.length"
             :nodeTitle="selectedNodesDetailed[deviationCurrentNode - 1]?.name"
-            :nodeLine="selectedNodesDetailed[deviationCurrentNode - 1]?.range" :nodeContext="selectedNodesDetailed[deviationCurrentNode - 1]?.context
-              " class="mt-4" @preview="handleDeviationPreview" @next="handleDeviationNext" />
+            :nodeLine="selectedNodesDetailed[deviationCurrentNode - 1]?.range" :nodeContext="currentNodeContextForDeviation"
+              class="mt-4" @preview="handleDeviationPreview" @next="handleDeviationNext" />
         </Transition>
 
         <!-- AnalysisControl -->

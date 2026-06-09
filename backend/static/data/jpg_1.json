@@ -1,0 +1,459 @@
+{
+  "process_description": "Automated production/spraying system using a jet nozzle over a production container. Water is routed for cleaning and zeolith (liquid) for production. A high-voltage generator energizes a ring electrode at the nozzle while a vibration transducer assists atomization. Liquid nitrogen feeds a distributor and a vaporizer/nitrogen ring to condition the container. A camera and stroboscopic LED observe the process; indicators, barcode reader, container lock/sensor, and emergency-stop provide safety and control.",
+  "system_inputs": [
+    "Water",
+    "Zeolith (liquid)",
+    "Liquid nitrogen (LN2)",
+    "Compressed air / instrument air",
+    "Electrical power (for HV generator and controls)"
+  ],
+  "system_outputs": [
+    "Product collected in production container (UDT container)"
+  ],
+  "equipment": [
+    {
+      "id": "E-AIR",
+      "name": "Compressed air source with filter",
+      "type": "utility_source",
+      "context": "Air source at far left with filter and manual reducer"
+    },
+    {
+      "id": "E-WATER",
+      "name": "Water tank",
+      "type": "tank",
+      "context": "Cleaning water supply; level detection full/empty"
+    },
+    {
+      "id": "E-ZEOLITH",
+      "name": "Zeolith (liquid) tank",
+      "type": "tank",
+      "context": "Production liquid tank on scale with magnetic stirrer"
+    },
+    {
+      "id": "E-STIR",
+      "name": "Magnetic stirrer",
+      "type": "agitator",
+      "context": "Mounted under zeolith tank"
+    },
+    {
+      "id": "E-LN2",
+      "name": "Liquid nitrogen + compressed air supply",
+      "type": "tank",
+      "context": "LN2 storage on the left bottom"
+    },
+    {
+      "id": "E-HVGEN",
+      "name": "High voltage generator",
+      "type": "power_supply",
+      "context": "Feeds ring electrode; has HV/optical/acoustic indicators"
+    },
+    {
+      "id": "E-VIB",
+      "name": "Vibration transducer",
+      "type": "actuator",
+      "context": "Drives jet nozzle vibrations"
+    },
+    {
+      "id": "E-NOZZLE",
+      "name": "Jet nozzle",
+      "type": "nozzle",
+      "context": "Sprays into production container; adjacent ring electrode"
+    },
+    {
+      "id": "E-RE",
+      "name": "Ring electrode",
+      "type": "electrode",
+      "context": "Mounted at nozzle outlet; energized by HV generator"
+    },
+    {
+      "id": "E-CAM",
+      "name": "Camera system",
+      "type": "camera",
+      "context": "Oversees process with stroboscopic LED lighting"
+    },
+    {
+      "id": "E-N2DIST",
+      "name": "Nitrogen distributor",
+      "type": "manifold",
+      "context": "Feeds vaporizer/nitrogen ring inside container head"
+    },
+    {
+      "id": "E-VAPOR",
+      "name": "Vaporizer / nitrogen ring",
+      "type": "coil_or_ring",
+      "context": "Thermal/nitrogen conditioning element with temperature sensors"
+    },
+    {
+      "id": "E-PCON",
+      "name": "Production container (UDT container)",
+      "type": "container",
+      "context": "Product collection zone with locks and sensors"
+    },
+    {
+      "id": "E-LIFT",
+      "name": "Pivoting & height control",
+      "type": "positioner",
+      "context": "Moves/aligns nozzle assembly"
+    },
+    {
+      "id": "E-LID",
+      "name": "Visual lid",
+      "type": "view_port",
+      "context": "Visual cover above working area"
+    }
+  ],
+  "valves": [
+    {
+      "id": "V1",
+      "type": "electronic_proportional_valve",
+      "location": "Water line (cleaning)",
+      "context": "Near water header"
+    },
+    {
+      "id": "V2",
+      "type": "electronic_proportional_valve",
+      "location": "Zeolith line (production)",
+      "context": "Near zeolith tank outlet"
+    },
+    {
+      "id": "V3",
+      "type": "electronic_switching_valve",
+      "location": "Water branch 3a",
+      "context": "Water routing"
+    },
+    {
+      "id": "V4",
+      "type": "electronic_switching_valve",
+      "location": "Water branch 3b",
+      "context": "Water routing"
+    },
+    {
+      "id": "V5",
+      "type": "electronic_switching_valve",
+      "location": "Zeolith line 6",
+      "context": "Zeolith routing to nozzle"
+    },
+    {
+      "id": "V6",
+      "type": "electronic_safety_valve",
+      "location": "LN2 outlet (17)",
+      "context": "LN2 safety isolation"
+    },
+    {
+      "id": "V7",
+      "type": "electronic_safety_valve",
+      "location": "Compressed air header (18)",
+      "context": "Air line safety"
+    },
+    {
+      "id": "V8",
+      "type": "manual_pressure_reducer",
+      "location": "Compressed air header",
+      "context": "Downstream of filter"
+    }
+  ],
+  "instruments": [
+    {
+      "id": "LI1",
+      "function": "Level detection (full)",
+      "location": "Water tank",
+      "context": "1a"
+    },
+    {
+      "id": "LI2",
+      "function": "Level detection (empty)",
+      "location": "Water tank",
+      "context": "1b"
+    },
+    {
+      "id": "WI1",
+      "function": "Weight/scale",
+      "location": "Under zeolith tank",
+      "context": "Scale readout for tank mass"
+    },
+    {
+      "id": "TT1",
+      "function": "Temperature sensor",
+      "location": "Vaporizer/nitrogen ring",
+      "context": "10a"
+    },
+    {
+      "id": "TT2",
+      "function": "Temperature sensor",
+      "location": "Vaporizer/nitrogen ring",
+      "context": "10b"
+    },
+    {
+      "id": "CS1",
+      "function": "Current sensor",
+      "location": "Between HV generator and ring electrode",
+      "context": "HV line sensor"
+    },
+    {
+      "id": "HV10",
+      "function": "HV indicator",
+      "location": "HV generator panel",
+      "context": "10"
+    },
+    {
+      "id": "AI13",
+      "function": "Acoustic indicator (buzzer)",
+      "location": "HV generator panel",
+      "context": "13"
+    },
+    {
+      "id": "OI14",
+      "function": "Optical indicator (beacon)",
+      "location": "HV generator panel",
+      "context": "14"
+    },
+    {
+      "id": "CAM1",
+      "function": "Camera",
+      "location": "Over process zone",
+      "context": "9"
+    },
+    {
+      "id": "LED9",
+      "function": "Stroboscope LED",
+      "location": "Near camera/nozzle",
+      "context": "Stroboscopic lighting"
+    },
+    {
+      "id": "BR14",
+      "function": "Barcode reader",
+      "location": "Production container side",
+      "context": "Label/UDT reading"
+    },
+    {
+      "id": "LS15",
+      "function": "Lock sensor",
+      "location": "Container lock",
+      "context": "Detects lock state"
+    },
+    {
+      "id": "ES17",
+      "function": "Emergency stop",
+      "location": "Operator panel near container",
+      "context": "System-wide E-stop"
+    },
+    {
+      "id": "POS11",
+      "function": "Position/height controller",
+      "location": "Pivoting & height control",
+      "context": "11 (up/down control)"
+    }
+  ],
+  "utility_lines": [
+    {
+      "utility_type": "Compressed air",
+      "valves": [
+        "V7",
+        "V8"
+      ],
+      "flow_direction": "unknown (no arrow shown)",
+      "context": "Air to pneumatic components; sourced from filtered/reduced header"
+    },
+    {
+      "utility_type": "Liquid nitrogen",
+      "valves": [
+        "V6"
+      ],
+      "flow_direction": "unknown (no arrow shown)",
+      "context": "LN2 to nitrogen distributor and vaporizer ring inside container"
+    },
+    {
+      "utility_type": "Water (cleaning)",
+      "valves": [
+        "V1",
+        "V3",
+        "V4"
+      ],
+      "flow_direction": "unknown (no arrow shown)",
+      "context": "Water routed to jet nozzle for cleaning"
+    },
+    {
+      "utility_type": "Process liquid (Zeolith)",
+      "valves": [
+        "V2",
+        "V5"
+      ],
+      "flow_direction": "unknown (no arrow shown)",
+      "context": "Zeolith feed routed to jet nozzle for production"
+    },
+    {
+      "utility_type": "High voltage power",
+      "valves": [],
+      "flow_direction": "unknown (no arrow shown)",
+      "context": "HV generator output to ring electrode; monitored by current and status indicators"
+    }
+  ],
+  "connections": [
+    {
+      "line_id": "L1",
+      "from_id": "E-AIR",
+      "to_id": "E-LN2",
+      "valves": [
+        "V7",
+        "V8"
+      ],
+      "instruments": [],
+      "context": "Compressed air header to LN2/air supply skid"
+    },
+    {
+      "line_id": "L2",
+      "from_id": "E-WATER",
+      "to_id": "E-NOZZLE",
+      "valves": [
+        "V1",
+        "V3",
+        "V4"
+      ],
+      "instruments": [],
+      "context": "Water routed for cleaning to jet nozzle"
+    },
+    {
+      "line_id": "L3",
+      "from_id": "E-ZEOLITH",
+      "to_id": "E-NOZZLE",
+      "valves": [
+        "V2",
+        "V5"
+      ],
+      "instruments": [],
+      "context": "Zeolith (liquid) routed for production to jet nozzle"
+    },
+    {
+      "line_id": "L4",
+      "from_id": "E-LN2",
+      "to_id": "E-N2DIST",
+      "valves": [
+        "V6"
+      ],
+      "instruments": [],
+      "context": "LN2 from storage to nitrogen distributor"
+    },
+    {
+      "line_id": "L5",
+      "from_id": "E-N2DIST",
+      "to_id": "E-VAPOR",
+      "valves": [],
+      "instruments": [
+        "TT1",
+        "TT2"
+      ],
+      "context": "Distributor feeding vaporizer/nitrogen ring in container"
+    },
+    {
+      "line_id": "L6",
+      "from_id": "E-HVGEN",
+      "to_id": "E-RE",
+      "valves": [],
+      "instruments": [
+        "CS1"
+      ],
+      "context": "HV output to ring electrode; current monitored"
+    },
+    {
+      "line_id": "L7",
+      "from_id": "E-VIB",
+      "to_id": "E-NOZZLE",
+      "valves": [],
+      "instruments": [],
+      "context": "Vibration drive to nozzle assembly"
+    },
+    {
+      "line_id": "L8",
+      "from_id": "E-NOZZLE",
+      "to_id": "E-PCON",
+      "valves": [],
+      "instruments": [],
+      "context": "Atomized stream directed into production container"
+    },
+    {
+      "line_id": "MEAS-E-WATER",
+      "from_id": "E-WATER",
+      "to_id": "E-WATER",
+      "valves": [],
+      "instruments": [
+        "LI1",
+        "LI2"
+      ],
+      "context": "Water tank level detection (full/empty)"
+    },
+    {
+      "line_id": "MEAS-E-ZEOLITH",
+      "from_id": "E-ZEOLITH",
+      "to_id": "E-ZEOLITH",
+      "valves": [],
+      "instruments": [
+        "WI1"
+      ],
+      "context": "Zeolith tank mass/level via scale"
+    },
+    {
+      "line_id": "MEAS-E-VAPOR",
+      "from_id": "E-VAPOR",
+      "to_id": "E-VAPOR",
+      "valves": [],
+      "instruments": [
+        "TT1",
+        "TT2"
+      ],
+      "context": "Temperature monitoring of nitrogen ring/vaporizer"
+    },
+    {
+      "line_id": "MEAS-E-HV",
+      "from_id": "E-HVGEN",
+      "to_id": "E-HVGEN",
+      "valves": [],
+      "instruments": [
+        "HV10",
+        "AI13",
+        "OI14"
+      ],
+      "context": "HV generator status/alarms (HV, optical, acoustic)"
+    },
+    {
+      "line_id": "MEAS-E-PCON-CAM",
+      "from_id": "E-PCON",
+      "to_id": "E-PCON",
+      "valves": [],
+      "instruments": [
+        "CAM1",
+        "LED9"
+      ],
+      "context": "Visual inspection and stroboscopic illumination of process"
+    },
+    {
+      "line_id": "MEAS-E-LOCK",
+      "from_id": "E-PCON",
+      "to_id": "E-PCON",
+      "valves": [],
+      "instruments": [
+        "LS15"
+      ],
+      "context": "Container lock state sensing"
+    },
+    {
+      "line_id": "MEAS-E-LIFT",
+      "from_id": "E-LIFT",
+      "to_id": "E-LIFT",
+      "valves": [],
+      "instruments": [
+        "POS11"
+      ],
+      "context": "Height/position feedback for nozzle alignment"
+    },
+    {
+      "line_id": "MEAS-E-ESTOP",
+      "from_id": "E-PCON",
+      "to_id": "E-PCON",
+      "valves": [],
+      "instruments": [
+        "ES17"
+      ],
+      "context": "Emergency stop circuit present near production area"
+    }
+  ]
+}

@@ -15,18 +15,6 @@ sys.stdout.reconfigure(encoding="utf-8")
 
 @timeit_log
 def get_hazop_fewshot_prompt():
-    example_1 = {
-        "reasoning": "The line from R-101 to S-101 handles hot vapors. If scrubber is blocked, pressure may rise.",
-        "table": "R-101 → S-101,More,Pressure,High Pressure,Blocked scrubber,Overpressure → rupture,High,5,4,20,Critical,PSV + Scrubber Design,Medium,3,2,6,Medium,Install redundant vent line,2,1,2,Engineering"
-    }
-
-    example_2 = {
-        "reasoning": "This utility water line feeds the scrubber. If the valve is misaligned, flow could reverse.",
-        "table": "DWS → S-101,Reverse,Flow,Reverse Flow,Valve misalignment,Back-contamination of water system,Medium,3,3,9,Medium,Check valve,Low,2,2,4,Low,Add backflow preventer,1,1,1,Maintenance"
-    }
-    with open("static/file/sample_50_row_hazop_example.txt", "r", encoding="utf-8") as f:
-        csv_text = f.read()
-
     example_3 = {
         "reasoning": "The line from R-101 to S-101 carries a hot process stream. An increase in heat exchanger failure could elevate downstream temperature.",
         "table": """R-101 → S-101,More,Temperature,High Temperature,Pump failure,Excessive heat due to pump failure,High,3,5,15,High,Manual operator rounds,Medium,2,4,8,Medium,Add alarm for high temp,2,4,8,Engineering
@@ -169,7 +157,7 @@ def get_hazop_fewshot_prompt():
             23.Abnormal utility supply pressure (too high or too low)
             24.Abnormal cryogenic source (LN2 evaporation; boil-off; loss of supply)
             25.Abnormal water supply (insufficient cooling or cleaning water)
-            26.Abnormal gas supply (N₂; compressed air; other utility failure)
+            26.Abnormal gas supply (N2; compressed air; other utility failure)
             27.Power failure (loss of electricity to motors; fans; instruments)
             28.Cooling system failure (no circulation; fouling; exchanger blocked)
             29.Heating system failure (heater not starting or insufficient duty)
@@ -193,7 +181,7 @@ def get_hazop_fewshot_prompt():
             47.Human error in operation (wrong valve; wrong sequence)
             48.Incorrect operating sequence (early or late action)
             49.Insufficient operating time (too short cycle; premature termination)
-            50.Excessive operating time (too long cycle, delayed termination) 
+            50.Excessive operating time (too long cycle; delayed termination) 
 
             ───────────────────────────────────────────────────────
             DO NOT continue if data is not between tags:

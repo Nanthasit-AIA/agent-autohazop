@@ -93,28 +93,28 @@ const outputTableHeaders = [
 
 const outputExampleRows: string[][] = [
   [
-    "D60-Storage → D60-Heater",
-    "More",
+    "Naphtha Tank Storage 100T-01 with Transfer Pump 100P-01A/B",
+    "No",
     "Flow",
-    "More flow",
-    "Control valve FV-101 stuck open",
-    "Heater overpressure and tube rupture",
-    "High",
-    "4",
-    "4",
-    "5",
-    "5",
-    "High-high pressure trip + PSV to flare",
-    "Medium",
+    "No Flow",
+    "1.1 UV-0102-OUT fails closed on the tank outlet suction path",
+    "1.1.1 Naphtha transfer to HPU is lost; pump suction flow collapses; 100P-01A/B may cavitate and develop seal leakage with local pool fire potential",
+    "Category II - Undesirable",
     "3",
+    "1",
+    "II",
+    "Develop recommendations to reduce risk to Category III or lower",
+    "1.1.1.S1 LSLL-0102 initiates IS-10 to trip pumps and close outlet SDV (-1); 1.1.1.S2 operator low-level alarm response non-credit",
+    "Category III - Tolerable with controls",
     "3",
-    "4",
-    "4",
-    "Install flow-limiting orifice; improve alarm response procedure",
     "2",
+    "III",
+    "Team may make recommendations to reduce residual risk",
+    "1.1.1.R1 Verify IS-10 independence; proof-test interval; and pump trip coverage",
     "3",
     "3",
-    "Process engineer / Operations supervisor",
+    "III",
+    "Process Safety Engineer; Instrument Engineer",
   ],
 ];
 
@@ -134,86 +134,103 @@ const showRiskMatrixModal = ref(false);
 const showRiskSummary = ref(true);
 
 interface LikelihoodCol {
-  value: number;
+  value: string;
   label: string;
   desc: string;
+  frequency: string;
 }
 interface SeverityRow {
-  value: number;
+  value: string;
+  label: string;
   desc: string;
-  scores: number[]; // 5→1 likelihood order
+  env: string;
+  property: string;
+  scores: string[]; // F-1 → F-5 likelihood order
 }
 
 const likelihoodCols: LikelihoodCol[] = [
-  { value: 5, label: "5", desc: "Often" },
-  { value: 4, label: "4", desc: "Likely" },
-  { value: 3, label: "3", desc: "Unlikely" },
-  { value: 2, label: "2", desc: "Very unlikely" },
-  { value: 1, label: "1", desc: "Extremely unlikely" },
+  { value: "1", label: "F-1", desc: "Very likely to occur", frequency: "≥ 1e-1 / year" },
+  { value: "2", label: "F-2", desc: "Likely in process lifetime", frequency: "< 1e-1 to ≥ 1e-2 / year" },
+  { value: "3", label: "F-3", desc: "Unlikely but possible", frequency: "< 1e-2 to ≥ 1e-3 / year" },
+  { value: "4", label: "F-4", desc: "Very unlikely", frequency: "< 1e-3 to ≥ 1e-4 / year" },
+  { value: "5", label: "F-5", desc: "Extremely unlikely", frequency: "< 1e-4 / year" },
 ];
 
 const severityRows: SeverityRow[] = [
   {
-    value: 5,
-    desc: "Major accident disaster / affect operation",
-    scores: [5, 5, 4, 3, 2],
+    value: "5",
+    label: "C-5",
+    desc: "Multiple fatalities",
+    env: "Severe environmental damage",
+    property: "> 10,000,000 USD loss",
+    scores: ["I", "I", "I", "II", "III"],
   },
   {
-    value: 4,
-    desc: "Serious injury / equipment damage",
-    scores: [5, 4, 4, 3, 2],
+    value: "4",
+    label: "C-4",
+    desc: "Fatal injury or irreversible health effects",
+    env: "Significant environmental damage with media coverage",
+    property: "1,000,000–10,000,000 USD loss",
+    scores: ["I", "II", "II", "III", "IV"],
   },
   {
-    value: 3,
-    desc: "Medical treatment impact and activities / equipment failure",
-    scores: [4, 4, 3, 3, 2],
+    value: "3",
+    label: "C-3",
+    desc: "Lost-time injury",
+    env: "Some environmental damage with media coverage",
+    property: "100,000–1,000,000 USD loss",
+    scores: ["II", "II", "III", "IV", "IV"],
   },
   {
-    value: 2,
-    desc: "Medical treatment / abnormal equipment",
-    scores: [3, 3, 3, 2, 1],
+    value: "2",
+    label: "C-2",
+    desc: "Medical treatment case",
+    env: "Some environmental damage",
+    property: "10,000–100,000 USD loss",
+    scores: ["II", "III", "IV", "IV", "IV"],
   },
   {
-    value: 1,
-    desc: "Minor injury / equipment does not affect",
-    scores: [2, 2, 2, 1, 1],
+    value: "1",
+    label: "C-1",
+    desc: "Minor injury",
+    env: "Minor environmental damage",
+    property: "0–10,000 USD loss",
+    scores: ["IV", "IV", "IV", "IV", "IV"],
   },
 ];
 
-// simple color map by score
-const riskCellClass = (score: number) => {
-  if (score >= 5) return "bg-red-500 text-white";
-  if (score === 4) return "bg-orange-400 text-white";
-  if (score === 3) return "bg-yellow-300 text-gray-900";
-  if (score === 2) return "bg-green-400 text-white";
-  return "bg-emerald-500 text-white";
+// Company risk categories from SCG-style matrix.
+const riskCellClass = (score: string) => {
+  if (score === "I") return "bg-red-500 text-white";
+  if (score === "II") return "bg-amber-400 text-gray-900";
+  if (score === "III") return "bg-cyan-400 text-gray-900";
+  return "bg-lime-400 text-gray-900";
 };
 
 const riskLevels = [
   {
-    level: 1,
-    degree: "Acceptable risk",
-    color: "bg-emerald-100 text-emerald-800",
-  },
-  {
-    level: 2,
-    degree: "Acceptable risk",
-    color: "bg-emerald-100 text-emerald-800",
-  },
-  {
-    level: 3,
-    degree: "Significant risk and needs to be improved",
-    color: "bg-yellow-100 text-yellow-800",
-  },
-  {
-    level: 4,
-    degree: "Significant risk and needs to be improved",
-    color: "bg-orange-100 text-orange-800",
-  },
-  {
-    level: 5,
-    degree: "Significant risk and needs to be improved",
+    level: "I",
+    degree: "Intolerable",
+    action: "Develop recommendation to reduce risk to Category II or lower.",
     color: "bg-red-100 text-red-800",
+  },
+  {
+    level: "II",
+    degree: "Undesirable",
+    action: "Develop recommendation to reduce risk to Category III or lower.",
+    color: "bg-amber-100 text-amber-800",
+  },
+  {
+    level: "III",
+    degree: "Tolerable with controls",
+    action: "Team may make recommendations to reduce risk or strengthen controls.",
+    color: "bg-cyan-100 text-cyan-800",
+  },
+  {
+    level: "IV",
+    degree: "Tolerable as-is",
+    action: "Opportunity for improvement only.",
+    color: "bg-lime-100 text-lime-800",
   },
 ];
 </script>
@@ -229,12 +246,12 @@ const riskLevels = [
         <span> System Hazards : preview</span>
       </button>
       <button type="button" @click="showRiskMatrixModal = true"
-        class=" ml-5 gap-2 px-4 py-1.5 bg-sky-100 text-sky-700 border border-sky-300 rounded-lg text-sm font-black hover:bg-sky-200 transition flex items-center gap-1">
+        class=" ml-5  px-4 py-1.5 bg-sky-100 text-sky-700 border border-sky-300 rounded-lg text-sm font-black hover:bg-sky-200 transition flex items-center gap-1">
         <i class="fi fi-br-chart-simple text-md flex items-center justify-center"/>
         <span>Risk Matrix : preview</span>
       </button>
       <button type="button" @click="showOutputExampleModal = true"
-        class="flex gap-2 ml-5 px-4 py-1.5 bg-green-100 text-green-700 border border-green-300 rounded-lg text-sm font-black hover:bg-green-200 transition items-center gap-1">
+        class="flex  ml-5 px-4 py-1.5 bg-green-100 text-green-700 border border-green-300 rounded-lg text-sm font-black hover:bg-green-200 transition items-center gap-1">
         <i class="fi fi-br-stats text-lg flex items-center justify-center" />
         <span>Output HAZOP Table : preview</span>
       </button>
@@ -485,12 +502,11 @@ const riskLevels = [
               <div class="mb-4">
                 <div class="rounded-2xl border border-gray-200 bg-gray-100 px-4 py-3 w-60 mb-3">
                   <div class="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                    Risk Level Table
+                    Company Risk Matrix
                   </div>
                 </div>
                 <p class="text-xs text-gray-500 ml-4">
-                  Use this table as a visual guide when assigning risk levels to each
-                  HAZOP deviation.
+                  Use this SCG-style matrix to assign RR from likelihood category F-1 to F-5 and consequence category C-1 to C-5. RR is I-IV; not S×L.
                 </p>
               </div>
 
@@ -499,7 +515,7 @@ const riskLevels = [
                   <thead>
                     <tr>
                       <th class="bg-orange-100 text-gray-900 px-3 py-2 align-bottom" rowspan="2">
-                        Severity
+                        Consequence Category
                       </th>
                       <th class="bg-orange-100 text-gray-900 px-8 py-1 text-center border-l border-gray-200"
                         :colspan="likelihoodCols.length">
@@ -509,10 +525,10 @@ const riskLevels = [
                     <tr>
                       <th v-for="col in likelihoodCols" :key="col.value"
                         class="bg-orange-50 border-l border-gray-200 px-3 py-1 text-center">
-                        <div class="font-semibold">{{ col.value }}</div>
-                        <div class="text-[10px] text-gray-600">
-                          {{ col.desc }}
-                        </div>
+                        <div class="font-semibold">{{ col.label }}</div>
+                        <div class="text-[10px] text-gray-700">L{{ col.value }}</div>
+                        <div class="text-[10px] text-gray-600 leading-tight">{{ col.desc }}</div>
+                        <div class="text-[9px] text-gray-500 leading-tight">{{ col.frequency }}</div>
                       </th>
                     </tr>
                   </thead>
@@ -522,10 +538,16 @@ const riskLevels = [
                       <!-- severity description -->
                       <td class="bg-orange-50 px-3 py-2 align-top w-56">
                         <div class="font-semibold text-gray-900 mb-0.5">
-                          {{ row.value }}
+                          {{ row.label }} / S{{ row.value }}
                         </div>
                         <div class="text-[11px] text-gray-700 leading-snug">
                           {{ row.desc }}
+                        </div>
+                        <div class="text-[10px] text-gray-600 leading-snug mt-1">
+                          {{ row.env }}
+                        </div>
+                        <div class="text-[10px] text-gray-500 leading-snug mt-1">
+                          {{ row.property }}
                         </div>
                       </td>
 
@@ -560,11 +582,14 @@ const riskLevels = [
                     <div
                       class="inline-flex items-center justify-center px-2 py-0.5 rounded-full text-[11px] font-semibold"
                       :class="item.color">
-                      Risk level {{ item.level }}
+                      Category {{ item.level }}
                     </div>
                   </div>
-                  <p class="text-[11px] text-gray-700 leading-snug">
+                  <p class="text-[11px] font-semibold text-gray-800 leading-snug">
                     {{ item.degree }}
+                  </p>
+                  <p class="text-[11px] text-gray-700 leading-snug mt-1">
+                    {{ item.action }}
                   </p>
                 </div>
               </div>
@@ -597,8 +622,7 @@ const riskLevels = [
                   Output HAZOP Analysis Table : example
                 </h2>
                 <p class="text-xs text-gray-500">
-                  Example of HAZOP deviation row showing risk before and after
-                  safeguards and recommendations
+                  Example old-case HAZOP output row using SCG risk categories before safeguards; after safeguards; and after recommendations
                 </p>
               </div>
             </div>

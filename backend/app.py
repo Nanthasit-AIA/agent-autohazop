@@ -9,6 +9,7 @@ from utils import search_file
 from decorators import logger
 from module.ext_module import extract_pid, extract_pid_multi_files_single_call
 from module.agent_module import run_hazop_agent
+from module.ag_template_modulee import run_hazop_agent_1
 from utils import save_pid_json
 
 app = Flask(__name__, static_folder="static")
@@ -208,7 +209,7 @@ def handle_hazop_start(data):
 
     def background_task():
         try:
-            for key, tokens_used in run_hazop_agent(
+            for key, tokens_used in run_hazop_agent_1(
                 pid_data=pid_data,
                 excel_path=excel_path,
                 token_log_path=token_log_path,
@@ -218,7 +219,7 @@ def handle_hazop_start(data):
                 selections=selections,
             ):
                 try:
-                    line_id, param, guide_word = key.split(":")
+                    line_id, param, guide_word = key.split(":", 2)
                 except ValueError:
                     line_id, param, guide_word = key, "", ""
 

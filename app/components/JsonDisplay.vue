@@ -4,6 +4,7 @@ import PipelineGraph from "~/components/PipelineGraph.vue";
 
 type SectionId =
   | "process_description"
+  | "intention"
   | "system_input"
   | "system_inputs"
   | "system_outputs"
@@ -11,7 +12,10 @@ type SectionId =
   | "valves"
   | "instruments"
   | "utility_lines"
-  | "connections";
+  | "connections"
+  | "line_level_connections"
+  | "metadata"
+  | "raw_json";
 
 interface SectionConfig {
   id: SectionId;
@@ -26,11 +30,8 @@ const props = defineProps<{
 }>();
 
 const sectionConfigs: SectionConfig[] = [
-  {
-    id: "process_description",
-    key: "process_description",
-    label: "Process Description",
-  },
+  { id: "process_description", key: "process_description", label: "Process Description" },
+  { id: "intention", key: "intention", label: "Design Intention" },
   { id: "system_input", key: "system_input", label: "System Input" },
   { id: "system_inputs", key: "system_inputs", label: "System Inputs" },
   { id: "system_outputs", key: "system_outputs", label: "System Outputs" },
@@ -38,22 +39,41 @@ const sectionConfigs: SectionConfig[] = [
   { id: "valves", key: "valves", label: "Valves" },
   { id: "instruments", key: "instruments", label: "Instruments" },
   { id: "utility_lines", key: "utility_lines", label: "Utility Lines" },
-  { id: "connections", key: "connections", label: "Connections" },
+  { id: "connections", key: "connections", label: "Node Connections" },
+  { id: "line_level_connections", key: "line_level_connections", label: "Line-Level Connections" },
+  { id: "metadata", key: "metadata", label: "Metadata" },
+  { id: "raw_json", key: "raw_json", label: "Raw JSON" },
 ];
 
 /* -------- Root PID + metadata -------- */
 
-const pidRoot = computed<any | null>(() => {
-  const d = props.data;
-  if (!d || typeof d !== "object") return null;
-  if ("pid_data" in d && (d as any).pid_data) return (d as any).pid_data;
-  return d;
-});
+const unwrapPidRoot = (data: any): any | null => {
+  if (!data || typeof data !== "object") return null;
+
+  const choicesParsed = data?.choices?.[0]?.message?.parsed;
+  if (choicesParsed && typeof choicesParsed === "object") return choicesParsed;
+
+  if (data.pid_data && typeof data.pid_data === "object") return data.pid_data;
+  if (data.parsed && typeof data.parsed === "object") return data.parsed;
+
+  return data;
+};
+
+const pidRoot = computed<any | null>(() => unwrapPidRoot(props.data));
 
 const metadata = computed<any | null>(() => {
   const d = props.data;
   if (!d || typeof d !== "object") return null;
   return (d as any).metadata ?? null;
+});
+
+const sourceFormat = computed(() => {
+  const d = props.data;
+  if (!d || typeof d !== "object") return "empty";
+  if (d?.choices?.[0]?.message?.parsed) return "OpenAI parsed response";
+  if (d.pid_data) return "wrapped pid_data";
+  if (d.parsed) return "wrapped parsed";
+  return "direct topology JSON";
 });
 
 const totalTokens = computed<number | null>(() => {
@@ -68,6 +88,21 @@ const latencySeconds = computed<number | null>(() => {
   if (!m) return null;
   const lat = m.latency_s;
   return typeof lat === "number" ? lat : null;
+});
+
+const rootCounts = computed(() => {
+  const root = pidRoot.value;
+  if (!root || typeof root !== "object") {
+    return { equipment: 0, valves: 0, instruments: 0, utility_lines: 0, connections: 0, line_level_connections: 0 };
+  }
+  return {
+    equipment: Array.isArray(root.equipment) ? root.equipment.length : 0,
+    valves: Array.isArray(root.valves) ? root.valves.length : 0,
+    instruments: Array.isArray(root.instruments) ? root.instruments.length : 0,
+    utility_lines: Array.isArray(root.utility_lines) ? root.utility_lines.length : 0,
+    connections: Array.isArray(root.connections) ? root.connections.length : 0,
+    line_level_connections: Array.isArray(root.line_level_connections) ? root.line_level_connections.length : 0,
+  };
 });
 
 /* -------- process_description as User Input -------- */
@@ -89,12 +124,13 @@ const hasProcessDescription = computed(
 const availableSections = computed(() => {
   const root = pidRoot.value;
   if (!root || typeof root !== "object") return [];
-  return sectionConfigs.filter(
-    (sec) =>
-      sec.id !== "process_description" &&
-      sec.key in root &&
-      (root as any)[sec.key] !== undefined
-  );
+
+  return sectionConfigs.filter((sec) => {
+    if (sec.id === "process_description") return false;
+    if (sec.id === "metadata") return metadata.value != null;
+    if (sec.id === "raw_json") return props.data != null;
+    return sec.key in root && (root as any)[sec.key] !== undefined;
+  });
 });
 
 const currentSectionId = ref<SectionId | null>(null);
@@ -131,6 +167,10 @@ const currentIndex = computed(() => {
 const sectionData = computed(() => {
   const root = pidRoot.value;
   if (!currentSection.value || !root) return null;
+
+  if (currentSection.value.id === "metadata") return metadata.value;
+  if (currentSection.value.id === "raw_json") return props.data;
+
   return (root as any)[currentSection.value.key];
 });
 
@@ -168,10 +208,24 @@ const fieldOrderBySection: Partial<Record<SectionId, string[]>> = {
   utility_lines: ["utility_type", "valves", "flow_direction", "context"],
   connections: [
     "line_id",
+    "node",
+    "node_boundary",
+    "from_id",
+    "to_id",
+    "included_equipment",
+    "included_lines",
+    "valves",
+    "instruments",
+    "flow_direction",
+    "context",
+  ],
+  line_level_connections: [
+    "line_id",
     "from_id",
     "to_id",
     "valves",
     "instruments",
+    "flow_direction",
     "context",
   ],
 };
@@ -201,6 +255,25 @@ const getSortedEntries = (
       key,
       value: (item as any)[key],
     }));
+};
+
+
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "string") return value;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return value
+      .map((item) => {
+        if (item && typeof item === "object") {
+          return (item as any).id ?? (item as any).name ?? (item as any).type ?? JSON.stringify(item);
+        }
+        return String(item);
+      })
+      .join("; ");
+  }
+  if (typeof value === "object") return JSON.stringify(value, null, 2);
+  return String(value);
 };
 
 const switchSection = (id: SectionId) => {
@@ -233,7 +306,9 @@ const hasConnections = computed(() => {
   const root = pidRoot.value;
   if (!root || typeof root !== "object") return false;
   const conns = (root as any).connections;
-  return Array.isArray(conns) && conns.length > 0;
+  const lineConns = (root as any).line_level_connections;
+  return (Array.isArray(conns) && conns.length > 0) ||
+    (Array.isArray(lineConns) && lineConns.length > 0);
 });
 
 const openGraph = () => {
@@ -266,6 +341,33 @@ const closeGraph = () => {
             {{ latencySeconds.toFixed(1) }} s
           </span>
         </span>
+      </div>
+    </div>
+
+    <div v-if="pidRoot" class="mb-4 grid grid-cols-2 gap-2 md:grid-cols-6">
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Format</div>
+        <div class="text-gray-800 wrap-break-word">{{ sourceFormat }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Equipment</div>
+        <div class="text-gray-800">{{ rootCounts.equipment }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Valves</div>
+        <div class="text-gray-800">{{ rootCounts.valves }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Instruments</div>
+        <div class="text-gray-800">{{ rootCounts.instruments }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Nodes</div>
+        <div class="text-gray-800">{{ rootCounts.connections }}</div>
+      </div>
+      <div class="rounded-xl bg-slate-50 border border-slate-200 p-2 text-xs">
+        <div class="font-black text-gray-500">Line-level</div>
+        <div class="text-gray-800">{{ rootCounts.line_level_connections }}</div>
       </div>
     </div>
 
@@ -323,12 +425,11 @@ const closeGraph = () => {
             Section {{ currentIndex + 1 }} / {{ availableSections.length }}
           </span>
 
-          <!-- ✅ Preview graph button -->
-          <!-- <button v-if="hasConnections" type="button"
+          <button v-if="hasConnections" type="button"
             class="px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-white hover:bg-gray-50 transition"
             @click="openGraph">
             Preview graph
-          </button> -->
+          </button>
         </div>
       </div>
 
@@ -348,7 +449,7 @@ const closeGraph = () => {
               currentSection?.id ?? null
             )" :key="entry.key" class="flex justify-between gap-2">
               <span class="text-gray-500">{{ entry.key }}</span>
-              <span class="font-medium break-all">{{ entry.value }}</span>
+              <span class="font-medium wrap-break-word whitespace-pre-line text-right">{{ formatCellValue(entry.value) }}</span>
             </div>
           </div>
         </div>

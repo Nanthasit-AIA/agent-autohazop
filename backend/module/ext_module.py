@@ -26,7 +26,7 @@ def extract_pid(
     file_path: str,
     *,
     process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
+    model: str = "gpt-5.5-2026-04-23",
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
@@ -100,7 +100,7 @@ def extract_pid_multi_files_single_call(
     file_paths: List[str],
     *,
     process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
+    model: str = "gpt-5.5-2026-04-23",
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
@@ -177,7 +177,7 @@ def extract_pid_batch(
     file_paths: List[str],
     *,
     process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
+    model: str = "gpt-5.5-2026-04-23",
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> Dict[str, Dict[str, object]]:

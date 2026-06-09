@@ -1,0 +1,579 @@
+{
+  "process_description": "The De-C5 unit separates C5 and lighter components from the incoming feed stream by preheating the feed, feeding it to De-C5 Tower T-00, providing reboil duty through bottom reboiler E-05, removing bottoms liquid through the bottom pump system, and returning/recovering overhead reflux through the condenser, reflux drum, and reflux subcooler system. Feed flow to the tower is controlled by FIC-001 at an assumed normal feed rate of 100 ton/hr. Tower pressure is controlled by PIC-002, with assumed operating pressures of 8.0 barg at the top and 8.5 barg at the bottom. Tower temperature is controlled through TIC-012 acting on the reboiler E-05 heat input, with assumed operating temperatures of 55 °C at the top and 150 °C at the bottom. Bottom composition is intended to contain no more than 1.0 wt% lighter C5, and overhead liquid is intended to contain no more than 1.0 wt% C5.",
+  "intention": "The intention of the De-C5 system is to strip C5 and lighter components from the feed stream at a controlled feed rate using the De-C5 Tower T-00 and associated heat-integration, reboiling, bottom product, and reflux systems. The unit is intended to maintain stable feed preheating through E-02 and E-03A/B, stable fractionation in T-00, adequate vapor generation by reboiler E-05, controlled tower pressure by PIC-002, controlled tower temperature by TIC-012, controlled tower level by LIC-001 via FV-002, adequate bottom pump circulation and minimum flow through FV-005, and stable reflux return through the overhead condenser/reflux drum/subcooler system. The intended product quality is lighter C5 at the bottom not exceeding 1.0 wt% and C5 in the overhead liquid not exceeding 1.0 wt%, under assumed normal operating conditions of 100 ton/hr feed, 8.0 barg top pressure, 8.5 barg bottom pressure, 55 °C top temperature, and 150 °C bottom temperature.",
+  "system_inputs": [
+    "Feed stream to De-C5 unit",
+    "Medium pressure steam to reboiler E-05",
+    "Cooling medium to overhead condenser / fan cooler system",
+    "Cooling medium to reflux subcoolers E-04A/B",
+    "Instrument air for control valves",
+    "Electrical power to pumps and fan coolers"
+  ],
+  "system_outputs": [
+    "De-C5 bottom product to downstream process",
+    "Overhead C5 and lighter stream to condenser and reflux drum",
+    "Reflux return to De-C5 Tower T-00",
+    "Condensate from reboiler steam system",
+    "Relief / vent discharge from tower protection devices",
+    "Drains to closed drain or oily water system where applicable"
+  ],
+  "equipment": [
+    {
+      "id": "E-02",
+      "name": "Feed Preheater",
+      "type": "heat exchanger",
+      "context": "Preheats incoming De-C5 feed before further heat recovery and entry to T-00."
+    },
+    {
+      "id": "E-03A",
+      "name": "Feed / Bottoms Heat Exchanger A",
+      "type": "shell-and-tube heat exchanger",
+      "context": "Part of feed preheat and bottom product heat-recovery service. Included in Node 1 for feed preheat and in Node 2 for bottom-side service."
+    },
+    {
+      "id": "E-03B",
+      "name": "Feed / Bottoms Heat Exchanger B",
+      "type": "shell-and-tube heat exchanger",
+      "context": "Parallel or paired exchanger with E-03A for feed preheat and bottom product heat-recovery service."
+    },
+    {
+      "id": "T-00",
+      "name": "De-C5 Tower",
+      "type": "distillation tower",
+      "context": "Main fractionation column for stripping C5 and lighter components from the feed stream."
+    },
+    {
+      "id": "E-05",
+      "name": "De-C5 Bottom Reboiler",
+      "type": "reboiler",
+      "context": "Provides heat input to the bottom of T-00. Reboiler duty is controlled by TIC-012 through the medium-pressure steam control valve."
+    },
+    {
+      "id": "P-06A",
+      "name": "De-C5 Bottom Pump A",
+      "type": "centrifugal pump",
+      "context": "One of two bottom pumps transferring T-00 bottom liquid through the bottom system toward downstream process and/or circulation service."
+    },
+    {
+      "id": "P-06B",
+      "name": "De-C5 Bottom Pump B",
+      "type": "centrifugal pump",
+      "context": "Parallel bottom pump with P-06A for bottom liquid transfer and circulation."
+    },
+    {
+      "id": "E-04A",
+      "name": "Reflux Subcooler A",
+      "type": "heat exchanger",
+      "context": "Subcools reflux liquid before return to T-00 or reflux system service."
+    },
+    {
+      "id": "E-04B",
+      "name": "Reflux Subcooler B",
+      "type": "heat exchanger",
+      "context": "Parallel or paired reflux subcooler with E-04A."
+    },
+    {
+      "id": "FC-01",
+      "name": "De-C5 Overhead Fan Cooler / Condenser",
+      "type": "air cooler / condenser",
+      "context": "Condenses or cools T-00 overhead vapor before the reflux drum. Exact tag is not fully legible, so a functional ID is assigned."
+    },
+    {
+      "id": "V-REFLUX-DRUM",
+      "name": "De-C5 Reflux Drum",
+      "type": "reflux drum",
+      "context": "Receives condensed overhead liquid from the condenser. The reflux drum is part of Node 3 but is noted as not shown in the provided figure."
+    }
+  ],
+  "valves": [
+    {
+      "id": "FV-001",
+      "type": "flow control valve",
+      "location": "feed line upstream of E-02 / De-C5 feed preheat section",
+      "context": "Controls feed flow to the De-C5 unit under FIC-001."
+    },
+    {
+      "id": "FV-002",
+      "type": "flow control valve",
+      "location": "bottom product outlet to downstream process",
+      "context": "Controls bottom product flow from the De-C5 bottom system to downstream process; also associated with T-00 level control through LIC-001."
+    },
+    {
+      "id": "FV-003",
+      "type": "steam flow control valve",
+      "location": "medium-pressure steam line to reboiler E-05",
+      "context": "Controls reboiler heat input to E-05, manipulated by TIC-012 for tower temperature control."
+    },
+    {
+      "id": "HV-001",
+      "type": "hand / manual control valve",
+      "location": "bottom outlet of T-00",
+      "context": "Defines the start of Node 2 De-C5 bottom from the tower bottom outlet."
+    },
+    {
+      "id": "FV-005",
+      "type": "minimum-flow / circulation flow control valve",
+      "location": "minimum-flow line of De-C5 bottom pumps P-06A/B",
+      "context": "Maintains minimum circulation flow for the bottom pump system."
+    },
+    {
+      "id": "LV-001",
+      "type": "level control valve",
+      "location": "T-00 bottom level control / bottom product system",
+      "context": "Associated with LIC-001 for controlling T-00 liquid level where shown or inferred from the level-control function."
+    },
+    {
+      "id": "PV-002",
+      "type": "pressure control valve",
+      "location": "T-00 overhead pressure control system",
+      "context": "Manipulated by PIC-002 to control tower pressure where shown or inferred from the overhead pressure-control loop."
+    },
+    {
+      "id": "XV-REFLUX-ISO",
+      "type": "manual isolation valve",
+      "location": "reflux return line",
+      "context": "Generic inferred isolation valve on reflux return path where exact tag is not legible."
+    },
+    {
+      "id": "CV-P06A-DISCH",
+      "type": "check valve",
+      "location": "discharge of P-06A",
+      "context": "Prevents reverse flow through bottom pump P-06A."
+    },
+    {
+      "id": "CV-P06B-DISCH",
+      "type": "check valve",
+      "location": "discharge of P-06B",
+      "context": "Prevents reverse flow through bottom pump P-06B."
+    },
+    {
+      "id": "PSV-003A",
+      "type": "pressure safety valve",
+      "location": "T-00 pressure relief system",
+      "context": "Tower overpressure protection device."
+    },
+    {
+      "id": "PSV-003B",
+      "type": "pressure safety valve",
+      "location": "T-00 pressure relief system",
+      "context": "Parallel or spare tower overpressure protection device."
+    }
+  ],
+  "instruments": [
+    {
+      "id": "FIC-001",
+      "function": "feed flow indication and control",
+      "location": "feed line to E-02 / T-00 feed system",
+      "context": "Controls De-C5 feed flow rate through FV-001 at the assumed normal rate of 100 ton/hr."
+    },
+    {
+      "id": "PIC-002",
+      "function": "tower pressure indication and control",
+      "location": "T-00 overhead / tower pressure control system",
+      "context": "Controls T-00 pressure at assumed top and bottom operating pressures of 8.0 and 8.5 barg."
+    },
+    {
+      "id": "TIC-012",
+      "function": "tower temperature indication and control",
+      "location": "T-00 bottom / reboiler E-05 temperature control loop",
+      "context": "Controls tower temperature by manipulating steam duty to reboiler E-05."
+    },
+    {
+      "id": "LIC-001",
+      "function": "tower level indication and control",
+      "location": "T-00 bottom level system",
+      "context": "Controls T-00 bottom liquid level through bottom outlet control, associated with FV-002."
+    },
+    {
+      "id": "FIC-005",
+      "function": "bottom pump circulation / minimum-flow control",
+      "location": "bottom pump minimum-flow line",
+      "context": "Controls or monitors circulation flow through FV-005 for pump protection."
+    },
+    {
+      "id": "FI-001",
+      "function": "feed flow indication",
+      "location": "feed line",
+      "context": "Indicates De-C5 feed flow where associated with FIC-001."
+    },
+    {
+      "id": "PI-004",
+      "function": "tower pressure indication",
+      "location": "T-00 pressure measurement point",
+      "context": "Indicates tower pressure for operator monitoring and pressure alarm functions if configured."
+    },
+    {
+      "id": "TI-014",
+      "function": "bottom temperature indication",
+      "location": "T-00 bottom / reboiler temperature area",
+      "context": "Indicates bottom temperature associated with reboiler duty and TIC-012 control."
+    },
+    {
+      "id": "LT-001",
+      "function": "tower level transmitter",
+      "location": "T-00 bottom liquid section",
+      "context": "Provides level measurement to LIC-001."
+    },
+    {
+      "id": "PT-002",
+      "function": "tower pressure transmitter",
+      "location": "T-00 overhead pressure-control point",
+      "context": "Provides pressure measurement to PIC-002."
+    },
+    {
+      "id": "TT-012",
+      "function": "temperature transmitter",
+      "location": "T-00 bottom / E-05 reboiler loop",
+      "context": "Provides temperature measurement to TIC-012."
+    }
+  ],
+  "utility_lines": [
+    {
+      "utility_type": "Medium pressure steam",
+      "valves": [
+        "FV-003"
+      ],
+      "flow_direction": "Medium pressure steam flows to reboiler E-05",
+      "context": "Provides reboiler heat duty for T-00 bottom temperature and fractionation control."
+    },
+    {
+      "utility_type": "Steam condensate",
+      "valves": [],
+      "flow_direction": "Condensate leaves reboiler E-05 to condensate recovery system",
+      "context": "Condensate return from reboiler steam service."
+    },
+    {
+      "utility_type": "Cooling medium / air cooling",
+      "valves": [],
+      "flow_direction": "Cooling service removes heat from T-00 overhead through condenser / fan cooler system",
+      "context": "Supports condensation of overhead vapor before reflux drum."
+    },
+    {
+      "utility_type": "Cooling medium to reflux subcoolers",
+      "valves": [],
+      "flow_direction": "Cooling medium flows to E-04A/B reflux subcoolers",
+      "context": "Subcools reflux liquid before return to the tower."
+    },
+    {
+      "utility_type": "Instrument air",
+      "valves": [
+        "FV-001",
+        "FV-002",
+        "FV-003",
+        "FV-005",
+        "PV-002",
+        "LV-001"
+      ],
+      "flow_direction": "Instrument air supplies pneumatic valve actuators",
+      "context": "Supports actuation of flow, pressure, temperature, and level control valves."
+    }
+  ],
+  "connections": [
+    {
+      "line_id": "NODE-01-DEC5-TOWER",
+      "node": "Node 1 De-C5 Tower",
+      "node_boundary": "Includes the preheat feed line through E-02 and E-03A/B, the De-C5 Tower T-00, and bottom reboiler E-05. The node covers feed flow control, feed preheating, tower fractionation, pressure control, level control interface, and reboiler heat input.",
+      "from_id": "Feed stream to De-C5 unit",
+      "to_id": "T-00",
+      "included_equipment": [
+        "E-02",
+        "E-03A",
+        "E-03B",
+        "T-00",
+        "E-05"
+      ],
+      "included_lines": [
+        "L-FEED-FV001-E02",
+        "L-E02-E03AB",
+        "L-E03AB-T00-FEED",
+        "L-T00-BOTTOM-REBOILER",
+        "L-STEAM-E05",
+        "L-E05-CONDENSATE"
+      ],
+      "valves": [
+        "FV-001",
+        "FV-003",
+        "LV-001",
+        "PV-002",
+        "PSV-003A",
+        "PSV-003B"
+      ],
+      "instruments": [
+        "FIC-001",
+        "PIC-002",
+        "TIC-012",
+        "LIC-001",
+        "FI-001",
+        "PI-004",
+        "TI-014",
+        "LT-001",
+        "PT-002",
+        "TT-012"
+      ],
+      "flow_direction": "Feed flows through FV-001 to E-02, then through E-03A/B for preheating, and then into T-00. Bottom liquid from T-00 circulates through reboiler E-05, where medium-pressure steam provides heat input through FV-003. Vapor-liquid separation occurs inside T-00, with overhead vapor leaving the tower and bottoms liquid leaving toward the bottom system.",
+      "context": "Grouped HAZOP reasoning node for the main De-C5 tower fractionation function. This node allows causes in feed control, feed preheating, pressure control, reboiler duty, tower temperature, and tower level to be reasoned against consequences such as loss of separation, tower warming/cooling, pressure increase, pressure decrease, high level, low level, off-spec overhead, off-spec bottom product, relief demand, and downstream feed instability."
+    },
+    {
+      "line_id": "NODE-02-DEC5-BOTTOM",
+      "node": "Node 2 De-C5 Bottom",
+      "node_boundary": "Starts from outlet HV-001 at the bottom of T-00 and from FV-005 on the minimum-flow line of the bottom pumps. Ends at FV-002 on the bottom outlet to downstream process. Includes bottom pumps P-06A/B and tube-side service of E-03A/B.",
+      "from_id": "T-00",
+      "to_id": "De-C5 bottom product to downstream process",
+      "included_equipment": [
+        "T-00",
+        "P-06A",
+        "P-06B",
+        "E-03A",
+        "E-03B"
+      ],
+      "included_lines": [
+        "L-T00-BOTTOM-HV001",
+        "L-HV001-P06AB-SUCTION",
+        "L-P06A-DISCHARGE",
+        "L-P06B-DISCHARGE",
+        "L-P06AB-E03AB-TUBE",
+        "L-BOTTOM-FV002-DOWNSTREAM",
+        "L-BOTTOM-MINFLOW-FV005"
+      ],
+      "valves": [
+        "HV-001",
+        "FV-005",
+        "FV-002",
+        "CV-P06A-DISCH",
+        "CV-P06B-DISCH"
+      ],
+      "instruments": [
+        "LIC-001",
+        "FIC-005",
+        "LT-001"
+      ],
+      "flow_direction": "Bottom liquid leaves T-00 through HV-001, flows to bottom pumps P-06A/B, then flows through the bottom heat-recovery path associated with E-03A/B tube side, and exits to the downstream process through FV-002. A minimum-flow line controlled by FV-005 returns or circulates flow for pump protection.",
+      "context": "Grouped HAZOP reasoning node for bottom product removal, bottom pump protection, heat-recovery service, and downstream bottom outlet control. This node supports reasoning for no flow, less flow, high flow, reverse flow, pump loss of suction, pump deadheading, high tower level due to blocked bottom outlet, low tower level due to excessive bottom withdrawal, bottom product off-specification, and loss of downstream feed."
+    },
+    {
+      "line_id": "NODE-03-DEC5-REFLUX",
+      "node": "Node 3 De-C5 Reflux",
+      "node_boundary": "Starts from T-00 overhead and includes the overhead condenser / De-C5 fan cooler system, reflux drum, reflux subcoolers E-04A/B, and reflux return line to T-00. The reflux drum is part of the intended node boundary even though it is not shown in the provided figure.",
+      "from_id": "T-00",
+      "to_id": "T-00",
+      "included_equipment": [
+        "T-00",
+        "FC-01",
+        "V-REFLUX-DRUM",
+        "E-04A",
+        "E-04B"
+      ],
+      "included_lines": [
+        "L-T00-OVERHEAD-CONDENSER",
+        "L-CONDENSER-REFLUXDRUM",
+        "L-REFLUXDRUM-E04AB",
+        "L-E04AB-REFLUX-RETURN",
+        "L-OVERHEAD-PRODUCT"
+      ],
+      "valves": [
+        "XV-REFLUX-ISO",
+        "PV-002"
+      ],
+      "instruments": [
+        "PIC-002",
+        "PT-002"
+      ],
+      "flow_direction": "Overhead vapor leaves the top of T-00 and flows to the condenser / fan cooler system. Condensed liquid flows to the reflux drum, then through reflux subcoolers E-04A/B. Part of the cooled liquid returns to T-00 as reflux, while the overhead product leaves the reflux system.",
+      "context": "Grouped HAZOP reasoning node for overhead condensation, reflux accumulation, reflux cooling, and reflux return to T-00. This node supports reasoning for insufficient reflux, excessive reflux, blocked overhead path, condenser underperformance, reflux drum level upset, poor subcooling, pressure instability, off-spec overhead product, and loss of tower separation efficiency."
+    }
+  ],
+  "line_level_connections": [
+    {
+      "line_id": "L-FEED-FV001-E02",
+      "from_id": "Feed stream to De-C5 unit",
+      "to_id": "E-02",
+      "valves": [
+        "FV-001"
+      ],
+      "instruments": [
+        "FIC-001",
+        "FI-001"
+      ],
+      "flow_direction": "Feed stream flows through FV-001 into E-02",
+      "context": "Feed flow control segment for De-C5 feed preheating."
+    },
+    {
+      "line_id": "L-E02-E03AB",
+      "from_id": "E-02",
+      "to_id": "E-03A/B",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Preheated feed flows from E-02 to E-03A/B",
+      "context": "Intermediate feed preheat transfer segment."
+    },
+    {
+      "line_id": "L-E03AB-T00-FEED",
+      "from_id": "E-03A/B",
+      "to_id": "T-00",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Feed flows from E-03A/B into De-C5 Tower T-00",
+      "context": "Final feed entry segment to the De-C5 tower."
+    },
+    {
+      "line_id": "L-STEAM-E05",
+      "from_id": "Medium pressure steam to reboiler E-05",
+      "to_id": "E-05",
+      "valves": [
+        "FV-003"
+      ],
+      "instruments": [
+        "TIC-012",
+        "TT-012"
+      ],
+      "flow_direction": "Medium-pressure steam flows to reboiler E-05",
+      "context": "Reboiler heat input control segment."
+    },
+    {
+      "line_id": "L-T00-BOTTOM-REBOILER",
+      "from_id": "T-00",
+      "to_id": "E-05",
+      "valves": [],
+      "instruments": [
+        "TIC-012",
+        "TI-014"
+      ],
+      "flow_direction": "T-00 bottom liquid circulates through reboiler E-05 and returns heat to the tower bottom",
+      "context": "Bottom reboil circulation path."
+    },
+    {
+      "line_id": "L-E05-CONDENSATE",
+      "from_id": "E-05",
+      "to_id": "Condensate from reboiler steam system",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Steam condensate leaves E-05",
+      "context": "Condensate outlet from reboiler steam service."
+    },
+    {
+      "line_id": "L-T00-BOTTOM-HV001",
+      "from_id": "T-00",
+      "to_id": "HV-001 downstream bottom outlet boundary",
+      "valves": [
+        "HV-001"
+      ],
+      "instruments": [
+        "LIC-001",
+        "LT-001"
+      ],
+      "flow_direction": "Bottom liquid leaves T-00 through HV-001",
+      "context": "Start of De-C5 bottom node."
+    },
+    {
+      "line_id": "L-HV001-P06AB-SUCTION",
+      "from_id": "T-00",
+      "to_id": "P-06A/B",
+      "valves": [
+        "HV-001"
+      ],
+      "instruments": [],
+      "flow_direction": "Bottom liquid flows from T-00 to bottom pump suction",
+      "context": "Bottom pump suction path."
+    },
+    {
+      "line_id": "L-P06A-DISCHARGE",
+      "from_id": "P-06A",
+      "to_id": "E-03A/B",
+      "valves": [
+        "CV-P06A-DISCH"
+      ],
+      "instruments": [],
+      "flow_direction": "P-06A discharges bottom liquid toward E-03A/B tube-side service",
+      "context": "Bottom pump A discharge path."
+    },
+    {
+      "line_id": "L-P06B-DISCHARGE",
+      "from_id": "P-06B",
+      "to_id": "E-03A/B",
+      "valves": [
+        "CV-P06B-DISCH"
+      ],
+      "instruments": [],
+      "flow_direction": "P-06B discharges bottom liquid toward E-03A/B tube-side service",
+      "context": "Bottom pump B discharge path."
+    },
+    {
+      "line_id": "L-BOTTOM-MINFLOW-FV005",
+      "from_id": "P-06A/B",
+      "to_id": "P-06A/B suction or circulation return",
+      "valves": [
+        "FV-005"
+      ],
+      "instruments": [
+        "FIC-005"
+      ],
+      "flow_direction": "Minimum-flow circulation returns from pump discharge toward the pump circulation path",
+      "context": "Minimum-flow protection line for bottom pumps."
+    },
+    {
+      "line_id": "L-BOTTOM-FV002-DOWNSTREAM",
+      "from_id": "E-03A/B",
+      "to_id": "De-C5 bottom product to downstream process",
+      "valves": [
+        "FV-002"
+      ],
+      "instruments": [
+        "LIC-001"
+      ],
+      "flow_direction": "Bottom product flows through FV-002 to downstream process",
+      "context": "Bottom product outlet and level-control manipulated path."
+    },
+    {
+      "line_id": "L-T00-OVERHEAD-CONDENSER",
+      "from_id": "T-00",
+      "to_id": "FC-01",
+      "valves": [
+        "PV-002"
+      ],
+      "instruments": [
+        "PIC-002",
+        "PT-002"
+      ],
+      "flow_direction": "Overhead vapor flows from T-00 to overhead condenser / fan cooler",
+      "context": "Tower overhead vapor outlet and pressure-control path."
+    },
+    {
+      "line_id": "L-CONDENSER-REFLUXDRUM",
+      "from_id": "FC-01",
+      "to_id": "V-REFLUX-DRUM",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Condensed overhead stream flows to reflux drum",
+      "context": "Condensed overhead liquid/vapor transfer to reflux drum."
+    },
+    {
+      "line_id": "L-REFLUXDRUM-E04AB",
+      "from_id": "V-REFLUX-DRUM",
+      "to_id": "E-04A/B",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Reflux liquid flows from reflux drum to E-04A/B",
+      "context": "Reflux subcooler feed line."
+    },
+    {
+      "line_id": "L-E04AB-REFLUX-RETURN",
+      "from_id": "E-04A/B",
+      "to_id": "T-00",
+      "valves": [
+        "XV-REFLUX-ISO"
+      ],
+      "instruments": [],
+      "flow_direction": "Subcooled reflux returns to T-00",
+      "context": "Reflux return line to maintain tower separation."
+    },
+    {
+      "line_id": "L-OVERHEAD-PRODUCT",
+      "from_id": "V-REFLUX-DRUM",
+      "to_id": "Overhead C5 and lighter stream to condenser and reflux drum",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Overhead product leaves reflux drum / overhead system",
+      "context": "Overhead product outlet from De-C5 reflux system."
+    }
+  ]
+}

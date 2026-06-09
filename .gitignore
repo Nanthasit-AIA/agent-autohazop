@@ -28,5 +28,6 @@ logs
 *.pyo
 *.pyd
 /backend/static/hazop_runs
-
-
+.data
+.deepeval
+.emb_cache

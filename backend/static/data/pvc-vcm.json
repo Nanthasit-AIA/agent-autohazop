@@ -1,0 +1,443 @@
+{
+  "pid_data": {
+    "process_description": "Process Overview The highlighted section of the P&ID represents the VCM charging and transfer system that primarily delivers Vinyl Chloride Monomer (VCM) from the fresh VCM storage tanks SV-101A/B to the polymerization reactor SR-301 through the red-line flow path. In addition to the fresh VCM supply, the system also interfaces with the recovered VCM storage tanks SV-111A/B, which serve as an alternate or recovery source within the overall VCM handling system; however, SV-111A/B and their associated routing are not part of the red-line highlighted transfer path. The active charging path includes SV-101A/B, transfer pumps SP-101A/B, filters SF-101A/B and SF-107A/B, and the associated piping, valves, and instrumentation required to ensure controlled and safe VCM charging into the reactor. Process Initiation Under normal operation, the process begins with liquid VCM stored in the fresh VCM tanks SV-101A/B. When charging is required, the tank outlet isolation valves are opened and one of the transfer pumps SP-101A/B is started. VCM is withdrawn from the selected storage tank and enters the red-line piping system, where initial filtration and instrumentation verify that pressure, flow, and temperature conditions are suitable for downstream transfer. The recovered VCM tanks SV-111A/B remain isolated during normal red-line operation and are maintained as standby or recovery inventory. If operations require the use of recovered VCM, SV-111A/B can be aligned through dedicated connections outside the red-line charging route. Process End The process concludes when the required quantity of VCM is delivered into reactor SR-301 through the designated feed connection. After completion of the charging operation, the transfer pumps are stopped and the relevant isolation valves are closed to secure the system and prevent unintended VCM movement prior to the reaction phase. Process Description Liquid VCM drawn from SV-101A/B is pressurized by transfer pumps SP-101A/B and conveyed through the red-line piping network. Along this route, the flow passes through filters SF-101A/B and SF-107A/B to remove particulates and ensure feed quality, followed by isolation valves for operational control, check valves to prevent reverse flow, and instrumented sections for continuous monitoring of pressure, flow, and temperature. The conditioned VCM stream then proceeds through the charging line toward the reactor feed header under controlled operating conditions until it enters SR-301. The recovered VCM tanks SV-111A/B are part of the broader VCM handling system for inventory management and recovery service, but their normal routing is hydraulically separated from the red-line charging path and therefore outside the active hazard scope of this specific P&ID segment. File Description The P&ID file (Red-Line and Red-circle Detection Scope) documents the piping and instrumentation configuration for the fresh VCM charging operation. For detection and analysis purposes, only the red-line and red-circle highlighted flow path is considered, covering SV-101A/B, SP-101A/B, SF-101A/B, SF-107A/B, associated piping, valves, instrumentation, and the reactor feed interface to SR-301. Recovered VCM systems, including SV-111A/B, as well as non-highlighted utilities, are outside the scope of the red-line detection, but are acknowledged as part of the overall VCM storage and recovery system.",
+    "system_inputs": [
+      "Fresh VCM from storage tanks SV-101A/B (red-line charging path)",
+      "Recovered VCM from storage tanks SV-111A/B (alternate/recovery source; normally isolated from red-line charging path)"
+    ],
+    "system_outputs": [
+      "VCM feed to polymerization reactor SR-301"
+    ],
+    "equipment": [
+      {
+        "id": "SV-101A",
+        "name": "Fresh VCM Storage Tank A",
+        "type": "storage tank",
+        "context": "Horizontal tank; starting point of red-line VCM charging path"
+      },
+      {
+        "id": "SV-101B",
+        "name": "Fresh VCM Storage Tank B",
+        "type": "storage tank",
+        "context": "Horizontal tank; parallel to SV-101A as fresh VCM source"
+      },
+      {
+        "id": "SV-111A",
+        "name": "Recovered VCM Storage Tank A",
+        "type": "storage tank",
+        "context": "Horizontal tank; alternate/recovery VCM source; normally isolated from red-line charging path"
+      },
+      {
+        "id": "SV-111B",
+        "name": "Recovered VCM Storage Tank B",
+        "type": "storage tank",
+        "context": "Horizontal tank; parallel recovered VCM source; normally isolated from red-line charging path"
+      },
+      {
+        "id": "SP-101A",
+        "name": "VCM Transfer Pump A",
+        "type": "centrifugal pump",
+        "context": "Pumps liquid VCM from SV-101A/B into red-line charging system"
+      },
+      {
+        "id": "SP-101B",
+        "name": "VCM Transfer Pump B",
+        "type": "centrifugal pump",
+        "context": "Redundant VCM transfer pump in parallel with SP-101A"
+      },
+      {
+        "id": "SF-101A",
+        "name": "VCM Filter A",
+        "type": "inline filter/strainer",
+        "context": "First-stage filtration of VCM downstream of SP-101A/B"
+      },
+      {
+        "id": "SF-101B",
+        "name": "VCM Filter B",
+        "type": "inline filter/strainer",
+        "context": "Parallel or redundant first-stage filter to SF-101A"
+      },
+      {
+        "id": "SF-107A",
+        "name": "VCM Fine Filter A",
+        "type": "inline filter/strainer",
+        "context": "Downstream polishing filter for VCM charging line"
+      },
+      {
+        "id": "SF-107B",
+        "name": "VCM Fine Filter B",
+        "type": "inline filter/strainer",
+        "context": "Parallel or redundant polishing filter to SF-107A"
+      },
+      {
+        "id": "SR-301",
+        "name": "Polymerization Reactor",
+        "type": "reactor",
+        "context": "Endpoint of red-line VCM charging system; receives conditioned VCM feed"
+      }
+    ],
+    "valves": [
+      {
+        "id": "FV-SP-101A-IN",
+        "type": "isolation valve",
+        "location": "Pump SP-101A suction from SV-101A/B outlet header",
+        "context": "Controls VCM flow from storage tanks to SP-101A"
+      },
+      {
+        "id": "FV-SP-101B-IN",
+        "type": "isolation valve",
+        "location": "Pump SP-101B suction from SV-101A/B outlet header",
+        "context": "Controls VCM flow from storage tanks to SP-101B"
+      },
+      {
+        "id": "FV-SP-101A-OUT",
+        "type": "isolation valve",
+        "location": "Discharge of SP-101A upstream of SF-101A/B",
+        "context": "Isolates SP-101A discharge to first-stage filters"
+      },
+      {
+        "id": "FV-SP-101B-OUT",
+        "type": "isolation valve",
+        "location": "Discharge of SP-101B upstream of SF-101A/B",
+        "context": "Isolates SP-101B discharge to first-stage filters"
+      },
+      {
+        "id": "CV-SP-101A",
+        "type": "check valve",
+        "location": "Discharge line of SP-101A",
+        "context": "Prevents reverse flow through pump SP-101A"
+      },
+      {
+        "id": "CV-SP-101B",
+        "type": "check valve",
+        "location": "Discharge line of SP-101B",
+        "context": "Prevents reverse flow through pump SP-101B"
+      },
+      {
+        "id": "FV-SF-101A-IN",
+        "type": "isolation valve",
+        "location": "Inlet of filter SF-101A",
+        "context": "Isolates SF-101A from pump discharge header"
+      },
+      {
+        "id": "FV-SF-101B-IN",
+        "type": "isolation valve",
+        "location": "Inlet of filter SF-101B",
+        "context": "Isolates SF-101B from pump discharge header"
+      },
+      {
+        "id": "FV-SF-101A-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of filter SF-101A to common VCM charging header",
+        "context": "Downstream isolation for SF-101A"
+      },
+      {
+        "id": "FV-SF-101B-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of filter SF-101B to common VCM charging header",
+        "context": "Downstream isolation for SF-101B"
+      },
+      {
+        "id": "FV-SF-107A-IN",
+        "type": "isolation valve",
+        "location": "Inlet of polishing filter SF-107A",
+        "context": "Isolates SF-107A from main VCM charging line"
+      },
+      {
+        "id": "FV-SF-107B-IN",
+        "type": "isolation valve",
+        "location": "Inlet of polishing filter SF-107B",
+        "context": "Isolates SF-107B from main VCM charging line"
+      },
+      {
+        "id": "FV-SF-107A-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of polishing filter SF-107A",
+        "context": "Downstream isolation for SF-107A to reactor feed header"
+      },
+      {
+        "id": "FV-SF-107B-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of polishing filter SF-107B",
+        "context": "Downstream isolation for SF-107B to reactor feed header"
+      },
+      {
+        "id": "CV-CHARGE-LINE",
+        "type": "check valve",
+        "location": "VCM charging line upstream of SR-301 feed nozzle",
+        "context": "Prevents backflow from reactor SR-301 into VCM charging system"
+      },
+      {
+        "id": "FV-REACTOR-FEED",
+        "type": "isolation valve",
+        "location": "Final isolation on VCM charging line at SR-301 feed connection",
+        "context": "On-off control for VCM feed entering SR-301"
+      },
+      {
+        "id": "V-01",
+        "type": "drain valve",
+        "location": "Low point of VCM charging header near filters SF-101A/B",
+        "context": "For draining and de-inventorying the line"
+      },
+      {
+        "id": "V-02",
+        "type": "vent valve",
+        "location": "High point on VCM charging header near SV-101A/B",
+        "context": "Line venting during filling and maintenance"
+      },
+      {
+        "id": "FV-SV-111A-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of recovered VCM storage tank SV-111A toward tie-in line to SV-101A",
+        "context": "Primary outlet isolation valve for recovered VCM from SV-111A; normally closed during fresh VCM red-line operation"
+      },
+      {
+        "id": "FV-SV-111A-TIE",
+        "type": "isolation valve",
+        "location": "Tie-in section of recovered VCM line from SV-111A to fresh VCM tank SV-101A/header",
+        "context": "Second isolation valve used when aligning SV-111A to SV-101A for recovery or inventory balancing; normally closed"
+      },
+      {
+        "id": "FV-SV-111B-OUT",
+        "type": "isolation valve",
+        "location": "Outlet of recovered VCM storage tank SV-111B toward tie-in line to SV-101B",
+        "context": "Primary outlet isolation valve for recovered VCM from SV-111B; normally closed during fresh VCM red-line operation"
+      },
+      {
+        "id": "FV-SV-111B-TIE",
+        "type": "isolation valve",
+        "location": "Tie-in section of recovered VCM line from SV-111B to fresh VCM tank SV-101B/header",
+        "context": "Second isolation valve used when aligning SV-111B to SV-101B for recovery or inventory balancing; normally closed"
+      }
+    ],
+    "instruments": [
+      {
+        "id": "PI-101",
+        "function": "Indicates VCM line pressure downstream of SP-101A/B",
+        "location": "Pump discharge header upstream of SF-101A/B",
+        "context": "Monitors transfer pressure"
+      },
+      {
+        "id": "PT-101",
+        "function": "Transmits VCM line pressure for control/monitoring",
+        "location": "Same tap as PI-101 on pump discharge header",
+        "context": "Input to control system for pump/valve operation"
+      },
+      {
+        "id": "FI-101",
+        "function": "Indicates flow rate of VCM in main charging line",
+        "location": "Downstream of SF-101A/B on VCM charging line",
+        "context": "Operator indication of charging rate"
+      },
+      {
+        "id": "FT-101",
+        "function": "Transmits VCM flow signal to control system",
+        "location": "Same section as FI-101 on charging line",
+        "context": "Used for flow-based interlocks or totalization"
+      },
+      {
+        "id": "TI-101",
+        "function": "Indicates temperature of VCM in charging line",
+        "location": "Downstream of filters, upstream of reactor SR-301",
+        "context": "Monitors VCM temperature prior to injection into reactor"
+      },
+      {
+        "id": "TT-101",
+        "function": "Transmits VCM temperature to control system",
+        "location": "Same node as TI-101",
+        "context": "Temperature monitoring and possible alarm"
+      },
+      {
+        "id": "LI-101A",
+        "function": "Indicates VCM level in storage tank SV-101A",
+        "location": "Mounted on SV-101A",
+        "context": "Tank inventory monitoring for fresh VCM"
+      },
+      {
+        "id": "LI-101B",
+        "function": "Indicates VCM level in storage tank SV-101B",
+        "location": "Mounted on SV-101B",
+        "context": "Tank inventory monitoring for fresh VCM"
+      },
+      {
+        "id": "PSH-101",
+        "function": "High-pressure switch on VCM charging line",
+        "location": "Near PT-101 on pump discharge header",
+        "context": "Trips or interlocks transfer pumps on high pressure"
+      },
+      {
+        "id": "PSL-101",
+        "function": "Low-pressure switch on VCM charging line",
+        "location": "Near PT-101 on pump discharge header",
+        "context": "Protects pumps against low suction/discharge conditions"
+      },
+      {
+        "id": "FSL-101",
+        "function": "Low-flow switch on VCM charging line",
+        "location": "Near FI-101/FT-101",
+        "context": "Interlock to stop pumps or alarm on insufficient charging flow"
+      }
+    ],
+    "utility_lines": [],
+    "connections": [
+      {
+        "line_id": "L1",
+        "from_id": "SV-101A",
+        "to_id": "SP-101A",
+        "valves": [
+          "FV-SP-101A-IN"
+        ],
+        "instruments": [
+          "LI-101A"
+        ],
+        "context": "VCM withdrawal from fresh VCM tank SV-101A to transfer pump SP-101A"
+      },
+      {
+        "line_id": "L2",
+        "from_id": "SV-101B",
+        "to_id": "SP-101B",
+        "valves": [
+          "FV-SP-101B-IN"
+        ],
+        "instruments": [
+          "LI-101B"
+        ],
+        "context": "VCM withdrawal from fresh VCM tank SV-101B to transfer pump SP-101B"
+      },
+      {
+        "line_id": "L3",
+        "from_id": "SP-101A",
+        "to_id": "SF-101A",
+        "valves": [
+          "FV-SP-101A-OUT",
+          "CV-SP-101A",
+          "FV-SF-101A-IN"
+        ],
+        "instruments": [
+          "PI-101",
+          "PT-101",
+          "PSH-101",
+          "PSL-101"
+        ],
+        "context": "Pump SP-101A discharge to first-stage filter SF-101A with pressure monitoring and protection"
+      },
+      {
+        "line_id": "L4",
+        "from_id": "SP-101B",
+        "to_id": "SF-101B",
+        "valves": [
+          "FV-SP-101B-OUT",
+          "CV-SP-101B",
+          "FV-SF-101B-IN"
+        ],
+        "instruments": [
+          "PI-101",
+          "PT-101",
+          "PSH-101",
+          "PSL-101"
+        ],
+        "context": "Pump SP-101B discharge to first-stage filter SF-101B sharing common pressure instrumentation"
+      },
+      {
+        "line_id": "L5",
+        "from_id": "SF-101A",
+        "to_id": "SF-107A",
+        "valves": [
+          "FV-SF-101A-OUT",
+          "FV-SF-107A-IN"
+        ],
+        "instruments": [
+          "FI-101",
+          "FT-101",
+          "FSL-101"
+        ],
+        "context": "Filtered VCM from SF-101A through main charging header toward polishing filter SF-107A with flow measurement"
+      },
+      {
+        "line_id": "L6",
+        "from_id": "SF-101B",
+        "to_id": "SF-107B",
+        "valves": [
+          "FV-SF-101B-OUT",
+          "FV-SF-107B-IN"
+        ],
+        "instruments": [
+          "FI-101",
+          "FT-101",
+          "FSL-101"
+        ],
+        "context": "Filtered VCM from SF-101B through main charging header toward polishing filter SF-107B with flow measurement"
+      },
+      {
+        "line_id": "L7",
+        "from_id": "SF-107A",
+        "to_id": "SR-301",
+        "valves": [
+          "FV-SF-107A-OUT",
+          "CV-CHARGE-LINE",
+          "FV-REACTOR-FEED",
+          "V-01",
+          "V-02"
+        ],
+        "instruments": [
+          "TI-101",
+          "TT-101"
+        ],
+        "context": "Polished VCM from SF-107A to polymerization reactor SR-301 via main charging line with temperature monitoring, check valve, and final isolation including drain and vent"
+      },
+      {
+        "line_id": "L8",
+        "from_id": "SF-107B",
+        "to_id": "SR-301",
+        "valves": [
+          "FV-SF-107B-OUT",
+          "CV-CHARGE-LINE",
+          "FV-REACTOR-FEED",
+          "V-01",
+          "V-02"
+        ],
+        "instruments": [
+          "TI-101",
+          "TT-101"
+        ],
+        "context": "Polished VCM from SF-107B to polymerization reactor SR-301 via main charging line with temperature monitoring, check valve, and final isolation including drain and vent"
+      },
+      {
+        "line_id": "L9",
+        "from_id": "SV-111A",
+        "to_id": "SV-101A",
+        "valves": [
+          "FV-SV-111A-OUT",
+          "FV-SV-111A-TIE"
+        ],
+        "instruments": [],
+        "context": "Recovered VCM transfer/balancing line from SV-111A to fresh VCM tank SV-101A; normally isolated, used for recovery or inventory equalization only (non red-line path)"
+      },
+      {
+        "line_id": "L10",
+        "from_id": "SV-111B",
+        "to_id": "SV-101B",
+        "valves": [
+          "FV-SV-111B-OUT",
+          "FV-SV-111B-TIE"
+        ],
+        "instruments": [],
+        "context": "Recovered VCM transfer/balancing line from SV-111B to fresh VCM tank SV-101B; normally isolated, used for recovery or inventory equalization only (non red-line path)"
+      }
+    ]
+  },
+  "metadata": {
+    "id": "resp_0b2161c999dc89c100694328a32eb48195a8574aee4e39fdd5",
+    "created": null,
+    "model": "gpt-5.1-2025-11-13",
+    "tokens": {
+      "prompt": 3164,
+      "completion": 2854,
+      "total": 6018
+    },
+    "response_type": "json_schema",
+    "reasoning_effort": "none",
+    "verbosity": "medium",
+    "latency_s": 32.7534
+  }
+}

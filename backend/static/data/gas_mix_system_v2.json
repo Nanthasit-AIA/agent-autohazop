@@ -1,0 +1,415 @@
+{
+  "process_description": "The H2/N2 gas mixing and receiver tank system receives customer-side N2 100% and H2 100% gas supplies through intake filters and pressure regulators. The regulated gas streams enter the A-IET scope, where H2 is routed to Gas Mixer MG 100-2ME(Ex) and the mixed hydrogen-containing gas is transferred to a 500 L stainless-steel receiver tank. The receiver tank buffers the mixed gas before normal delivery to the downstream Process at approximately 4.5-5 bar through SV (21.1) and CV (12.1). An H2 Analyzer with Auto Calibration monitors hydrogen concentration and communicates with Control & Display, HMI Programming, and Emergency Control. During abnormal hydrogen concentration or pressure conditions, the emergency control logic can isolate the normal outlet, introduce N2 through the emergency purge line, and discharge or flush gas to roof through the vent path.",
+  "intention": "The system is designed to provide filtered, pressure-regulated, and monitored H2/N2 mixed gas to the downstream process while maintaining receiver tank buffering and safe operating pressure. The intended operation is to regulate the incoming gases to approximately 8 bar before the gas mixing section, store the mixed gas in a 500 L stainless-steel receiver tank with a maximum pressure rating of 10 bar, and supply the downstream process at approximately 4.5-5 bar. The safety objective is to prevent unsafe hydrogen concentration or pressure conditions from reaching the downstream process by using H2 concentration monitoring, emergency isolation of SV-21.1, N2 purge/flush through SV-21.3 and CV-12.3, and vent/flush discharge to roof through SV-21.2 and CV-12.2.",
+  "system_inputs": [
+    "Nitrogen 100% customer-side supply",
+    "Hydrogen 100% customer-side supply",
+    "Electrical power supply"
+  ],
+  "system_outputs": [
+    "Mixed H2/N2 gas to downstream Process",
+    "Emergency vent/flush gas to roof",
+    "Control/alarm indication to Control & Display, HMI Programming, and Emergency Control"
+  ],
+  "equipment": [
+    {
+      "id": "F-N2",
+      "name": "Nitrogen intake filter",
+      "type": "gas intake filter",
+      "context": "Customer-scope N2 100% intake filter upstream of pressure regulation; visible note: intake filter <=50 micron. Nitrogen SDS metadata: product is 100% nitrogen, compressed gas, simple asphyxiant, SDS #001040, CAS 7727-37-9, UN1066, transport class 2.2, hazard H280 contains gas under pressure and may displace oxygen causing rapid suffocation."
+    },
+    {
+      "id": "F-H2",
+      "name": "Hydrogen intake filter",
+      "type": "gas intake filter",
+      "context": "Customer-scope H2 100% intake filter upstream of pressure regulation; visible note: intake filter <=50 micron. Hydrogen SDS metadata: product is 100% hydrogen, compressed gas and flammable gas Category 1, SDS #001026, CAS 1333-74-0, UN1049, transport class 2.1, hazards H220 extremely flammable gas and H280 contains gas under pressure; may form explosive mixtures with air, burns with invisible flame; flammable limits 4% to 76%, auto-ignition temperature 500 to 571 degC."
+    },
+    {
+      "id": "MG-100-2ME(Ex)",
+      "name": "Gas Mixer MG 100-2ME(Ex)",
+      "type": "gas mixer",
+      "context": "A-IET scope gas mixer shown in dashed package; receives regulated gas feed from customer-side H2/N2 supply lines and sends mixed hydrogen-containing gas toward the receiver tank. Ex-rated model name visible as MG 100-2ME(Ex). Nearby piping note: 1 inch S316L schedule 10 or equivalent; visible local run lengths include L=6 m and L=10 m around mixer/receiver piping."
+    },
+    {
+      "id": "TK-500L",
+      "name": "Receiver Tank",
+      "type": "gas receiver tank",
+      "context": "Vertical stainless-steel receiver tank; visible label: Receiver Tank, Stainless Steel, 500 L, Max. 10 Bar. Stores and buffers mixed hydrogen-containing gas before outlet to downstream process. Tank outlet is labelled outlet 4.5-5 bar with L=2 m line near outlet manifold."
+    },
+    {
+      "id": "FA-1",
+      "name": "Vent-line FA device",
+      "type": "inline vent protection device",
+      "context": "Inline device labelled FA on the receiver vent line to roof; located on vent/flush discharge path. Exact FA meaning is not fully legible on drawing; appears associated with protection/analyzer or vent protection service on the roof vent line."
+    },
+    {
+      "id": "PS-1",
+      "name": "Power Supply",
+      "type": "electrical power supply",
+      "context": "Power Supply box shown feeding control/HMI/emergency control area. Electrical supply supports HMI Programming and Emergency Control functions; no electrical rating visible."
+    }
+  ],
+  "valves": [
+    {
+      "id": "PV-N2-REG",
+      "type": "pressure regulator valve",
+      "location": "Customer-scope nitrogen supply line downstream of F-N2",
+      "context": "N2 pressure regulator on customer-side N2 100% supply; visible notes indicate regulator 8 bar and regulator 3.5 bar in customer scope, with process description confirming gases regulated to approximately 8 bar before A-IET scope. Associated with intake filter <=50 micron."
+    },
+    {
+      "id": "PV-H2-REG",
+      "type": "pressure regulator valve",
+      "location": "Customer-scope hydrogen supply line downstream of F-H2",
+      "context": "H2 pressure regulator on customer-side H2 100% supply; visible notes indicate regulator 8 bar and regulator 3.5 bar in customer scope, with process description confirming gases regulated to approximately 8 bar before A-IET scope. Hydrogen service is extremely flammable compressed gas."
+    },
+    {
+      "id": "SV-N2-IN",
+      "type": "solenoid/isolation valve",
+      "location": "Nitrogen regulated feed assembly near A-IET scope boundary",
+      "context": "Untagged red valve symbol inferred as solenoid/isolation valve on regulated N2 feed assembly. Associated with customer-side N2 feed and emergency N2 service. Exact tag, size, fail position, and normal position are not visible."
+    },
+    {
+      "id": "CV-N2-IN",
+      "type": "check valve/backflow prevention valve",
+      "location": "Nitrogen regulated feed assembly near A-IET scope boundary",
+      "context": "Untagged red valve symbol inferred as check/backflow prevention valve on N2 feed. Nitrogen SDS advises use of a backflow preventative device in the piping. Exact tag, size, rating, and normal position are not visible."
+    },
+    {
+      "id": "SV-H2-IN",
+      "type": "solenoid/isolation valve",
+      "location": "Hydrogen regulated feed assembly upstream of MG-100-2ME(Ex)",
+      "context": "Untagged red valve symbol inferred as solenoid/isolation valve on regulated H2 feed to gas mixer. Hydrogen service is extremely flammable compressed gas. Exact tag, size, fail position, and normal position are not visible."
+    },
+    {
+      "id": "CV-H2-IN",
+      "type": "check valve/backflow prevention valve",
+      "location": "Hydrogen regulated feed assembly upstream of MG-100-2ME(Ex)",
+      "context": "Untagged red valve symbol inferred as check/backflow prevention valve on H2 feed to gas mixer. Hydrogen SDS advises use of a backflow preventative device in piping. Exact tag, size, rating, and normal position are not visible."
+    },
+    {
+      "id": "SV-27",
+      "type": "solenoid valve",
+      "location": "Mixed gas line between MG-100-2ME(Ex) and TK-500L",
+      "context": "Valve shown as SV (27) on mixer outlet/receiver inlet line. Customized programming note: during 9% H2 emergency sequence valve 27.5/27 remains open initially; if H2 concentration is not reduced below 9% after 10 min, valve 27 is closed and an alarm is given; mixer is stopped."
+    },
+    {
+      "id": "MV-TK-VENT",
+      "type": "manual valve",
+      "location": "Receiver tank outlet/vent vertical manifold",
+      "context": "Manual valve symbol labelled MV on vertical manifold adjacent to receiver tank outlet and vent path. Used for local isolation/operation of receiver outlet/vent manifold. Exact size, rating, and normal position are not visible."
+    },
+    {
+      "id": "SV-21.1",
+      "type": "solenoid valve",
+      "location": "Normal receiver outlet line to downstream Process",
+      "context": "Valve shown as SV (21.1) on normal outlet line downstream of TK-500L. Customized programming note: in the case of 9% H2, valve 21.1 will be closed to isolate the normal process outlet. Outlet service is mixed gas at approximately 4.5-5 bar."
+    },
+    {
+      "id": "CV-12.1",
+      "type": "check valve",
+      "location": "Normal receiver outlet line downstream of SV-21.1 before Process boundary",
+      "context": "Valve shown as CV (12.1) on normal outlet line to downstream Process. Associated with mixed gas receiver outlet at approximately 4.5-5 bar. Exact valve size, rating, fail position, and normal position are not visible."
+    },
+    {
+      "id": "SV-21.2",
+      "type": "solenoid valve",
+      "location": "Receiver tank vent/flush line to roof",
+      "context": "Valve shown as SV (21.2) on vent line to roof. Customized programming note: in the case of 9% H2, valve 21.2 opens and the wrong gas will be flushed over roof; customer can decide if valve 21.2 is left open to empty the receiver."
+    },
+    {
+      "id": "CV-12.2",
+      "type": "check valve",
+      "location": "Receiver tank vent/flush line to roof near FA-1",
+      "context": "Valve shown as CV (12.2) on vent/flush path to roof. Associated with emergency vent discharge from receiver tank. Exact valve size, rating, and normal position are not visible."
+    },
+    {
+      "id": "SV-21.3",
+      "type": "solenoid valve",
+      "location": "Emergency N2 line into receiver outlet/purge header",
+      "context": "Valve shown as SV (21.3) on the N2 emergency line. Customized programming note: in the case of 9% H2, valve 21.3 opens the N2 emergency line for purge/flush service."
+    },
+    {
+      "id": "CV-12.3",
+      "type": "check valve",
+      "location": "Emergency N2 line downstream of SV-21.3",
+      "context": "Valve shown as CV (12.3) on the N2 emergency line, downstream of SV-21.3. Provides check/backflow prevention on nitrogen emergency purge/flush line. Exact size, rating, and normal position are not visible."
+    }
+  ],
+  "instruments": [
+    {
+      "id": "H2A-1",
+      "function": "Hydrogen concentration analyzer with auto-calibration; continuously monitors H2 concentration in receiver tank and initiates emergency logic on high H2 concentration.",
+      "location": "Analyzer cabinet adjacent to TK-500L receiver tank",
+      "context": "Visible label: H2 Analyzer with Auto Calibration. Customized programming note: analyzer continuously controls the value of H2 gas in the receiver; in the case of 9% H2, emergency procedure is activated. Signal wiring shown to Control & Display, HMI Programming, and Emergency Control. Cable length visible as 15 m to Control & Display; RS485 signal wiring distance approx. 300 m shown."
+    },
+    {
+      "id": "CD-1",
+      "function": "Control and display interface receiving analyzer/control signals.",
+      "location": "Control & Display box above H2 Analyzer",
+      "context": "Visible label: Control & Display. Connected by signal wiring from H2 Analyzer; visible cable length 15 m. Provides control/display interface for receiver H2 monitoring and emergency sequence indications."
+    },
+    {
+      "id": "HMI-1",
+      "function": "HMI programming interface for monitoring and control logic.",
+      "location": "HMI Programming box near Emergency Control",
+      "context": "Visible label: HMI Programming. Connected by RS485/signal wiring with visible distance approx. 300 m. Receives/coordinates signals from analyzer/control system for emergency operation."
+    },
+    {
+      "id": "EC-1",
+      "function": "Emergency control logic for solenoid valve actions and alarm response.",
+      "location": "Emergency Control panel near HMI Programming and emergency line valves",
+      "context": "Visible label: Emergency Control. Customized programming: at 9% H2, close SV-21.1, open SV-21.3 N2 emergency line, keep/open SV-27 initially, open SV-21.2 to flush gas over roof, attempt return below 9% H2 for 10 min, then close SV-27 and alarm if not recovered; mixer stopped and problem investigated."
+    },
+    {
+      "id": "PI-N2-1",
+      "function": "Local pressure indication on nitrogen regulated feed.",
+      "location": "Customer-scope N2 regulator/feed assembly",
+      "context": "Red circular local instrument symbol appears on N2 feed/regulator assembly. Exact tag is not legible. Associated service: N2 100% compressed gas regulated to approximately 8 bar before A-IET scope."
+    },
+    {
+      "id": "PI-H2-1",
+      "function": "Local pressure indication on hydrogen regulated feed.",
+      "location": "Customer-scope H2 regulator/feed assembly upstream of gas mixer",
+      "context": "Red circular local instrument symbol appears on H2 feed/regulator assembly. Exact tag is not legible. Associated service: H2 100% compressed gas regulated to approximately 8 bar before A-IET scope."
+    },
+    {
+      "id": "PI-OUT-1",
+      "function": "Local pressure indication on receiver outlet/emergency control header.",
+      "location": "Receiver outlet and emergency line area near SV-21.1/SV-21.3",
+      "context": "Red local instrument symbols appear near receiver outlet/emergency line valves. Exact tags are not legible. Associated operating pressure from process description/drawing: receiver outlet approximately 4.5-5 bar; receiver maximum pressure 10 bar."
+    }
+  ],
+  "utility_lines": [
+    {
+      "utility_type": "Nitrogen 100% gas supply and emergency purge/flush utility",
+      "valves": [
+        "PV-N2-REG",
+        "SV-N2-IN",
+        "CV-N2-IN",
+        "SV-21.3",
+        "CV-12.3"
+      ],
+      "flow_direction": "From customer-side N2 100% supply through intake filter/regulation into A-IET scope; branch continues as emergency N2 line toward receiver/outlet header.",
+      "context": "N2 service visible as N2 (100%). Intake filter <=50 micron; regulator approximately 8 bar before A-IET scope, with drawing also showing regulator 3.5 bar in customer scope. Emergency line piping note: 1 inch S316L schedule 10 or equivalent. Nitrogen SDS metadata: compressed gas, simple asphyxiant, may displace oxygen and cause rapid suffocation, UN1066 class 2.2."
+    },
+    {
+      "utility_type": "Hydrogen 100% gas supply",
+      "valves": [
+        "PV-H2-REG",
+        "SV-H2-IN",
+        "CV-H2-IN"
+      ],
+      "flow_direction": "From customer-side H2 100% supply through intake filter/regulation into A-IET scope and toward MG-100-2ME(Ex) gas mixer.",
+      "context": "H2 service visible as H2 (100%). Intake filter <=50 micron; regulator approximately 8 bar before A-IET scope. Piping note: 1 inch S316L schedule 10 or equivalent. Hydrogen SDS metadata: extremely flammable compressed gas, may form explosive mixtures with air, burns with invisible flame, UN1049 class 2.1, flammable limits 4%-76%, auto-ignition 500-571 degC."
+    },
+    {
+      "utility_type": "Electrical power supply",
+      "valves": [],
+      "flow_direction": "Into power supply/control system for HMI Programming and Emergency Control.",
+      "context": "Power Supply box shown at upper right connected to control/HMI area. No voltage, rating, or cable specification visible."
+    },
+    {
+      "utility_type": "RS485 and signal wiring",
+      "valves": [],
+      "flow_direction": "Signal wiring from H2 Analyzer/Control & Display to HMI Programming and Emergency Control.",
+      "context": "Visible signal wiring in magenta; RS485 shown with distance approx. 300 m. Cable length between H2 Analyzer and Control & Display shown as 15 m. Used for H2 analyzer data, control display, HMI programming, and emergency valve control logic."
+    }
+  ],
+  "connections": [
+    {
+      "line_id": "NODE-H2-N2-GAS-MIXING-RECEIVER-SYSTEM",
+      "node": "H2/N2 Gas Mixing and Receiver Tank System including customer-side N2 100% and H2 100% supply lines through intake filters and pressure regulators, H2 feed to Gas Mixer MG 100-2ME(Ex), mixed gas transfer to the 500 L stainless-steel receiver tank, receiver tank monitoring by H2 Analyzer with Auto Calibration, normal outlet line from the receiver tank to the downstream Process through SV (21.1) and CV (12.1), and emergency N2 purge/flush line with emergency control and vent discharge to roof.",
+      "node_boundary": "The grouped HAZOP node starts at the customer-side N2 100% and H2 100% supply lines upstream of the intake filters and pressure regulators. It includes the N2 and H2 intake filters, pressure regulation assemblies, feed isolation/check valves, Gas Mixer MG 100-2ME(Ex), mixed gas transfer line through SV (27), 500 L stainless-steel Receiver Tank TK-500L, H2 Analyzer with Auto Calibration, Control & Display, HMI Programming, Emergency Control logic, normal receiver outlet line through SV (21.1) and CV (12.1), emergency N2 purge/flush line through SV (21.3) and CV (12.3), receiver vent/flush line through MV, SV (21.2), CV (12.2), FA device, and final discharge to roof. The node ends at the downstream Process connection after SV (21.1)/CV (12.1) and at the roof vent discharge endpoint for emergency flushing.",
+      "from_id": "Nitrogen 100% customer-side supply and Hydrogen 100% customer-side supply",
+      "to_id": "Mixed H2/N2 gas to downstream Process and Emergency vent/flush gas to roof",
+      "included_equipment": [
+        "F-N2",
+        "F-H2",
+        "MG-100-2ME(Ex)",
+        "TK-500L",
+        "FA-1",
+        "PS-1"
+      ],
+      "included_lines": [
+        "L1",
+        "L2",
+        "L3",
+        "L4",
+        "L5",
+        "L6",
+        "L7",
+        "L8",
+        "L9",
+        "L10"
+      ],
+      "valves": [
+        "PV-N2-REG",
+        "PV-H2-REG",
+        "SV-N2-IN",
+        "CV-N2-IN",
+        "SV-H2-IN",
+        "CV-H2-IN",
+        "SV-27",
+        "MV-TK-VENT",
+        "SV-21.1",
+        "CV-12.1",
+        "SV-21.2",
+        "CV-12.2",
+        "SV-21.3",
+        "CV-12.3"
+      ],
+      "instruments": [
+        "H2A-1",
+        "CD-1",
+        "HMI-1",
+        "EC-1",
+        "PI-N2-1",
+        "PI-H2-1",
+        "PI-OUT-1"
+      ],
+      "flow_direction": "Mainstream operation: N2 100% and H2 100% enter from customer-side supplies, pass through intake filters and pressure regulators, and are regulated to approximately 8 bar before entering the A-IET gas mixing scope. H2 is routed to Gas Mixer MG 100-2ME(Ex), then mixed hydrogen-containing gas flows through SV (27) to the 500 L stainless-steel Receiver Tank TK-500L. The receiver tank buffers the mixed gas and normally discharges at approximately 4.5-5 bar through SV (21.1) and CV (12.1) to the downstream Process. Emergency operation: when abnormal hydrogen concentration or pressure is detected, the H2 Analyzer, Control & Display, HMI Programming, and Emergency Control logic can close SV (21.1), open SV (21.3) to admit N2 purge/flush gas through CV (12.3), and open SV (21.2) so gas from TK-500L is flushed through CV (12.2), FA-1, and the vent line to roof. Control and signal flow travels between H2 Analyzer, Control & Display, HMI Programming, and Emergency Control, supported by the electrical power supply.",
+      "context": "This grouped node is intentionally defined as one mainstream HAZOP reasoning package rather than narrow equipment-to-equipment pipe segments. It allows the LLM to reason across cross-boundary effects where a cause located in one part of the P&ID can produce consequences in another part of the same operating system. For example, low N2 pressure or blocked N2 filter can affect purge effectiveness, receiver inerting/flush capability, emergency recovery, and downstream gas composition. H2 feed regulator failure, H2 isolation valve malfunction, or H2 check valve leakage can affect mixer composition, receiver hydrogen concentration, and downstream flammability risk. SV (27) failure can affect receiver filling, mixer backpressure, and emergency isolation. SV (21.1) or CV (12.1) failure can affect downstream Process supply, reverse flow prevention, and emergency isolation. SV (21.2), CV (12.2), FA-1, or roof vent impairment can prevent safe vent/flush discharge. SV (21.3) or CV (12.3) failure can prevent N2 emergency purge. H2 Analyzer, Control & Display, HMI Programming, Emergency Control, pressure indicators, and signal wiring are included because they provide monitoring, alarm, logic, and protective action for concentration and pressure deviations. This node should therefore be used for cause-consequence-safeguard-recommendation generation, while line_level_connections should be used only for traceability back to physical P&ID segments. Typical deviation reasoning should consider No/Less Flow, More Flow, Reverse Flow, High Pressure, Low Pressure, High H2 concentration, Low H2 concentration, analyzer/control failure, isolation failure, purge failure, vent blockage, and loss of power/control signal. Safeguards include H2 Analyzer with Auto Calibration, Emergency Control logic, SV (21.1) outlet isolation, SV (21.3) N2 emergency purge, CV (12.3) purge backflow prevention, SV (21.2) vent opening, CV (12.2) vent backflow prevention, CV (12.1) process-line backflow prevention, local pressure indicators, Control & Display, HMI Programming, alarms, and procedural investigation after failed recovery."
+    }
+  ],
+  "line_level_connections": [
+    {
+      "line_id": "L1",
+      "from_id": "Nitrogen 100% customer-side supply",
+      "to_id": "F-N2",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "N2 100% flows from the customer-side nitrogen supply toward nitrogen intake filter F-N2.",
+      "context": "Customer-side N2 100% supply to nitrogen intake filter. Scope start is customer-side N2 100% supply upstream of intake filter and pressure regulator. Visible note: intake filter <=50 micron. Nitrogen SDS: 100% nitrogen compressed gas, simple asphyxiant, H280, may displace oxygen causing rapid suffocation, UN1066 class 2.2."
+    },
+    {
+      "line_id": "L2",
+      "from_id": "F-N2",
+      "to_id": "MG-100-2ME(Ex)",
+      "valves": [
+        "PV-N2-REG",
+        "SV-N2-IN",
+        "CV-N2-IN"
+      ],
+      "instruments": [
+        "PI-N2-1"
+      ],
+      "flow_direction": "Filtered N2 flows through pressure regulation and feed isolation/check valve assembly toward the gas mixing system at approximately 8 bar.",
+      "context": "Regulated N2 feed from intake filter through customer-scope regulator and inferred isolation/check valves toward A-IET gas mixing system. Process description states gases are regulated to approximately 8 bar before entering A-IET scope; drawing note also shows regulator 3.5 bar in customer scope. Piping note visible: 1 inch S316L schedule 10 or equivalent. Flow direction follows feed arrows from N2 supply toward mixer/system."
+    },
+    {
+      "line_id": "L3",
+      "from_id": "Hydrogen 100% customer-side supply",
+      "to_id": "F-H2",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "H2 100% flows from the customer-side hydrogen supply toward hydrogen intake filter F-H2.",
+      "context": "Customer-side H2 100% supply to hydrogen intake filter. Scope start is customer-side H2 100% supply upstream of intake filter and pressure regulator. Visible note: intake filter <=50 micron. Hydrogen SDS: 100% hydrogen compressed flammable gas, H220 extremely flammable gas, H280 contains gas under pressure, may form explosive mixtures with air, burns with invisible flame, UN1049 class 2.1."
+    },
+    {
+      "line_id": "L4",
+      "from_id": "F-H2",
+      "to_id": "MG-100-2ME(Ex)",
+      "valves": [
+        "PV-H2-REG",
+        "SV-H2-IN",
+        "CV-H2-IN"
+      ],
+      "instruments": [
+        "PI-H2-1"
+      ],
+      "flow_direction": "Filtered H2 flows through pressure regulation and feed isolation/check valve assembly toward Gas Mixer MG 100-2ME(Ex) at approximately 8 bar.",
+      "context": "Regulated H2 feed from intake filter through customer-scope regulator and inferred isolation/check valves to Gas Mixer MG 100-2ME(Ex). Process description states regulated pressure approximately 8 bar before A-IET scope. Visible piping note: 1 inch S316L schedule 10 or equivalent; local run near mixer labelled L=6 m. Flow direction follows feed arrow from H2 supply toward mixer."
+    },
+    {
+      "line_id": "L5",
+      "from_id": "MG-100-2ME(Ex)",
+      "to_id": "TK-500L",
+      "valves": [
+        "SV-27"
+      ],
+      "instruments": [
+        "H2A-1",
+        "CD-1",
+        "HMI-1",
+        "EC-1"
+      ],
+      "flow_direction": "Mixed H2/N2 gas flows from Gas Mixer MG 100-2ME(Ex) through SV-27 to the 500 L stainless-steel receiver tank.",
+      "context": "Mixed hydrogen-containing gas transfer from Gas Mixer MG 100-2ME(Ex) to 500 L stainless-steel receiver tank through SV (27). Visible piping metadata includes 1 inch S316L schedule 10 or equivalent and local run length L=10 m near receiver/mixer package. Receiver data: stainless steel, 500 L, max 10 bar. H2 Analyzer with Auto Calibration monitors receiver H2 concentration and sends signal wiring to Control & Display, HMI Programming, and Emergency Control. Emergency programming: if H2 reaches 9%, SV-27 remains open initially, but after 10 min without recovery below 9% H2, SV-27 is closed, alarm given, and mixer stopped."
+    },
+    {
+      "line_id": "L6",
+      "from_id": "TK-500L",
+      "to_id": "Mixed H2/N2 gas to downstream Process",
+      "valves": [
+        "SV-21.1",
+        "CV-12.1"
+      ],
+      "instruments": [
+        "H2A-1",
+        "PI-OUT-1",
+        "CD-1",
+        "HMI-1",
+        "EC-1"
+      ],
+      "flow_direction": "Buffered mixed gas normally flows from receiver tank TK-500L to the downstream Process at approximately 4.5-5 bar through SV-21.1 and CV-12.1.",
+      "context": "Normal receiver outlet line from 500 L stainless-steel receiver tank to downstream Process through SV (21.1) and CV (12.1). Drawing label: outlet 4.5-5 bar; visible line length L=2 m near receiver outlet; outlet branch to Process shown with line note 1 inch x 2 inch. Process end is downstream process connection after SV (21.1) and CV (12.1). H2 analyzer/emergency control logic acts on this flow path: at 9% H2, SV-21.1 closes to isolate normal process outlet."
+    },
+    {
+      "line_id": "L7",
+      "from_id": "TK-500L",
+      "to_id": "FA-1",
+      "valves": [
+        "MV-TK-VENT",
+        "CV-12.2",
+        "SV-21.2"
+      ],
+      "instruments": [
+        "H2A-1",
+        "PI-OUT-1",
+        "EC-1"
+      ],
+      "flow_direction": "During emergency vent/flush operation, gas flows from receiver tank TK-500L toward FA-1 and the roof vent path; this path is opened by SV-21.2 during the emergency sequence.",
+      "context": "Receiver tank emergency vent/flush line from TK-500L outlet/vent manifold toward inline FA device and roof vent. Visible labels: To Roof (L=5 m), CV (12.2), SV (21.2), MV, and FA. Emergency programming: at 9% H2, SV-21.2 opens and wrong gas is flushed over roof; customer may decide to leave SV-21.2 open to empty receiver. Exact FA device details and valve sizes/ratings are not visible."
+    },
+    {
+      "line_id": "L8",
+      "from_id": "FA-1",
+      "to_id": "Emergency vent/flush gas to roof",
+      "valves": [],
+      "instruments": [
+        "H2A-1",
+        "EC-1"
+      ],
+      "flow_direction": "Emergency vent/flush gas flows from FA-1 to the roof discharge point when the upstream vent path is opened.",
+      "context": "Final emergency vent/flush discharge from inline FA device to roof. Drawing label: To Roof (L=5 m). Service is receiver vent/flush gas during abnormal H2 concentration or purge operation. Emergency sequence opens SV-21.2 upstream so gas is discharged to roof; no downstream valve tag is visible on this segment."
+    },
+    {
+      "line_id": "L9",
+      "from_id": "F-N2",
+      "to_id": "TK-500L",
+      "valves": [
+        "PV-N2-REG",
+        "SV-N2-IN",
+        "CV-N2-IN",
+        "SV-21.3",
+        "CV-12.3"
+      ],
+      "instruments": [
+        "PI-N2-1",
+        "H2A-1",
+        "EC-1"
+      ],
+      "flow_direction": "Emergency N2 flows from the filtered/regulator N2 supply into the receiver outlet/purge header when SV-21.3 opens, supporting purge/flush of receiver gas toward the roof vent path.",
+      "context": "Emergency N2 purge/flush line from filtered/regulator N2 supply into the receiver outlet/purge header associated with TK-500L. Visible label: Emergency Line. Valves shown on emergency branch: SV (21.3) and CV (12.3). Process description: under abnormal hydrogen concentration or pressure conditions, emergency logic opens the N2 emergency line and vents/flushes gas to roof. Customized programming: at 9% H2, SV-21.3 opens the N2 emergency line. Piping note: 1 inch S316L schedule 10 or equivalent; N2 regulator approximately 8 bar before A-IET scope."
+    },
+    {
+      "line_id": "L10",
+      "from_id": "Electrical power supply",
+      "to_id": "PS-1",
+      "valves": [],
+      "instruments": [],
+      "flow_direction": "Electrical power is supplied to PS-1 for the HMI Programming and Emergency Control area.",
+      "context": "Electrical power supply connection into the shown Power Supply box for controls. The drawing shows a Power Supply near HMI Programming and Emergency Control; no voltage, rating, cable size, or breaker information is visible."
+    }
+  ]
+}

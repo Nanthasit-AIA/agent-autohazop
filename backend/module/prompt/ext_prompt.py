@@ -16,10 +16,16 @@ Step 4 - Detect all major equipment:
 - If no tag, infer from shape and assign a type-based ID (e.g., HX1 for heat exchanger, COL1 for column, V1 for vessel).
 - Include a `context` field where applicable, describing its operational role or positioning.
 
-Step 5 - Identify and label all valves:
-- Use visible tags (e.g., V-101).
-- If untagged, assign unique IDs like V1, V2, V3...
-- Include a `location` or `context` if indicated (e.g., “near BF3 inlet”).
+Step 5 - Identify and label all valves
+- Use visible valve tags exactly as shown on the drawing (e.g., V-101, FV-227).
+- If a valve tag is missing, infer the valve type from symbol and function.
+- If the valve is clearly associated with a specific equipment (e.g., inlet/outlet of E-227, C-220, V-225):
+- Assign the valve ID using the format:
+    * <ValveTypePrefix>-<AssociatedEquipmentTag>-<suffix_if_needed>
+    * Prefixes: FV(flow), LV(level), PV(pressure), CV(check), PSV(safety).
+    * (only if multiple valves map to the same equipment + service): Use deterministic suffixes based on function/location: IN, OUT, BYP, DRAIN, VENT, RECIRC, ISO1, ISO2 Example: FV-227-IN and FV-227-OUT
+- LAST CHOOSE - If no equipment association can be inferred, assign a sequential generic ID (e.g., V-01, V-02).
+- Always include location and context.
 
 Step 6 - Extract all instruments:
 - Use ISA tag codes (e.g., PC1, TC1, TI1, FC2).
@@ -47,6 +53,23 @@ Step 8 - Map all connections (process or pipeline lines):
     * represent each process/utility line segment as a node-to-node connection (equipment-line-equipment). For each connection between from_id and to_id, the `valves` and `instruments` lists must include:
         - all valves/instruments directly on that pipeline segment, and
         - any valves/instruments mounted on the from_id or to_id equipment that clearly belong to this flow direction.
+
+Step 9 - Preserve engineering metadata inside every `context` field:
+- For all `context` fields, extract and preserve any visible or provided engineering metadata from the P&ID image or user description.
+- The `context` field must keep useful design and operating information, including:
+    * valve size, valve rating, valve fail position, valve service, and valve normal position if shown
+      Example: "manual isolation valve on tank inlet; valve size 2 inch; normally open; carbon steel service"
+    * pipe size, line number, piping class/spec, material, insulation, tracing, and line service if shown
+      Example: "naphtha inlet line; line size 4 inch; line class CS150; flow from Process Unit to 100T-01"
+    * operating conditions such as operating pressure, operating temperature, flow rate, level range, design pressure, design temperature, capacity, and normal operating state
+      Example: "operates at 0.01 barg and 38 degC; design pressure 0.07/-0.06 barg; design temperature 43/-8 degC"
+    * equipment design/operating data such as capacity, duty, volume, design pressure/temperature, operating pressure/temperature, and normal role
+      Example: "IFR naphtha storage tank; buffer service; operating pressure 0.01 barg; nitrogen blanketed"
+    * instrument setpoints, alarm/trip limits, control range, interlock action, and measured variable if shown
+      Example: "LSHH-0102 high-high level trip; activates IS-09 to close UV-0102 inlet shutdown valve"
+- Do not discard engineering labels attached to lines, valves, or equipment. If a size/spec/condition appears near a component or line, include it in the `context` of that object and also in the related connection context.
+- If a value is not visible or not provided, do not invent it. Write only the confirmed metadata.
+- If the metadata is uncertain but visually associated with a nearby object, include cautious wording such as "appears associated with..." instead of presenting it as confirmed.
 
 - Do NOT create separate “self-measurement” connections like:
     "line_id": "MEAS-<equipment_id>",
@@ -77,10 +100,19 @@ Important Constraints:
        
 **Schema Reference:**
 - Equipment: `id`, `name`, `type`, `context`
+  * `context` must include role, location, connected service, capacity, design/operating pressure, design/operating temperature, normal operating condition, and other visible equipment data when available.
+
 - Valve: `id`, `type`, `location`, `context`
+  * `context` must include valve service, valve size, rating/class, fail position, normal position, associated line/equipment, and operational purpose when available.
+
 - Instrument: `id`, `function`, `location`, `context`
+  * `context` must include measured variable, control/alarm/trip function, setpoint, interlock action, controlled valve/equipment, and operating condition relevance when available.
+
 - UtilityLine: `utility_type`, `valves`, `flow_direction`, `context`
+  * `context` must include utility purpose, pipe size/spec, service condition, connected equipment, valve size, operating/design condition, and endpoint when available.
+
 - Connection: `line_id`, `from_id`, `to_id`, `valves`, `instruments`, `context`
+  * `context` must include process service, flow direction, line number, pipe size, piping class/spec, material, operating pressure, operating temperature, flow rate, design condition, valves/instruments on the line, and relevant phase label when available.
 
 Return **only** the final JSON output matching the above schema — do not include any narrative explanation, assumptions, or notes.
 
@@ -88,14 +120,18 @@ Take a deep breath and work on this problem step-by-step.
 """
 
 PID_USER_PROMPT_TEMPLATE = (
-    "Process description"
+    "Process description\n"
     "{description}\n\n"
     "Identify all equipment, valves, and instruments; list system inputs and "
     "outputs; detail utility lines; and build full connection objects as specified "
     "above.\n\n"
+    "For every `context` field, preserve all visible engineering metadata from the "
+    "P&ID and process description, including valve size, pipe size, line number, "
+    "piping class/spec, valve rating, normal/fail position, operating pressure, "
+    "operating temperature, design pressure, design temperature, flow rate, capacity, "
+    "setpoints, alarms, trips, and interlock actions. Do not invent unavailable values.\n\n"
     "Return only the JSON matching the schema."
 )
-
 def build_pid_input(process_description: str, file_ids: list[str]) -> list[dict]:
     content: list[dict] = [
         {
