@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, toRefs } from "vue";
+import { ref, toRefs, onMounted, computed } from "vue";
 
 const locked = ref(false);
 const props = withDefaults(
   defineProps<{
     name: string;
     description: string;
+    nodeDefine: string;
+    intention: string;
     mode: "full" | "search";
     busy?: boolean;
   }>(),
@@ -14,11 +16,13 @@ const props = withDefaults(
   }
 );
 
-const { name, description, mode, busy } = toRefs(props);
+const { name, description, nodeDefine, intention, mode, busy } = toRefs(props);
 
 const emit = defineEmits<{
   (e: "update:name", value: string): void;
   (e: "update:description", value: string): void;
+  (e: "update:nodeDefine", value: string): void;
+  (e: "update:intention", value: string): void;
   (e: "update:file", file: File | null): void;
   (
     e: "start-extract",
@@ -27,15 +31,57 @@ const emit = defineEmits<{
           mode: "full";
           name: string;
           description: string;
+          nodeDefine: string;
+          intention: string;
           file: File | null;
           fileName: string | null;
           files: File[];
+          llm_provider: string;
+          llm_model: string;
         }
       | { mode: "search"; name: string }
   ): void;
 }>();
 
 const fileInputRef = ref<HTMLInputElement | null>(null);
+
+/* ------------------------------
+   LLM CONFIG
+------------------------------ */
+interface LLMGroup {
+  id: string;
+  label: string;
+  models: string[];
+}
+
+const llmGroups = ref<LLMGroup[]>([]);
+const llmProvider = ref("own_api");
+const llmModel = ref("");
+
+const currentModels = computed<string[]>(() => {
+  const group = llmGroups.value.find((g) => g.id === llmProvider.value);
+  return group?.models ?? [];
+});
+
+onMounted(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/llm-config");
+    const data = await res.json();
+    llmGroups.value = data.groups ?? [];
+    if (llmGroups.value.length > 0) {
+      llmProvider.value = llmGroups.value[0].id;
+      llmModel.value = llmGroups.value[0].models[0] ?? "";
+    }
+  } catch {
+    // backend may not be running yet; defaults are fine
+  }
+});
+
+const onProviderChange = (id: string) => {
+  llmProvider.value = id;
+  const group = llmGroups.value.find((g) => g.id === id);
+  llmModel.value = group?.models[0] ?? "";
+};
 
 /* ------------------------------
    MULTI FILE SUPPORT
@@ -53,6 +99,14 @@ const handleNameInput = (event: Event) => {
 
 const handleDescriptionInput = (event: Event) => {
   emit("update:description", (event.target as HTMLTextAreaElement).value);
+};
+
+const handleNodeDefineInput = (event: Event) => {
+  emit("update:nodeDefine", (event.target as HTMLTextAreaElement).value);
+};
+
+const handleIntentionInput = (event: Event) => {
+  emit("update:intention", (event.target as HTMLTextAreaElement).value);
 };
 
 /* -------------------------
@@ -97,9 +151,13 @@ const handleStartExtract = () => {
     mode: "full",
     name: name.value,
     description: description.value,
+    nodeDefine: nodeDefine.value,
+    intention: intention.value,
     file: firstFile,
     fileName: firstFile ? firstFile.name : null,
     files: [...selectedFiles.value],
+    llm_provider: llmProvider.value,
+    llm_model: llmModel.value,
   });
 };
 
@@ -216,23 +274,93 @@ const fileColor = (file: File): string => {
           </div>
         </div>
 
-        <div class="flex items-start gap-3">
-          <textarea
-            placeholder="type about process description"
-            :value="description"
+        <!-- LLM selector -->
+        <div v-if="llmGroups.length" class="flex items-center gap-2 mb-3 ml-1">
+          <button
+            v-for="group in llmGroups"
+            :key="group.id"
+            @click="onProviderChange(group.id)"
             :disabled="locked"
-            rows="1"
-            class="bg-gray-200 px-4 py-2 rounded-lg flex-1 min-h-12 h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
+            class="px-3 py-1 rounded-full text-sm font-medium transition"
+            :class="
+              llmProvider === group.id
+                ? 'bg-black text-white'
+                : 'bg-white text-gray-600 hover:bg-gray-100'
+            "
+          >
+            {{ group.label }}
+          </button>
+
+          <select
+            v-if="currentModels.length"
+            v-model="llmModel"
+            :disabled="locked"
+            class="ml-2 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg px-3 py-1 disabled:opacity-60 disabled:cursor-not-allowed"
+          >
+            <option v-for="m in currentModels" :key="m" :value="m">{{ m }}</option>
+          </select>
+        </div>
+
+        <!-- Node define -->
+        <div class="mb-2">
+          <label class="text-xs text-gray-500 ml-1 mb-1 block">Node definitions (optional)</label>
+          <textarea
+            placeholder="e.g. Node 1: feed preheat E-02→T-00; Node 2: bottoms; Node 3: reflux"
+            :value="nodeDefine"
+            :disabled="locked"
+            rows="2"
+            class="bg-gray-200 px-4 py-2 rounded-lg w-full min-h-12 h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
             @input="
               (e) => {
-                handleDescriptionInput(e);
-
+                handleNodeDefineInput(e);
                 const el = e.target as HTMLTextAreaElement;
                 el.style.height = 'auto';
                 el.style.height = el.scrollHeight + 'px';
               }
             "
           ></textarea>
+        </div>
+
+        <!-- Intention -->
+        <div class="mb-2">
+          <label class="text-xs text-gray-500 ml-1 mb-1 block">Intention (optional)</label>
+          <textarea
+            placeholder="type process intention / design objective"
+            :value="intention"
+            :disabled="locked"
+            rows="1"
+            class="bg-gray-200 px-4 py-2 rounded-lg w-full min-h-12 h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
+            @input="
+              (e) => {
+                handleIntentionInput(e);
+                const el = e.target as HTMLTextAreaElement;
+                el.style.height = 'auto';
+                el.style.height = el.scrollHeight + 'px';
+              }
+            "
+          ></textarea>
+        </div>
+
+        <!-- Process description + send button -->
+        <div class="flex items-start gap-3">
+          <div class="flex-1 flex flex-col">
+            <label class="text-xs text-gray-500 ml-1 mb-1 block">Process description</label>
+            <textarea
+              placeholder="type about process description"
+              :value="description"
+              :disabled="locked"
+              rows="1"
+              class="bg-gray-200 px-4 py-2 rounded-lg w-full min-h-12 h-auto resize-none overflow-hidden leading-tight disabled:opacity-60 disabled:cursor-not-allowed"
+              @input="
+                (e) => {
+                  handleDescriptionInput(e);
+                  const el = e.target as HTMLTextAreaElement;
+                  el.style.height = 'auto';
+                  el.style.height = el.scrollHeight + 'px';
+                }
+              "
+            ></textarea>
+          </div>
 
           <!-- Hidden input -->
           <input

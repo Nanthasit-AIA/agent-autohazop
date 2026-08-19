@@ -14,6 +14,7 @@ type SectionId =
   | "utility_lines"
   | "connections"
   | "line_level_connections"
+  | "line_level_details"
   | "metadata"
   | "raw_json";
 
@@ -41,6 +42,7 @@ const sectionConfigs: SectionConfig[] = [
   { id: "utility_lines", key: "utility_lines", label: "Utility Lines" },
   { id: "connections", key: "connections", label: "Node Connections" },
   { id: "line_level_connections", key: "line_level_connections", label: "Line-Level Connections" },
+  { id: "line_level_details", key: "line_level_details", label: "Line-Level Details" },
   { id: "metadata", key: "metadata", label: "Metadata" },
   { id: "raw_json", key: "raw_json", label: "Raw JSON" },
 ];
@@ -228,6 +230,7 @@ const fieldOrderBySection: Partial<Record<SectionId, string[]>> = {
     "flow_direction",
     "context",
   ],
+  line_level_details: ["line_id", "raw_line_label", "line_id_parse"],
 };
 
 const getSortedEntries = (
@@ -300,6 +303,10 @@ const goNext = () => {
 
 /* -------- graph preview modal -------- */
 
+const emit = defineEmits<{
+  (e: "open-modify", instruction: string): void;
+}>();
+
 const showGraph = ref(false);
 
 const hasConnections = computed(() => {
@@ -311,11 +318,29 @@ const hasConnections = computed(() => {
     (Array.isArray(lineConns) && lineConns.length > 0);
 });
 
+const sourceFiles = computed<string[]>(() => {
+  const m = metadata.value;
+  if (!m || !Array.isArray(m.source_files)) return [];
+  return m.source_files.filter((s: any) => typeof s === "string");
+});
+
+const imageScale = ref(100);
+const currentImageIndex = ref(0);
+
 const openGraph = () => {
-  if (hasConnections.value) showGraph.value = true;
+  if (hasConnections.value) {
+    currentImageIndex.value = 0;
+    imageScale.value = 100;
+    showGraph.value = true;
+  }
 };
 const closeGraph = () => {
   showGraph.value = false;
+};
+
+const handleGraphOpenModify = (instruction: string) => {
+  closeGraph();
+  emit("open-modify", instruction);
 };
 </script>
 
@@ -479,15 +504,14 @@ const closeGraph = () => {
       </div>
     </div>
 
-    <!-- 🔍 Graph modal -->
+    <!-- 🔍 Graph modal (side-by-side: P&ID image + graph) -->
     <transition name="fade">
       <div v-if="showGraph" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
         @click.self="closeGraph">
-        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[80vh] p-4 overflow-hidden">
-          <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-gray-800">
-              Connection graph
-            </h3>
+        <div class="bg-white rounded-2xl shadow-2xl w-[95vw] max-h-[92vh] p-4 flex flex-col overflow-hidden">
+          <!-- Modal header -->
+          <div class="flex items-center justify-between mb-3 flex-shrink-0">
+            <h3 class="text-sm font-semibold text-gray-800">Connection graph</h3>
             <button type="button"
               class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition"
               @click="closeGraph">
@@ -495,9 +519,49 @@ const closeGraph = () => {
             </button>
           </div>
 
-          <div class="border rounded-xl overflow-hidden bg-white">
-            <!-- pidRoot is computed; template auto-unwraps -->
-            <PipelineGraph v-if="pidRoot" :data="pidRoot" />
+          <!-- Side-by-side content -->
+          <div class="flex gap-3 flex-1 overflow-hidden min-h-0">
+
+            <!-- Image panel (only when source files exist) -->
+            <div v-if="sourceFiles.length" class="flex flex-col flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1 flex-shrink-0">
+                <span class="text-xs text-gray-500">P&ID source</span>
+                <div class="flex items-center gap-1 ml-auto">
+                  <button @click="imageScale = Math.max(30, imageScale - 20)"
+                    class="w-5 h-5 text-xs rounded border border-gray-300 hover:bg-gray-100 flex items-center justify-center">−</button>
+                  <span class="text-xs text-gray-500 w-12 text-center">{{ imageScale }}%</span>
+                  <button @click="imageScale = Math.min(300, imageScale + 20)"
+                    class="w-5 h-5 text-xs rounded border border-gray-300 hover:bg-gray-100 flex items-center justify-center">+</button>
+                </div>
+                <!-- image switcher if multiple files -->
+                <div v-if="sourceFiles.length > 1" class="flex items-center gap-1 ml-2">
+                  <button @click="currentImageIndex = Math.max(0, currentImageIndex - 1)"
+                    :disabled="currentImageIndex === 0"
+                    class="text-xs px-1 border rounded disabled:opacity-40">‹</button>
+                  <span class="text-xs text-gray-400">{{ currentImageIndex + 1 }}/{{ sourceFiles.length }}</span>
+                  <button @click="currentImageIndex = Math.min(sourceFiles.length - 1, currentImageIndex + 1)"
+                    :disabled="currentImageIndex >= sourceFiles.length - 1"
+                    class="text-xs px-1 border rounded disabled:opacity-40">›</button>
+                </div>
+              </div>
+              <div class="flex-1 overflow-auto border rounded-xl bg-gray-100 min-h-0">
+                <img
+                  :src="`http://localhost:5000${sourceFiles[currentImageIndex]}`"
+                  :style="{ width: imageScale + '%', maxWidth: 'none' }"
+                  class="block"
+                  alt="P&ID source image"
+                />
+              </div>
+            </div>
+
+            <!-- Graph panel -->
+            <div class="flex flex-col flex-1 min-w-0">
+              <span class="text-xs text-gray-500 mb-1 flex-shrink-0">Connection graph</span>
+              <div class="flex-1 border rounded-xl overflow-hidden bg-white min-h-0">
+                <PipelineGraph v-if="pidRoot" :data="pidRoot" @open-modify="handleGraphOpenModify" />
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

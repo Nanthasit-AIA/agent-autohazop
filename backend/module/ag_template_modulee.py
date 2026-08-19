@@ -13,7 +13,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import pandas as pd
 
 from decorators import logger, timeit_log
-from module.llm_module import get_openai_sdk, build_llm_metadata, _call_with_retries
+from module.llm_module import get_openai_sdk, get_llm_client, build_llm_metadata, _call_with_retries
 from module.prompt.hzp_promptt import (
     HAZOP_LOPA_HEADERS_20,
     build_file_search_hazop_prompt,
@@ -534,13 +534,14 @@ def generate_hazop_with_file_search(
     input_data: Dict[str, Any],
     *,
     vector_store_id: str,
+    llm_provider: str = "own_api",
     model_name: str = DEFAULT_RESPONSES_MODEL,
     max_num_results: int = 12,
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
 ) -> Tuple[str, Dict[str, Any]]:
-    """Call OpenAI Responses API with file_search over a HAZOP vector store."""
-    client = get_openai_sdk()
+    """Call Responses API with file_search over a HAZOP vector store."""
+    client = get_llm_client(llm_provider)
     prompt = build_file_search_hazop_prompt(**input_data)
 
     request_kwargs: Dict[str, Any] = {
@@ -653,6 +654,7 @@ def run_hazop_agent_1(
     selections: List[Dict[str, str]],
     token_limit: int = 200000,
     *,
+    llm_provider: str = "own_api",
     vector_store_id: Optional[str] = None,
     source_folder: Optional[str | os.PathLike[str]] = None,
     vector_store_config_path: str | os.PathLike[str] = DEFAULT_VECTOR_STORE_CONFIG_PATH,
@@ -727,6 +729,7 @@ def run_hazop_agent_1(
                 result_text, meta = generate_hazop_with_file_search(
                     input_data,
                     vector_store_id=resolved_vector_store_id,
+                    llm_provider=llm_provider,
                     model_name=model_name,
                     max_num_results=max_num_results,
                     reasoning_effort=reasoning_effort,

@@ -1,5 +1,5 @@
 import os, random, time
-from typing import Callable, TypeVar, Tuple, Any, Dict, TypedDict
+from typing import Callable, TypeVar, Tuple, Any, Dict, TypedDict, List
 
 from dotenv import load_dotenv
 import openai
@@ -13,19 +13,71 @@ T = TypeVar("T")
 
 # ------------- SETUP LLM -----------------------------------
 load_dotenv()
+
+# Own API (OpenAI)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 if not openai_api_key:
-    raise EnvironmentError("OPENAI_API_KEY not found in .env , please set in .env")
+    logger.warning("OPENAI_API_KEY not found in .env – Own API provider will be unavailable")
+
+_own_api_models_raw = os.getenv("OPENAI_MODELS", "gpt-5.5-2026-04-23")
+own_api_models: List[str] = [m.strip() for m in _own_api_models_raw.split(",") if m.strip()]
+
+# LiteLLM proxy
+litellm_base_url = os.getenv("LITELLM_BASE_URL", "")
+litellm_api_key = os.getenv("LITELLM_API_KEY", "")
+_litellm_models_raw = os.getenv("LITELLM_MODELS", "")
+litellm_models: List[str] = [m.strip() for m in _litellm_models_raw.split(",") if m.strip()]
+
 
 @timeit_log
-def get_openai_sdk():
+def get_openai_sdk() -> OpenAI:
     return OpenAI()
+
+
+@timeit_log
+def get_litellm_sdk() -> OpenAI:
+    if not litellm_base_url or not litellm_api_key:
+        raise EnvironmentError("LITELLM_BASE_URL and LITELLM_API_KEY must be set in .env")
+    return OpenAI(base_url=litellm_base_url, api_key=litellm_api_key)
+
+
+def get_llm_client(provider: str = "own_api") -> OpenAI:
+    if provider == "litellm":
+        return get_litellm_sdk()
+    return get_openai_sdk()
+
+
+def get_llm_config() -> Dict[str, Any]:
+    return {
+        "groups": [
+            {"id": "own_api", "label": "Own API", "models": own_api_models},
+            {"id": "litellm", "label": "LiteLLM", "models": litellm_models},
+        ]
+    }
+
+
+def _call_with_retries(
+    fn: Callable[[], T],
+    *,
+    max_retries: int = 3,
+    backoff_s: float = 2.0,
+    context: str = "",
+) -> T:
+    for attempt in range(1, max_retries + 1):
+        try:
+            return fn()
+        except Exception as exc:
+            if attempt == max_retries:
+                raise
+            logger.warning("[%s] attempt %d/%d failed: %s", context, attempt, max_retries, exc)
+            time.sleep(backoff_s * attempt)
+
 
 @timeit_log
 def get_chat_model(model_name="gpt-5.5-2026-04-23"):
     return (
         ChatOpenAI(
-            model=model_name,  
+            model=model_name,
             api_key=openai_api_key,
             verbose=True,
         ),
@@ -42,7 +94,7 @@ def get_embedding_model(model_name="text-embedding-ada-002"):
 @timeit_log
 def build_qa_chain(llm, retriever):
     return RetrievalQA.from_chain_type(
-        llm=llm, 
+        llm=llm,
         retriever=retriever,
         chain_type="stuff")
 

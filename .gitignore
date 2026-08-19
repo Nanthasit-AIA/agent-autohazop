@@ -31,3 +31,13 @@ logs
 .data
 .deepeval
 .emb_cache
+.claude
+
+# Uploaded P&ID source drawings (belong in Blob Storage, not git)
+/backend/static/data/sources/
+
+# Incoming revision drop from external contributor (reference only)
+/rev-update/
+
+# Windows crash dumps
+sh.exe.stackdump

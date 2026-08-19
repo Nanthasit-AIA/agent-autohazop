@@ -1,0 +1,732 @@
+{
+  "pid_data": {
+    "process_description": "100T-01 serves as a buffer between the existing process unit battery-limit naphtha source and the Hydrogen Production Unit (HPU), with a design capacity sized for five days of inventory at the HPU rated naphtha flow rate. Liquid naphtha is received from B/L into the naphtha storage tank through the inlet transfer piping and shutdown isolation arrangement, stored in 100T-01, and then routed from the tank outlet to the naphtha transfer pumps 100P-01A/B for continuous supply to the HPU. The tank is shown as a naphtha storage tank with an internal floating roof/IFR service intent, manholes, level instrumentation, pressure indication, temperature indication, nitrogen blanketing, atmospheric venting, emergency venting, and drain connections to OWS/CSS. The tank operates at 38 degC and 0.01 barg, with design limits of 43/-8 degC and 0.07/-0.06 barg. Nitrogen blanketing is provided through the NG line and PCV-0101 for in-breathing to mitigate vapor losses and prevent formation of flammable vapor/air mixtures. Tank out-breathing is controlled by PCV-0102 through a vent line routed via an activated carbon canister to ATM at a safe location. Secondary overpressure/vacuum and emergency protection are provided by PVV-0102 and EH-0101, and PSV-0101 provides thermal relief for trapped liquid in the transfer piping. Safety interlocks manage liquid inventory: LSHH-0102 associated with IS-09 trips/closes the inlet shutdown valve UV-0102 to prevent overfilling, while LSLL-0102 associated with IS-10 stops the naphtha transfer pumps 100P-01A/B and closes the outlet shutdown valve UV-0102 to prevent pump dry running. Naphtha is transferred to the HPU at a nominal flow rate of 37 m3/h, equivalent to 24,496 kg/h at density 660 kg/m3. Pump protection is provided by a continuous minimum-flow return of 8.6 m3/h, equivalent to 5,653 kg/h, through RO-0101 back to 100T-01. Discharge flow monitoring is provided by FT-0101/FI-0101 with FY-0101, and pump discharge pressure is locally indicated by PG-0101A and PG-0101B. Emergency interlock IS-28 is initiated by HS-0101A/HS-0101B and executes total system isolation by closing the naphtha inlet and outlet UV-0102 shutdown valves and tripping the naphtha transfer pumps 100P-01A/B.",
+    "intention": "The intended operation is to receive liquid naphtha from the existing process unit, maintain a stable five-day storage inventory in 100T-01, and continuously deliver naphtha to the HPU through 100P-01A/B at a constant rated flow of 37 m3/h, equivalent to 24,496 kg/h at density 660 kg/m3. The tank system is designed to preserve product availability during upstream process unit shutdown or outage, while maintaining safe storage at 0.01 barg and 38 degC within design limits of 0.07/-0.06 barg and 43/-8 degC. Nitrogen blanketing via PCV-0101 is intended to prevent air ingress and flammable mixture formation during in-breathing, while PCV-0102 routes out-breathing vapors through activated carbon to ATM at a safe location to limit vapor emissions. Inventory stability and pump protection are maintained by level indication/alarms and interlocks: high-high level initiates IS-09 to close the inlet UV-0102 and prevent tank overfill, low-low level initiates IS-10 to shut down 100P-01A/B and close the outlet UV-0102 to avoid dry running, and manual emergency action through HS-0101A/HS-0101B initiates IS-28 to isolate inlet/outlet and trip the pumps. A continuous minimum-flow recycle of 8.6 m3/h through RO-0101 is intended to keep the operating pump within its safe hydraulic envelope, while flow and temperature indication on the HPU transfer line support stable feed quality and reliable HPU operation.",
+    "system_inputs": [
+      "Liquid naphtha from existing Process Unit / B/L",
+      "Nitrogen gas / NG for naphtha tank blanketing",
+      "Instrument air / IA for actuated shutdown and control valve services",
+      "Drain/utility interfaces associated with SW lines shown on 100-SW-005-A3-1F-4 inch and 100-SW-018-A3-1F-4 inch"
+    ],
+    "system_outputs": [
+      "Liquid naphtha to HPU / B/L",
+      "Atmospheric vent to ATM at safe location via activated carbon canister",
+      "Relief/emergency vent discharge to ATM or safe location through PVV-0102/EH-0101 as shown",
+      "Thermal relief discharge from PSV-0101 to safe location as shown",
+      "Oily water sewer / OWS through 100-OWS-017-A3-1F-4 inch and 4700-OWS-019-A3-1F-4 inch",
+      "Closed sewer system / CSS connection shown near tank drain area"
+    ],
+    "node_define": [
+      {
+        "node_id": "NODE-01",
+        "node_name": "Naphtha Tank Storage (100T-01) with Naphtha Transfer Pump (100P-01A/B) including inlet transfer line from the Process Unit, and outlet transfer line from the Naphtha Tank (100T-01) back to the HPU via the Naphtha Transfer Pump (100P-01 A/B)",
+        "description": "Authoritative user-defined HAZOP node covering the naphtha receipt line from the existing process unit B/L, naphtha storage tank 100T-01 with blanketing, venting, relief, level/temperature/pressure instrumentation and drains, pump suction/discharge piping, minimum-flow recycle, and the transfer pump outlet line to the HPU B/L through 100P-01A/B."
+      }
+    ],
+    "equipment": [
+      {
+        "id": "100T-01",
+        "name": "Naphtha Storage Tank",
+        "type": "Atmospheric/low-pressure storage tank with internal floating roof service intent",
+        "context": "Main naphtha buffer tank between existing process unit and HPU. Operating pressure 0.01 barg; design pressure 0.07/-0.06 barg. Operating temperature 38 degC; design temperature 43/-8 degC. Design capacity stated as five-day inventory at HPU rated naphtha flow. Drawing text shows 100T-01 NAPHTHA STORAGE TANK, scale/ratio marking 100:1, manholes MH, tank roof instruments, emergency hatch, pressure/vacuum protection, nitrogen blanketing, venting, drain connections and bottom outlet."
+      },
+      {
+        "id": "100P-01A",
+        "name": "Naphtha Transfer Pump A",
+        "type": "Centrifugal transfer pump",
+        "context": "One of two naphtha transfer pumps supplying HPU from 100T-01. Rated transfer flow for service is 37 m3/h or 24,496 kg/h at density 660 kg/m3. Pump is subject to shutdown by IS-10 low-low tank level and IS-28 emergency shutdown. Discharge pressure indicated by PG-0101A. Minimum-flow protection provided via common recycle through RO-0101 at 8.6 m3/h or 5,653 kg/h."
+      },
+      {
+        "id": "100P-01B",
+        "name": "Naphtha Transfer Pump B",
+        "type": "Centrifugal transfer pump",
+        "context": "Parallel/standby naphtha transfer pump supplying HPU from 100T-01. Rated transfer flow for service is 37 m3/h or 24,496 kg/h at density 660 kg/m3. Pump is subject to shutdown by IS-10 low-low tank level and IS-28 emergency shutdown. Discharge pressure indicated by PG-0101B. Minimum-flow protection provided via common recycle through RO-0101 at 8.6 m3/h or 5,653 kg/h."
+      },
+      {
+        "id": "AC-0101",
+        "name": "Activated Carbon Canister",
+        "type": "Vapor treatment canister",
+        "context": "Untagged equipment inferred from process description and vent-line symbol downstream of PCV-0102. Used on tank out-breathing line before discharge to ATM at safe location to reduce hydrocarbon vapor emissions."
+      },
+      {
+        "id": "EH-0101",
+        "name": "Emergency Hatch",
+        "type": "Emergency pressure relief hatch",
+        "context": "Tagged EH-0101 on 100T-01 roof. Secondary/emergency protection for fire scenarios and abnormal tank pressure relief; associated with tank vapor space and shown near PVV-0102/PG-0101 roof instrumentation."
+      }
+    ],
+    "valves": [
+      {
+        "id": "UV-0102",
+        "type": "Actuated shutdown valve, fail-closed tight shutoff service",
+        "location": "Shown on naphtha inlet transfer line at bund boundary and on naphtha outlet transfer line to 100P-01A/B at bund boundary",
+        "context": "Visible tag UV-0102 with FC-TSO notation. Associated position/status instruments ZSO/ZSC/ZAO/ZAC and UY solenoid/relay signals. Interlock IS-09 from LSHH-0102 closes inlet UV-0102 to prevent overfill. Interlock IS-10 from LSLL-0102 closes outlet UV-0102 and trips pumps to prevent dry running. IS-28 initiated by HS-0101A/HS-0101B closes naphtha inlet and outlet UV-0102 valves and trips 100P-01A/B. Instrument air / IA and solenoid S shown at shutdown valve actuators."
+      },
+      {
+        "id": "PCV-0101",
+        "type": "Pressure control valve",
+        "location": "Nitrogen gas blanketing line to 100T-01 vapor space",
+        "context": "Tank in-breathing nitrogen supply valve. Process description identifies PCV-0101 as nitrogen supply valve for pressure control. Drawing shows NG line with manual block valves and PCV-0101 routed to tank roof/vapor space; associated line text includes 100-NG-003-A2-1F-2 inch and NG header references. Maintains tank pressure near operating pressure 0.01 barg within design pressure 0.07/-0.06 barg."
+      },
+      {
+        "id": "PCV-0102",
+        "type": "Pressure control valve",
+        "location": "Tank out-breathing vent line from 100T-01 vapor space to activated carbon canister/ATM",
+        "context": "Tank out-breathing pressure control valve. Process description states vent valve PCV-0102 routes vapors via activated carbon canister to ATM. Drawing shows PCV-0102 on top vent line leading to ATM at safe location; line text near vent includes 100-NG-012-A2-1F-4 inch. Used for pressure control during filling/thermal expansion."
+      },
+      {
+        "id": "PVV-0102",
+        "type": "Pressure-vacuum relief valve",
+        "location": "100T-01 roof/vapor space",
+        "context": "Secondary pressure-vacuum relief protection for 100T-01. Process description identifies PVV-0102 as secondary protection. Located near EH-0101 and PG-0101 on tank roof. Protects against abnormal overpressure/vacuum outside normal PCV-0101/PCV-0102 control capability."
+      },
+      {
+        "id": "PSV-0101",
+        "type": "Pressure safety valve / thermal relief valve",
+        "location": "Liquid transfer piping near naphtha inlet/transfer line and B/L area",
+        "context": "Process description states PSV-0101 provides thermal relief for liquid trapped in transfer piping. Drawing shows PSV-0101 with associated locked-open block valves marked LO/LO and discharge toward safe location; adjacent piping text includes 100-P-094-A2-1F-X inch and 100-P-095-A2-1F-X inch. Protects blocked-in liquid piping from thermal expansion."
+      },
+      {
+        "id": "V-100T-01-NG-ISO1",
+        "type": "Manual isolation valve",
+        "location": "Nitrogen gas blanketing inlet upstream of PCV-0101",
+        "context": "Tag not shown; inferred from visible manual block valve symbols on NG line to 100T-01. Associated with NG blanketing piping 100-NG-003-A2-1F-2 inch and PCV-0101. Used to isolate nitrogen supply for maintenance."
+      },
+      {
+        "id": "V-100T-01-NG-ISO2",
+        "type": "Manual isolation valve",
+        "location": "Nitrogen gas blanketing line downstream/around PCV-0101 near tank connection",
+        "context": "Tag not shown; inferred from visible manual block valve symbols on NG blanketing line. Associated with PCV-0101 service and tank vapor space. No valve size/rating shown beyond nearby NG line labels."
+      },
+      {
+        "id": "V-100T-01-VENT-ISO1",
+        "type": "Manual isolation valve",
+        "location": "Tank vent/out-breathing line near PCV-0102 and activated carbon canister",
+        "context": "Tag not shown; inferred from visible manual block valve symbols on tank vent piping. Associated with PCV-0102, activated carbon canister AC-0101, ATM discharge and line reference 100-NG-012-A2-1F-4 inch. Used for vent system maintenance isolation."
+      },
+      {
+        "id": "CV-100T-01-INLET",
+        "type": "Check valve / non-return valve",
+        "location": "Naphtha inlet transfer line upstream of 100T-01",
+        "context": "Tag not shown; inferred from check-valve/non-return symbol on tank inlet transfer line. Intended to prevent reverse flow from tank toward the existing process unit. Nearby line references include 100-P-021-A2-1F-4 inch and inlet piping to 100T-01."
+      },
+      {
+        "id": "V-100T-01-IN-ISO1",
+        "type": "Manual isolation valve",
+        "location": "Naphtha inlet line from B/L before/near UV-0102",
+        "context": "Tag not shown; inferred from visible manual valve symbol on inlet transfer line. Associated with naphtha receipt from existing process unit through line 100-P-021-A2-1F-4 inch. Works with UV-0102 for inlet isolation; no size/rating shown beyond line size/class labels."
+      },
+      {
+        "id": "V-100T-01-OUT-ISO1",
+        "type": "Manual isolation valve",
+        "location": "100T-01 outlet line to 100P-01A/B near tank/bund boundary",
+        "context": "Tag not shown; inferred from visible manual valve symbol on outlet transfer line to pumps. Associated with line 100-P-022-A2-1F-6 inch and UV-0102 outlet shutdown service. Provides maintenance isolation of tank outlet/pump suction header."
+      },
+      {
+        "id": "V-100T-01-DRAIN-OWS",
+        "type": "Manual drain valve",
+        "location": "100T-01 lower drain connection to OWS",
+        "context": "Tag not shown; inferred from drain valve symbol under 100T-01 connected to OWS. Associated line references include 100-OWS-017-A3-1F-4 inch and 4700-OWS-019-A3-1F-4 inch. Routes tank/bund oily drains to OWS."
+      },
+      {
+        "id": "V-100T-01-DRAIN-CSS",
+        "type": "Manual drain valve",
+        "location": "Tank/bund drain branch to CSS",
+        "context": "Tag not shown; inferred from visible drain valves in lower tank drain manifold where OWS and CSS boxes are shown. Associated nearby lines include 100-SW-005-A3-1F-4 inch and 100-SW-018-A3-1F-4 inch. Used for controlled drainage; exact normal position not shown."
+      },
+      {
+        "id": "V-100P-01A-SUC-ISO",
+        "type": "Manual isolation valve",
+        "location": "Suction line to 100P-01A",
+        "context": "Tag not shown; inferred from manual valve symbol upstream of 100P-01A on suction branch from 100T-01. Associated with line 100-P-022-A2-1F-6 inch / pump suction header. Used to isolate pump A suction for maintenance."
+      },
+      {
+        "id": "V-100P-01A-DIS-ISO",
+        "type": "Manual isolation valve",
+        "location": "Discharge line from 100P-01A to common discharge header",
+        "context": "Tag not shown; inferred from manual valve symbol on 100P-01A discharge riser. Associated with line 100-P-025-A2-1F-4 inch common discharge header. Used for pump A discharge isolation."
+      },
+      {
+        "id": "CV-100P-01A-DIS",
+        "type": "Check valve / non-return valve",
+        "location": "Discharge of 100P-01A",
+        "context": "Tag not shown; inferred from check-valve symbol near 100P-01A discharge. Prevents reverse flow from common discharge header through idle pump A."
+      },
+      {
+        "id": "V-100P-01B-SUC-ISO",
+        "type": "Manual isolation valve",
+        "location": "Suction line to 100P-01B",
+        "context": "Tag not shown; inferred from manual valve symbol upstream of 100P-01B on suction branch from 100T-01. Associated with line 100-P-024-A2-1F-6 inch. Used to isolate pump B suction for maintenance."
+      },
+      {
+        "id": "V-100P-01B-DIS-ISO",
+        "type": "Manual isolation valve",
+        "location": "Discharge line from 100P-01B to common discharge header",
+        "context": "Tag not shown; inferred from manual valve symbol on 100P-01B discharge riser. Associated with line 100-P-026-A2-1F-4 inch / common discharge header. Used for pump B discharge isolation."
+      },
+      {
+        "id": "CV-100P-01B-DIS",
+        "type": "Check valve / non-return valve",
+        "location": "Discharge of 100P-01B",
+        "context": "Tag not shown; inferred from check-valve symbol near 100P-01B discharge. Prevents reverse flow from common discharge header through idle pump B."
+      },
+      {
+        "id": "V-100P-01-MIN-FLOW-ISO",
+        "type": "Manual isolation valve",
+        "location": "Minimum-flow recycle line from common pump discharge header to 100T-01",
+        "context": "Tag not shown; inferred from visible isolation valve symbol on/near minimum-flow return route associated with RO-0101. Minimum-flow service is 8.6 m3/h or 5,653 kg/h through line 100-P-029-A2-1F-2 inch back to 100T-01."
+      }
+    ],
+    "instruments": [
+      {
+        "id": "LT-0101",
+        "function": "Level transmitter for 100T-01 inventory measurement",
+        "location": "100T-01 roof/level bridle area",
+        "context": "Visible tag LT-0101. Associated with tank level indication/alarming and inventory monitoring for five-day naphtha buffer service. Supports operating continuity and level control/interlock functions."
+      },
+      {
+        "id": "LT-0102",
+        "function": "Level transmitter for tank independent/interlock level measurement",
+        "location": "100T-01 roof/level bridle area",
+        "context": "Visible tag LT-0102. Associated with high-high and low-low level protection logic shown around LSHH/LSLL and IS-09/IS-10. Used for overfill prevention and pump dry-run prevention."
+      },
+      {
+        "id": "LI-0101A",
+        "function": "Local/remote level indication for 100T-01",
+        "location": "Near 100T-01 level instrumentation",
+        "context": "Visible tag LI-0101A. Provides indicated naphtha level for operating inventory monitoring."
+      },
+      {
+        "id": "LI-0102A",
+        "function": "Level indication associated with LT-0102 channel A",
+        "location": "Near 100T-01 level instrumentation",
+        "context": "Visible tag LI-0102A. Associated with tank level monitoring and alarm/interlock indication."
+      },
+      {
+        "id": "LI-0102B",
+        "function": "Level indication associated with LT-0102 channel B",
+        "location": "Near 100T-01 level instrumentation",
+        "context": "Visible tag LI-0102B. Associated with tank level monitoring and alarm/interlock indication."
+      },
+      {
+        "id": "LY-0101",
+        "function": "Level signal relay/computing element",
+        "location": "100T-01 level instrumentation circuit",
+        "context": "Visible tag LY-0101. Appears associated with level signal processing between LT/LI and alarms/interlocks. Exact logic not fully legible."
+      },
+      {
+        "id": "LSHH-0102",
+        "function": "Level switch high-high for overfill protection",
+        "location": "100T-01 level protection system",
+        "context": "Process description identifies LSHH-0102 initiating IS-09. High-high tank level closes inlet UV-0102 to prevent overfilling. Drawing shows LSHH/level alarm/interlock symbols near LT-0102."
+      },
+      {
+        "id": "LSLL-0102",
+        "function": "Level switch low-low for pump dry-run protection",
+        "location": "100T-01 level protection system",
+        "context": "Process description identifies LSLL-0102 initiating IS-10. Low-low tank level stops 100P-01A/B and closes outlet UV-0102 to prevent dry running. Drawing shows LSLL/level alarm/interlock symbols near LT-0102."
+      },
+      {
+        "id": "LSLH-0102A",
+        "function": "Level switch low/high alarm/interlock element",
+        "location": "100T-01 level instrumentation cluster",
+        "context": "Visible parsed text LSLH 0102A. Exact service is not fully legible; appears associated with the tank level alarm/interlock group around LT-0102 and IS-09/IS-10."
+      },
+      {
+        "id": "LAH-0102",
+        "function": "Level alarm high",
+        "location": "100T-01 level alarm system",
+        "context": "Visible LAH label near level alarm group. Associated with tank high-level warning before/with high-high shutdown function; exact setpoint not shown."
+      },
+      {
+        "id": "LAL-0102",
+        "function": "Level alarm low",
+        "location": "100T-01 level alarm system",
+        "context": "Visible LAL label near level alarm group. Associated with tank low-level warning before/with low-low pump shutdown function; exact setpoint not shown."
+      },
+      {
+        "id": "TI-0101",
+        "function": "Temperature indication",
+        "location": "Shown on 100T-01 and also on pump discharge/HPU transfer line area",
+        "context": "Visible TI-0101. Process description states tank operating temperature 38 degC and design temperature 43/-8 degC. Drawing also shows TI-0101 near discharge flow instrumentation on line to HPU; service association appears to include naphtha temperature monitoring."
+      },
+      {
+        "id": "TAH-0101",
+        "function": "Temperature alarm high",
+        "location": "Associated with TI-0101 on 100T-01",
+        "context": "Visible TAH label near TI-0101. High-temperature alarm for tank/naphtha service; setpoint not shown. Operating temperature 38 degC and design temperature 43/-8 degC preserved from process description."
+      },
+      {
+        "id": "TAL-0101",
+        "function": "Temperature alarm low",
+        "location": "Associated with TI-0101 on 100T-01",
+        "context": "Visible TAL label near TI-0101. Low-temperature alarm for tank/naphtha service; setpoint not shown. Operating temperature 38 degC and design temperature 43/-8 degC preserved from process description."
+      },
+      {
+        "id": "PG-0101",
+        "function": "Pressure gauge / local tank pressure indication",
+        "location": "100T-01 roof/vapor space",
+        "context": "Visible PG-0101 on tank roof. Indicates tank vapor-space pressure. Normal operating pressure 0.01 barg; design pressure 0.07/-0.06 barg."
+      },
+      {
+        "id": "PG-0101A",
+        "function": "Pressure gauge for 100P-01A discharge",
+        "location": "Discharge of 100P-01A",
+        "context": "Visible PG-0101A near pump A discharge. Used to locally monitor discharge pressure of naphtha transfer pump A. No pressure range/setpoint shown."
+      },
+      {
+        "id": "PG-0101B",
+        "function": "Pressure gauge for 100P-01B discharge",
+        "location": "Discharge of 100P-01B",
+        "context": "Visible PG-0101B near pump B discharge. Used to locally monitor discharge pressure of naphtha transfer pump B. No pressure range/setpoint shown."
+      },
+      {
+        "id": "FT-0101",
+        "function": "Flow transmitter for naphtha transfer to HPU",
+        "location": "Common pump discharge line to HPU",
+        "context": "Visible FT-0101 on 100-P-027-A2-1F-4 inch line to HPU. Supports discharge flow monitoring for nominal naphtha transfer flow 37 m3/h or 24,496 kg/h."
+      },
+      {
+        "id": "FI-0101",
+        "function": "Flow indicator for naphtha transfer to HPU",
+        "location": "Common pump discharge line to HPU",
+        "context": "Visible FI-0101. Process description identifies discharge flow monitoring by FI-0101. Nominal flow is 37 m3/h or 24,496 kg/h at density 660 kg/m3."
+      },
+      {
+        "id": "FY-0101",
+        "function": "Flow relay/computing element associated with FT/FI-0101",
+        "location": "Common pump discharge flow instrumentation",
+        "context": "Visible FY-0101 connected to FT-0101/FI-0101. Exact signal function not shown; appears associated with flow indication/processing on HPU feed line."
+      },
+      {
+        "id": "RO-0101",
+        "function": "Restriction orifice for continuous minimum-flow recycle",
+        "location": "Minimum-flow return line from pump discharge header to 100T-01",
+        "context": "Visible RO-0101 on 100-P-029-A2-1F-2 inch return line. Process description states continuous minimum flow of 8.6 m3/h or 5,653 kg/h is maintained through RO-0101 for pump protection."
+      },
+      {
+        "id": "HS-0101A",
+        "function": "Hand switch for emergency shutdown initiation",
+        "location": "Outside bund / safe location area shown near shutdown valve logic",
+        "context": "Visible HS-0101A with note AT SAFE LOCATION and associated IS-28. Activation initiates total system isolation: closes naphtha inlet/outlet UV-0102 and trips 100P-01A/B."
+      },
+      {
+        "id": "HS-0101B",
+        "function": "Hand switch for emergency shutdown initiation",
+        "location": "Outside bund / safe location area shown near shutdown valve logic",
+        "context": "Visible HS-0101B associated with IS-28 and IS-10 area. Activation initiates emergency isolation and pump trip; exact mounting details not shown."
+      },
+      {
+        "id": "IS-09",
+        "function": "Safety interlock for tank high-high level overfill prevention",
+        "location": "100T-01 level shutdown logic and inlet UV-0102 actuation",
+        "context": "Visible IS-09 and stated in process description. Initiated by LSHH-0102; closes inlet UV-0102 to prevent overfilling of 100T-01."
+      },
+      {
+        "id": "IS-10",
+        "function": "Safety interlock for tank low-low level pump protection",
+        "location": "100T-01 low-level logic and pump shutdown circuit",
+        "context": "Visible IS-10 on tank and pump pages. Initiated by LSLL-0102; stops naphtha transfer pumps 100P-01A/B and closes outlet UV-0102 to prevent dry running."
+      },
+      {
+        "id": "IS-28",
+        "function": "Emergency shutdown interlock",
+        "location": "Manual emergency shutdown logic associated with HS-0101A/HS-0101B and pump shutdown",
+        "context": "Visible IS-28 and process description. Initiated by HS-0101; closes naphtha inlet and outlet UV-0102 and trips 100P-01A/B for total system isolation."
+      },
+      {
+        "id": "UY-0101",
+        "function": "Shutdown valve solenoid/relay element",
+        "location": "Inlet UV-0102 actuator circuit near bund boundary",
+        "context": "Visible UY-0101 associated with UV-0102, instrument air IA, solenoid S, and position indications ZSO/ZSC/ZAO/ZAC-0101. Supports interlock closure/open command for inlet shutdown valve."
+      },
+      {
+        "id": "UY-0102",
+        "function": "Shutdown valve solenoid/relay element",
+        "location": "Outlet UV-0102 actuator circuit near bund boundary",
+        "context": "Visible UY-0102 associated with UV-0102, instrument air IA, solenoid S, and position indications ZSO/ZSC/ZAO/ZAC-0102. Supports interlock closure/open command for outlet shutdown valve."
+      },
+      {
+        "id": "ZSO-0101",
+        "function": "Valve position switch open indication",
+        "location": "Inlet UV-0102 shutdown valve",
+        "context": "Visible ZSO-0101. Indicates open status of inlet shutdown valve. Associated with ZSC/ZAO/ZAC-0101 and UY-0101."
+      },
+      {
+        "id": "ZSC-0101",
+        "function": "Valve position switch closed indication",
+        "location": "Inlet UV-0102 shutdown valve",
+        "context": "Visible ZSC-0101. Indicates closed status of inlet shutdown valve. Associated with overfill and emergency shutdown isolation logic."
+      },
+      {
+        "id": "ZAO-0101",
+        "function": "Valve open alarm/status indication",
+        "location": "Inlet UV-0102 shutdown valve",
+        "context": "Visible ZAO-0101. Appears associated with inlet UV-0102 open status/alarm indication; exact alarm logic not shown."
+      },
+      {
+        "id": "ZAC-0101",
+        "function": "Valve closed alarm/status indication",
+        "location": "Inlet UV-0102 shutdown valve",
+        "context": "Visible ZAC-0101. Appears associated with inlet UV-0102 closed status/alarm indication; exact alarm logic not shown."
+      },
+      {
+        "id": "ZSO-0102",
+        "function": "Valve position switch open indication",
+        "location": "Outlet UV-0102 shutdown valve",
+        "context": "Visible ZSO-0102. Indicates open status of outlet shutdown valve. Associated with ZSC/ZAO/ZAC-0102 and UY-0102."
+      },
+      {
+        "id": "ZSC-0102",
+        "function": "Valve position switch closed indication",
+        "location": "Outlet UV-0102 shutdown valve",
+        "context": "Visible ZSC-0102. Indicates closed status of outlet shutdown valve. Associated with low-low level and emergency shutdown isolation logic."
+      },
+      {
+        "id": "ZAO-0102",
+        "function": "Valve open alarm/status indication",
+        "location": "Outlet UV-0102 shutdown valve",
+        "context": "Visible ZAO-0102. Appears associated with outlet UV-0102 open status/alarm indication; exact alarm logic not shown."
+      },
+      {
+        "id": "ZAC-0102",
+        "function": "Valve closed alarm/status indication",
+        "location": "Outlet UV-0102 shutdown valve",
+        "context": "Visible ZAC-0102. Appears associated with outlet UV-0102 closed status/alarm indication; exact alarm logic not shown."
+      }
+    ],
+    "utility_lines": [
+      {
+        "utility_type": "Nitrogen gas / NG blanketing",
+        "valves": [
+          "V-100T-01-NG-ISO1",
+          "PCV-0101",
+          "V-100T-01-NG-ISO2"
+        ],
+        "flow_direction": "From NG supply/header boundary through manual isolation and PCV-0101 into 100T-01 vapor space for in-breathing/blanketing.",
+        "context": "Visible NG source and line labels include 100-NG-003-A2-1F-2 inch, 100-NG-010-A2-1F-4 inch, 100-NG-011-A2-1F-6 inch and related NG piping. Purpose is to maintain inert blanket, reduce vapor loss, and prevent flammable mixtures. Tank pressure metadata: operating pressure 0.01 barg; design pressure 0.07/-0.06 barg."
+      },
+      {
+        "utility_type": "Instrument air / IA",
+        "valves": [],
+        "flow_direction": "From IA utility boundary to solenoid-actuated shutdown valve packages for UV-0102 inlet/outlet actuation.",
+        "context": "Visible IA labels at shutdown valve actuator assemblies with solenoid S and UY-0101/UY-0102. Supports fail-closed tight-shutoff UV-0102 operation for IS-09, IS-10 and IS-28. No IA pressure or line size shown."
+      },
+      {
+        "utility_type": "Atmospheric vent / vapor discharge",
+        "valves": [
+          "PCV-0102",
+          "V-100T-01-VENT-ISO1",
+          "PVV-0102"
+        ],
+        "flow_direction": "From 100T-01 vapor space through PCV-0102 and activated carbon canister to ATM at safe location; abnormal relief also discharges from tank vapor space to ATM/safe location through PVV-0102/EH-0101.",
+        "context": "Visible ATM label and note AT SAFE LOCATION on vent line. Vent line near PCV-0102 includes line reference 100-NG-012-A2-1F-4 inch. Out-breathing service mitigates tank pressure rise during filling/thermal expansion and reduces vapor emissions through AC-0101."
+      },
+      {
+        "utility_type": "Oily water sewer / OWS drainage",
+        "valves": [
+          "V-100T-01-DRAIN-OWS"
+        ],
+        "flow_direction": "From 100T-01 lower drain/bund drain connections to OWS boundary.",
+        "context": "Visible OWS boxes and line labels 100-OWS-017-A3-1F-4 inch and 4700-OWS-019-A3-1F-4 inch. Used for tank/bund oily drainage. Exact normal valve position not shown."
+      },
+      {
+        "utility_type": "Closed sewer / CSS and SW drain interface",
+        "valves": [
+          "V-100T-01-DRAIN-CSS"
+        ],
+        "flow_direction": "From lower tank/bund drain manifold toward CSS/associated SW drain boundary.",
+        "context": "Visible CSS box and SW line labels 100-SW-005-A3-1F-4 inch and 100-SW-018-A3-1F-4 inch. Drain routing is shown below tank area; service details and normal valve positions are not shown."
+      }
+    ],
+    "connections": [
+      {
+        "line_id": "NODE-01-NAPHTHA-STORAGE-TRANSFER",
+        "node": "Naphtha Tank Storage (100T-01) with Naphtha Transfer Pump (100P-01A/B) including inlet transfer line from the Process Unit, and outlet transfer line from the Naphtha Tank (100T-01) back to the HPU via the Naphtha Transfer Pump (100P-01 A/B)",
+        "node_boundary": "The node starts at the existing process unit naphtha B/L inlet and NG/IA utility boundaries, includes the inlet shutdown and tank receipt piping, 100T-01 with blanketing, venting, relief, level/temperature/pressure instrumentation and drains, the tank outlet/suction piping to 100P-01A/B, pump discharge headers, minimum-flow recycle to tank, and ends at the HPU B/L naphtha outlet plus ATM/OWS/CSS discharge boundaries.",
+        "from_id": "Existing Process Unit / B/L",
+        "to_id": "HPU B/L",
+        "included_equipment": [
+          "100T-01",
+          "100P-01A",
+          "100P-01B",
+          "AC-0101",
+          "EH-0101"
+        ],
+        "included_lines": [
+          "100-P-021-A2-1F-4",
+          "100-P-022-A2-1F-6-A",
+          "100-P-024-A2-1F-6-B",
+          "100-P-025-A2-1F-4-A-DIS",
+          "100-P-026-A2-1F-4-B-DIS",
+          "100-P-027-A2-1F-4",
+          "100-P-029-A2-1F-2",
+          "100-NG-003-A2-1F-2",
+          "100-NG-012-A2-1F-4",
+          "100-P-094/095-A2-1F-X",
+          "100-OWS-017-A3-1F-4",
+          "100-SW-005/018-A3-1F-4"
+        ],
+        "valves": [
+          "UV-0102",
+          "PCV-0101",
+          "PCV-0102",
+          "PVV-0102",
+          "PSV-0101",
+          "V-100T-01-NG-ISO1",
+          "V-100T-01-NG-ISO2",
+          "V-100T-01-VENT-ISO1",
+          "CV-100T-01-INLET",
+          "V-100T-01-IN-ISO1",
+          "V-100T-01-OUT-ISO1",
+          "V-100T-01-DRAIN-OWS",
+          "V-100T-01-DRAIN-CSS",
+          "V-100P-01A-SUC-ISO",
+          "V-100P-01A-DIS-ISO",
+          "CV-100P-01A-DIS",
+          "V-100P-01B-SUC-ISO",
+          "V-100P-01B-DIS-ISO",
+          "CV-100P-01B-DIS",
+          "V-100P-01-MIN-FLOW-ISO"
+        ],
+        "instruments": [
+          "LT-0101",
+          "LT-0102",
+          "LI-0101A",
+          "LI-0102A",
+          "LI-0102B",
+          "LY-0101",
+          "LSHH-0102",
+          "LSLL-0102",
+          "LSLH-0102A",
+          "LAH-0102",
+          "LAL-0102",
+          "TI-0101",
+          "TAH-0101",
+          "TAL-0101",
+          "PG-0101",
+          "PG-0101A",
+          "PG-0101B",
+          "FT-0101",
+          "FI-0101",
+          "FY-0101",
+          "RO-0101",
+          "HS-0101A",
+          "HS-0101B",
+          "IS-09",
+          "IS-10",
+          "IS-28",
+          "UY-0101",
+          "UY-0102",
+          "ZSO-0101",
+          "ZSC-0101",
+          "ZAO-0101",
+          "ZAC-0101",
+          "ZSO-0102",
+          "ZSC-0102",
+          "ZAO-0102",
+          "ZAC-0102"
+        ],
+        "flow_direction": "Naphtha flows from the existing process unit/B/L into 100T-01, then from 100T-01 through the outlet line to the suction of 100P-01A or 100P-01B. The operating pump discharges to the common discharge header and onward to the HPU B/L, with a continuous minimum-flow recycle returning from the pump discharge header through RO-0101 back to 100T-01. Nitrogen flows from the NG header into the tank vapor space through PCV-0101, while tank vapors flow out through PCV-0102 and AC-0101 to ATM at a safe location during out-breathing. Drain flows leave the tank/bund area to OWS/CSS as shown.",
+        "context": "Single user-defined HAZOP node. Main deviation coverage includes no/low naphtha feed to HPU, high/low tank level, tank overfill, pump dry running, blocked outlet, pump deadhead, low minimum-flow recycle, high/low tank pressure, nitrogen blanketing failure, air ingress, excessive venting/vapor emission, thermal expansion of blocked-in liquid requiring PSV-0101, reverse flow through pump or inlet line, spurious or failed shutdown of UV-0102, and loss of IA affecting actuated valves. Preserved metadata: tank OP 0.01 barg, DP 0.07/-0.06 barg, OT 38 degC, DT 43/-8 degC; HPU transfer flow 37 m3/h or 24,496 kg/h at density 660 kg/m3; minimum recycle 8.6 m3/h or 5,653 kg/h via RO-0101; UV-0102 marked FC-TSO; PSV-0101 associated locked-open block valves marked LO/LO; line labels include 100-P-021-A2-1F-4 inch, 100-P-022-A2-1F-6 inch, 100-P-024-A2-1F-6 inch, 100-P-025/026/027-A2-1F-4 inch, 100-P-029-A2-1F-2 inch, 100-NG lines, OWS/SW/CSS lines."
+      }
+    ],
+    "line_level_connections": [
+      {
+        "line_id": "100-P-021-A2-1F-4",
+        "from_id": "Existing Process Unit / B/L",
+        "to_id": "100T-01",
+        "valves": [
+          "V-100T-01-IN-ISO1",
+          "UV-0102",
+          "CV-100T-01-INLET",
+          "PSV-0101"
+        ],
+        "instruments": [
+          "IS-09",
+          "IS-28",
+          "UY-0101",
+          "ZSO-0101",
+          "ZSC-0101",
+          "ZAO-0101",
+          "ZAC-0101"
+        ],
+        "flow_direction": "From B/L toward 100T-01 inlet as indicated by the drawing text FROM B/L and inlet routing to the tank.",
+        "context": "Naphtha inlet/receipt line. Visible line reference 100-P-021-A2-1F-4 inch with associated inlet shutdown valve UV-0102 marked FC-TSO. Overfill interlock IS-09 from LSHH-0102 closes inlet UV-0102. Emergency interlock IS-28 initiated by HS-0101 closes inlet/outlet UV-0102. PSV-0101 provides thermal relief for trapped liquid in transfer piping; PSV block valves are marked LO/LO. No valve rating or setpoints shown."
+      },
+      {
+        "line_id": "100-P-022-A2-1F-6-A",
+        "from_id": "100T-01",
+        "to_id": "100P-01A",
+        "valves": [
+          "V-100T-01-OUT-ISO1",
+          "UV-0102",
+          "V-100P-01A-SUC-ISO"
+        ],
+        "instruments": [
+          "IS-10",
+          "IS-28",
+          "UY-0102",
+          "ZSO-0102",
+          "ZSC-0102",
+          "ZAO-0102",
+          "ZAC-0102"
+        ],
+        "flow_direction": "From 100T-01 outlet toward 100P-01A suction as indicated by TO 100P-01A/B on page 1 and FROM 100T-01 on page 2.",
+        "context": "Naphtha pump suction service to pump A. Visible line reference 100-P-022-A2-1F-6 inch. Outlet UV-0102 is marked FC-TSO and is closed by LSLL-0102/IS-10 and by emergency interlock IS-28. Low-low level also trips 100P-01A/B to prevent dry running."
+      },
+      {
+        "line_id": "100-P-024-A2-1F-6-B",
+        "from_id": "100T-01",
+        "to_id": "100P-01B",
+        "valves": [
+          "V-100T-01-OUT-ISO1",
+          "UV-0102",
+          "V-100P-01B-SUC-ISO"
+        ],
+        "instruments": [
+          "IS-10",
+          "IS-28",
+          "UY-0102",
+          "ZSO-0102",
+          "ZSC-0102",
+          "ZAO-0102",
+          "ZAC-0102"
+        ],
+        "flow_direction": "From common suction header originating at 100T-01 toward 100P-01B suction branch.",
+        "context": "Naphtha pump B suction branch. Visible line reference 100-P-024-A2-1F-6 inch. Part of outlet transfer service from tank to pumps. Protected by low-low tank level interlock IS-10 and emergency shutdown IS-28."
+      },
+      {
+        "line_id": "100-P-025-A2-1F-4-A-DIS",
+        "from_id": "100P-01A",
+        "to_id": "Common Pump Discharge Header",
+        "valves": [
+          "CV-100P-01A-DIS",
+          "V-100P-01A-DIS-ISO"
+        ],
+        "instruments": [
+          "PG-0101A"
+        ],
+        "flow_direction": "From 100P-01A discharge upward into the common discharge header, based on pump discharge routing and arrow orientation on the P&ID.",
+        "context": "Pump A discharge branch. Visible line reference 100-P-025-A2-1F-4 inch on common header area. PG-0101A indicates pump A discharge pressure. Check valve prevents reverse flow through idle pump. No pressure gauge range or valve rating shown."
+      },
+      {
+        "line_id": "100-P-026-A2-1F-4-B-DIS",
+        "from_id": "100P-01B",
+        "to_id": "Common Pump Discharge Header",
+        "valves": [
+          "CV-100P-01B-DIS",
+          "V-100P-01B-DIS-ISO"
+        ],
+        "instruments": [
+          "PG-0101B"
+        ],
+        "flow_direction": "From 100P-01B discharge upward into the common discharge header, based on pump discharge routing and arrow orientation on the P&ID.",
+        "context": "Pump B discharge branch. Visible line reference 100-P-026-A2-1F-4 inch. PG-0101B indicates pump B discharge pressure. Check valve prevents reverse flow through idle pump. Pump trips are shown under IS-10 and IS-28 shutdown logic."
+      },
+      {
+        "line_id": "100-P-027-A2-1F-4",
+        "from_id": "Common Pump Discharge Header",
+        "to_id": "HPU B/L",
+        "valves": [],
+        "instruments": [
+          "FT-0101",
+          "FI-0101",
+          "FY-0101",
+          "TI-0101"
+        ],
+        "flow_direction": "From common pump discharge header to the HPU B/L as indicated by TO B/L HPU on the right side of page 2.",
+        "context": "Naphtha transfer outlet to HPU. Visible line reference 100-P-027-A2-1F-4 inch. Nominal transfer flow is 37 m3/h or 24,496 kg/h at density 660 kg/m3. Flow monitoring by FT-0101/FI-0101 with FY-0101; TI-0101 shown on the discharge/HPU transfer line. No control valve is shown on this line segment."
+      },
+      {
+        "line_id": "100-P-029-A2-1F-2",
+        "from_id": "Common Pump Discharge Header",
+        "to_id": "100T-01",
+        "valves": [
+          "V-100P-01-MIN-FLOW-ISO"
+        ],
+        "instruments": [
+          "RO-0101"
+        ],
+        "flow_direction": "From pump discharge header back to 100T-01 as indicated by TO 100T-01 on the minimum-flow recycle line.",
+        "context": "Minimum-flow recycle line. Visible line reference 100-P-029-A2-1F-2 inch. RO-0101 provides continuous minimum flow of 8.6 m3/h or 5,653 kg/h for naphtha transfer pump protection. Prevents pump operation below minimum safe flow/deadhead conditions."
+      },
+      {
+        "line_id": "100-NG-003-A2-1F-2",
+        "from_id": "Nitrogen Gas / NG Supply Boundary",
+        "to_id": "100T-01",
+        "valves": [
+          "V-100T-01-NG-ISO1",
+          "PCV-0101",
+          "V-100T-01-NG-ISO2"
+        ],
+        "instruments": [
+          "PG-0101"
+        ],
+        "flow_direction": "From NG supply boundary into 100T-01 vapor space through PCV-0101 for tank in-breathing/blanketing.",
+        "context": "Nitrogen blanketing line. Visible NG supply and line references include 100-NG-003-A2-1F-2 inch, 100-NG-010-A2-1F-4 inch and 100-NG-011-A2-1F-6 inch. PCV-0101 maintains tank blanketing pressure. Tank pressure metadata: operating 0.01 barg; design 0.07/-0.06 barg."
+      },
+      {
+        "line_id": "100-NG-012-A2-1F-4",
+        "from_id": "100T-01",
+        "to_id": "ATM Safe Location",
+        "valves": [
+          "PCV-0102",
+          "V-100T-01-VENT-ISO1"
+        ],
+        "instruments": [
+          "PG-0101"
+        ],
+        "flow_direction": "From 100T-01 vapor space through PCV-0102 and activated carbon canister to ATM at safe location during out-breathing.",
+        "context": "Tank controlled vent/out-breathing line. Visible line reference near vent is 100-NG-012-A2-1F-4 inch with ATM label. Activated carbon canister AC-0101 is inferred from symbol and process description. Used to control tank pressure and reduce vapor emissions during filling/thermal expansion."
+      },
+      {
+        "line_id": "100-P-094/095-A2-1F-X",
+        "from_id": "Naphtha Transfer Piping",
+        "to_id": "Safe Location / Relief Discharge Boundary",
+        "valves": [
+          "PSV-0101"
+        ],
+        "instruments": [],
+        "flow_direction": "From blocked-in naphtha transfer piping toward safe location through PSV-0101 when thermal relief lifts.",
+        "context": "Thermal relief connection for trapped liquid. Visible labels include 100-P-094-A2-1F-X inch and 100-P-095-A2-1F-X inch near PSV-0101. PSV-0101 has associated block valves marked LO/LO. Process description states PSV-0101 provides thermal relief for liquid trapped in transfer piping. Exact PSV set pressure and discharge destination details are not shown beyond safe-location indication."
+      },
+      {
+        "line_id": "100-OWS-017-A3-1F-4",
+        "from_id": "100T-01",
+        "to_id": "OWS Boundary",
+        "valves": [
+          "V-100T-01-DRAIN-OWS"
+        ],
+        "instruments": [],
+        "flow_direction": "From 100T-01 lower drain/bund drain connection to OWS boundary.",
+        "context": "Oily water sewer drain line. Visible line references include 100-OWS-017-A3-1F-4 inch and 4700-OWS-019-A3-1F-4 inch. Used for tank or bund oily drainage. Normal drain valve position, service temperature and pressure are not shown."
+      },
+      {
+        "line_id": "100-SW-005/018-A3-1F-4",
+        "from_id": "100T-01 Bund / Drain Manifold",
+        "to_id": "CSS / Drain Boundary",
+        "valves": [
+          "V-100T-01-DRAIN-CSS"
+        ],
+        "instruments": [],
+        "flow_direction": "From tank/bund drain manifold toward CSS/drain boundary as shown by lower drain routing.",
+        "context": "Drain interface shown below 100T-01 with CSS and SW line references 100-SW-005-A3-1F-4 inch and 100-SW-018-A3-1F-4 inch. Exact service split between SW and CSS is not fully legible; appears associated with controlled bund/tank drainage."
+      }
+    ]
+  },
+  "metadata": {
+    "id": "resp_0433aa86dff85bd8006a33b64a26888197930df48aed490138",
+    "created": null,
+    "model": "gpt-5.5-2026-04-23",
+    "tokens": {
+      "prompt": 15637,
+      "completion": 14098,
+      "total": 29735
+    },
+    "response_type": "json_schema",
+    "reasoning_effort": "none",
+    "verbosity": "medium",
+    "latency_s": 187.9747
+  }
+}

@@ -1,21 +1,28 @@
-import os, time
+import json, os, shutil, time
 from pathlib import Path
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-from utils import search_file
+from utils import search_file, _slugify_filename
 from decorators import logger
-from module.ext_module import extract_pid, extract_pid_multi_files_single_call
+from module.ext_module import extract_pid, extract_pid_multi_files_single_call, _upload_vision_file
 from module.agent_module import run_hazop_agent
 from module.ag_template_modulee import run_hazop_agent_1
+from module.llm_module import get_llm_config, get_llm_client
+from module.modify_module import modify_pid_json
 from utils import save_pid_json
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 DATA_DIR = Path(app.root_path) / "static" / "data"
+
+@app.route("/api/llm-config", methods=["GET"])
+def api_llm_config():
+    return jsonify(get_llm_config())
+
 
 @app.before_request
 def log_request():
@@ -27,10 +34,15 @@ def log_request():
 def api_full():
     name = request.form.get("name", "").strip()
     description = request.form.get("description", "").strip()
+    node_define = request.form.get("node_define", "").strip()
+    intention = request.form.get("intention", "").strip()
+    llm_provider = request.form.get("llm_provider", "own_api").strip()
+    llm_model = request.form.get("llm_model", "").strip() or None
 
     logger.info("🟦 /api/full received")
     logger.info(f"name: {name}")
     logger.info(f"description: {description}")
+    logger.info(f"llm_provider: {llm_provider}, llm_model: {llm_model}")
 
     socketio.emit("file_status", {
         "status": "working",
@@ -67,19 +79,36 @@ def api_full():
     # 2) RUN EXTRACTOR
     # ----------------------------
     try:
+        extract_kwargs = {
+            "process_description": description,
+            "node_define": node_define,
+            "intention": intention,
+            "llm_provider": llm_provider,
+        }
+        if llm_model:
+            extract_kwargs["model"] = llm_model
+
         if len(saved_paths) == 1:
-            pid_data, usage_meta = extract_pid(
-                saved_paths[0],
-                process_description=description,
-            )
+            pid_data, usage_meta = extract_pid(saved_paths[0], **extract_kwargs)
         else:
-            pid_data, usage_meta = extract_pid_multi_files_single_call(
-                saved_paths,
-                process_description=description,
-            )
+            pid_data, usage_meta = extract_pid_multi_files_single_call(saved_paths, **extract_kwargs)
 
         # ----------------------------
-        # 3) SAVE JSON USING NAME
+        # 3) PERSIST SOURCE IMAGES before saving JSON
+        # ----------------------------
+        base_name = _slugify_filename(name) if name else Path(saved_paths[0]).stem
+        sources_dir = Path("static") / "data" / "sources" / base_name
+        sources_dir.mkdir(parents=True, exist_ok=True)
+        source_files_urls = []
+        for p in saved_paths:
+            src = Path(p)
+            dest = sources_dir / src.name
+            shutil.copy2(src, dest)
+            source_files_urls.append(f"/static/data/sources/{base_name}/{src.name}")
+        usage_meta["source_files"] = source_files_urls
+
+        # ----------------------------
+        # 4) SAVE JSON USING NAME
         # ----------------------------
         json_path = save_pid_json(
             pid_data=pid_data,
@@ -90,7 +119,7 @@ def api_full():
         )
 
         # ----------------------------
-        # 4) RELOAD JSON → same format as /api/search
+        # 5) RELOAD JSON → same format as /api/search
         # ----------------------------
         base_name = name or Path(json_path).stem
         result = search_file(base_name, Path("static/data"))
@@ -172,12 +201,86 @@ def api_search():
     logger.info(f"SocketIO emit: {result}")
     return jsonify(result), status_code
 
+
+# ---------- Modify / Fix existing JSON ----------
+@app.route("/api/modify", methods=["POST"])
+def api_modify():
+    file_name = request.form.get("file_name", "").strip()
+    instruction = request.form.get("instruction", "").strip()
+    llm_provider = request.form.get("llm_provider", "own_api").strip()
+    llm_model = request.form.get("llm_model", "").strip() or None
+
+    if not file_name:
+        return jsonify({"ok": False, "error": "file_name is required"}), 400
+    if not instruction:
+        return jsonify({"ok": False, "error": "instruction is required"}), 400
+
+    # Strip .json extension if present so we get the bare base name
+    base_name = file_name[:-5] if file_name.endswith(".json") else file_name
+
+    client = get_llm_client(llm_provider)
+    file_ids: list[str] = []
+    upload_dir = Path("static") / "uploads"
+    upload_dir.mkdir(parents=True, exist_ok=True)
+    user_saved: list[Path] = []
+
+    # Upload any user-provided file
+    for f in request.files.getlist("file"):
+        if not f.filename:
+            continue
+        p = upload_dir / f.filename
+        f.save(p)
+        user_saved.append(p)
+        try:
+            fid = _upload_vision_file(str(p), client)
+            file_ids.append(fid)
+        except Exception as e:
+            logger.warning("Failed to upload user file %s: %s", f.filename, e)
+
+    # Attach original P&ID images from metadata.source_files
+    json_path = Path("static/data") / f"{base_name}.json"
+    if json_path.exists():
+        try:
+            saved_data = json.loads(json_path.read_text(encoding="utf-8"))
+            for url in (saved_data.get("metadata") or {}).get("source_files", []):
+                local = Path(url.lstrip("/"))
+                if local.exists():
+                    try:
+                        fid = _upload_vision_file(str(local), client)
+                        file_ids.append(fid)
+                    except Exception as e:
+                        logger.warning("Failed to upload source image %s: %s", local, e)
+        except Exception as e:
+            logger.warning("Could not read source_files from %s: %s", json_path, e)
+
+    try:
+        new_combined, _ = modify_pid_json(
+            file_name=base_name,
+            instruction=instruction,
+            file_ids=file_ids,
+            llm_provider=llm_provider,
+            model=llm_model or "gpt-5.5-2026-04-23",
+        )
+    except ValueError as e:
+        return jsonify({"ok": False, "error": f"Validation failed: {e}"}), 422
+    except Exception as e:
+        logger.exception("modify_pid_json failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+    finally:
+        for p in user_saved:
+            p.unlink(missing_ok=True)
+
+    return jsonify({"ok": True, "data": new_combined, "file_name": f"{base_name}.json"})
+
+
 # ---------- HAZOP analysis agent via Socket.IO ----------
 @socketio.on("hazop_start")
 def handle_hazop_start(data):
     logger.info(f"hazop_start received: {len(data.get('selections', []))} selections")
     pid_data = data.get("pid_data", {})
     selections = data.get("selections", [])
+    llm_provider = (data.get("llm_provider") or "own_api").strip()
+    llm_model = (data.get("llm_model") or "").strip() or None
 
     raw_name = (data.get("file_name") or "").strip()
     if not raw_name:
@@ -209,15 +312,20 @@ def handle_hazop_start(data):
 
     def background_task():
         try:
-            for key, tokens_used in run_hazop_agent_1(
-                pid_data=pid_data,
-                excel_path=excel_path,
-                token_log_path=token_log_path,
-                error_log_path=error_log_path,
-                llm_response_log_path=llm_response_log_path,
-                parsed_excel_path=parsed_excel_path,
-                selections=selections,
-            ):
+            hazop_kwargs = {
+                "pid_data": pid_data,
+                "excel_path": excel_path,
+                "token_log_path": token_log_path,
+                "error_log_path": error_log_path,
+                "llm_response_log_path": llm_response_log_path,
+                "parsed_excel_path": parsed_excel_path,
+                "selections": selections,
+                "llm_provider": llm_provider,
+            }
+            if llm_model:
+                hazop_kwargs["model_name"] = llm_model
+
+            for key, tokens_used in run_hazop_agent_1(**hazop_kwargs):
                 try:
                     line_id, param, guide_word = key.split(":", 2)
                 except ValueError:

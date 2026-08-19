@@ -104,6 +104,8 @@ const API_BASE = "http://localhost:5000";
 const inputMode = ref<InputMode>("search");
 const processName = ref("");
 const processDescription = ref("");
+const processNodeDefine = ref("");
+const processIntention = ref("");
 
 // extract + JSON state
 const isExtracting = ref(false);
@@ -121,6 +123,10 @@ const actionState = ref<ActionState>("idle");
 // ✅ analysis config from DeviationSelection (file name + output folder)
 const analysisFileName = ref<string>("");
 const outputFolder = ref<string>("");
+
+// LLM provider/model chosen during full extraction, reused for HAZOP
+const selectedLlmProvider = ref("own_api");
+const selectedLlmModel = ref("");
 
 // ----------------- Socket.IO -----------------
 const socket = io(API_BASE);
@@ -153,6 +159,8 @@ const resetAllState = () => {
 
   processName.value = "";
   processDescription.value = "";
+  processNodeDefine.value = "";
+  processIntention.value = "";
 
   // extract / json
   isExtracting.value = false;
@@ -304,6 +312,21 @@ const systemOutputs = computed<string[]>(() => {
 
 const showConnectionPreview = ref(false);
 
+// Modify dialog trigger (forwarded from JsonDisplay graph review → ActionButton)
+const modifyPrefill = ref("");
+const modifyOpenTs = ref(0);
+
+const handleOpenModify = (instruction: string) => {
+  modifyPrefill.value = instruction;
+  modifyOpenTs.value = Date.now();
+};
+
+const handleModifyDone = (payload: { data: any; fileName: string }) => {
+  jsonData.value = payload.data;
+  jsonFileName.value = payload.fileName;
+  nodes.value = buildNodesFromJson(payload.data);
+};
+
 const connectionPreview = computed<Connection[]>(() => {
   const root = pidRoot.value;
   const grouped = getPidConnections(root).map((conn, idx) =>
@@ -402,6 +425,8 @@ const handleCtaClick = () => {
   inputMode.value = "full";
   processName.value = "";
   processDescription.value = "";
+  processNodeDefine.value = "";
+  processIntention.value = "";
   jsonData.value = null;
   jsonFileName.value = null;
   extractLabel.value = "Idle";
@@ -412,6 +437,8 @@ const handleSearchClick = () => {
   stage.value = "input";
   inputMode.value = "search";
   processDescription.value = "";
+  processNodeDefine.value = "";
+  processIntention.value = "";
   jsonData.value = null;
   jsonFileName.value = null;
   extractLabel.value = "Idle";
@@ -424,9 +451,13 @@ type StartExtractPayload =
     mode: "full";
     name: string;
     description: string;
+    nodeDefine: string;
+    intention: string;
     file: File | null;
     fileName: string | null;
     files?: File[];
+    llm_provider: string;
+    llm_model: string;
   }
   | { mode: "search"; name: string };
 
@@ -489,9 +520,16 @@ const onStartExtract = async (payload: StartExtractPayload) => {
       selectedNodes.value = [];
       nodeDeviationSelections.value = {};
     } else {
+      selectedLlmProvider.value = payload.llm_provider ?? "own_api";
+      selectedLlmModel.value = payload.llm_model ?? "";
+
       const formData = new FormData();
       formData.append("name", payload.name);
       formData.append("description", payload.description);
+      formData.append("node_define", payload.nodeDefine ?? "");
+      formData.append("intention", payload.intention ?? "");
+      formData.append("llm_provider", payload.llm_provider ?? "own_api");
+      if (payload.llm_model) formData.append("llm_model", payload.llm_model);
 
       const filesToSend: File[] =
         payload.files && payload.files.length > 0
@@ -806,6 +844,8 @@ const handleStartAnalysis = async () => {
     selections,
     file_name: analysisFileName.value,
     output_folder: outputFolder.value,
+    llm_provider: selectedLlmProvider.value,
+    llm_model: selectedLlmModel.value,
   });
 };
 </script>
@@ -813,13 +853,14 @@ const handleStartAnalysis = async () => {
 <template>
   <div class="min-h-screen bg-linear-to-br from-slate-50 to-slate-100 overflow-y-auto">
     <!-- fixed top bar -->
-    <div class="fixed inset-x-0 top-0 z-40 bg-slate-50">
+    <div class="fixed inset-x-0 top-0 z-40 bg-white">
       <div class="mx-auto flex items-center justify-start px-30 py-10">
         <div class="flex gap-2 items-center justify-center">
           <img src="~/assets/logo/logo_ku.png" alt="IDEKTEP Logo" class="w-17 h-17 rounded-full" />
           <img src="~/assets/logo/logo_che.png" alt="IDEKTEP Logo" class="w-20 h-20 rounded-full" />
+          <img src="~/assets/logo/logo_scgc.png" alt="IDEKTEP Logo" class="w-35 h-20 " />
         </div>
-        <span class="ml-3 text-gray-400 font-black">KUChE / ENERIA LAB</span>
+        <span class="ml-3 text-gray-400 font-black"></span>
       </div>
     </div>
 
@@ -832,6 +873,7 @@ const handleStartAnalysis = async () => {
         <!-- ProcessInput -->
         <Transition name="fade-slide">
           <ProcessInput v-if="stage !== 'initial'" v-model:name="processName" v-model:description="processDescription"
+            v-model:nodeDefine="processNodeDefine" v-model:intention="processIntention"
             :mode="inputMode" :busy="isExtracting" @start-extract="onStartExtract" />
         </Transition>
 
@@ -847,13 +889,19 @@ const handleStartAnalysis = async () => {
         <!-- JSON result -->
         <Transition name="fade-slide">
           <JsonDisplay v-if="['json', 'node', 'deviation', 'analysis'].includes(stage)" class="mt-4" :data="jsonData"
-            :file-name="jsonFileName ?? undefined" @preview-connections="showConnectionPreview = true" />
+            :file-name="jsonFileName ?? undefined" @preview-connections="showConnectionPreview = true"
+            @open-modify="handleOpenModify" />
         </Transition>
 
         <!-- Action buttons -->
         <Transition name="fade-slide">
           <ActionButtons v-if="['json', 'node', 'deviation', 'analysis'].includes(stage)" class="mt-6"
-            :state="actionState" :disabled="hasCalledHazop" @call-hazop="handleCallHazop" @exit="handleExit" />
+            :state="actionState" :disabled="hasCalledHazop"
+            :json-file-name="jsonFileName"
+            :prefill-instruction="modifyPrefill"
+            :open-trigger="modifyOpenTs"
+            @call-hazop="handleCallHazop" @exit="handleExit"
+            @modify-done="handleModifyDone" />
         </Transition>
 
         <!-- NodeSelection -->
