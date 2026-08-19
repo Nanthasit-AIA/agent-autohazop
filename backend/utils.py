@@ -84,21 +84,33 @@ def search_file(name: str, data_dir: str | Path = "static/data") -> dict[str, An
         return {"ok": False, "error": "Empty file name"}
 
     data_dir = Path(data_dir)
-    json_path = data_dir / f"{name}.json"
-    csv_path = data_dir / f"{name}.csv"
+    base_name = Path(name).stem if Path(name).suffix.lower() in {".json", ".csv"} else name
+
+    # Try the name as given first, then its slugified form, so a display name
+    # like "Naphtha Tank" still resolves to a file saved as "naphtha_tank".
+    candidate_names: list[str] = []
+    for candidate in (base_name, _slugify_filename(base_name)):
+        if candidate and candidate not in candidate_names:
+            candidate_names.append(candidate)
 
     file_used: str | None = None
     data: Any = None
 
     try:
-        if json_path.exists():
-            file_used = json_path.name
-            data = json.loads(json_path.read_text(encoding="utf-8"))
-        elif csv_path.exists():
-            file_used = csv_path.name
-            with csv_path.open(newline="", encoding="utf-8") as f:
-                reader = csv.DictReader(f)
-                data = list(reader)
+        for candidate in candidate_names:
+            json_path = data_dir / f"{candidate}.json"
+            csv_path = data_dir / f"{candidate}.csv"
+
+            if json_path.exists():
+                file_used = json_path.name
+                data = json.loads(json_path.read_text(encoding="utf-8"))
+                break
+            if csv_path.exists():
+                file_used = csv_path.name
+                with csv_path.open(newline="", encoding="utf-8") as f:
+                    reader = csv.DictReader(f)
+                    data = list(reader)
+                break
         else:
             return {"ok": False, "error": "File not found"}
 

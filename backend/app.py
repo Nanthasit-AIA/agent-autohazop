@@ -1,4 +1,4 @@
-import json, os, shutil, time
+import json, os, re, shutil, time
 from pathlib import Path
 
 from flask import Flask, jsonify, request
@@ -18,6 +18,36 @@ app = Flask(__name__, static_folder="static")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 DATA_DIR = Path(app.root_path) / "static" / "data"
+
+
+def sanitize_hazop_output_folder(value: str | None) -> str:
+    """Reduce a client-supplied folder to a single safe path segment."""
+    raw = str(value or "").strip().replace("\\", "/").strip("/")
+    if not raw:
+        return "default"
+
+    lowered = raw.lower()
+    for prefix in ("static/hazop/", "backend/static/hazop/"):
+        if lowered.startswith(prefix):
+            raw = raw[len(prefix):]
+            lowered = raw.lower()
+            break
+
+    folder = Path(raw).name
+    folder = re.sub(r"[^A-Za-z0-9._-]+", "_", folder).strip("._")
+    return folder or "default"
+
+
+def sanitize_hazop_file_name(value: str | None) -> str:
+    """Reduce a client-supplied file name to a safe .xlsx leaf name."""
+    raw = Path(str(value or "").strip()).name
+    if not raw:
+        raw = "hazop_output.xlsx"
+    root, ext = os.path.splitext(raw)
+    if not ext:
+        raw = root + ".xlsx"
+    return re.sub(r"[^A-Za-z0-9._ -]+", "_", raw).strip(" ._") or "hazop_output.xlsx"
+
 
 @app.route("/api/llm-config", methods=["GET"])
 def api_llm_config():
@@ -282,19 +312,8 @@ def handle_hazop_start(data):
     llm_provider = (data.get("llm_provider") or "own_api").strip()
     llm_model = (data.get("llm_model") or "").strip() or None
 
-    raw_name = (data.get("file_name") or "").strip()
-    if not raw_name:
-        raw_name = "hazop_output.xlsx"
-
-    root, ext = os.path.splitext(raw_name)
-    if not ext:
-        raw_name = root + ".xlsx"
-
-    file_name = raw_name
-
-    output_folder = (data.get("output_folder") or "default").strip()
-    if not output_folder:
-        output_folder = "default"
+    file_name = sanitize_hazop_file_name(data.get("file_name"))
+    output_folder = sanitize_hazop_output_folder(data.get("output_folder"))
 
     base_dir = os.path.join("static", "hazop", output_folder)
     os.makedirs(base_dir, exist_ok=True)
