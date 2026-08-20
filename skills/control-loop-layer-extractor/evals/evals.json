@@ -1,0 +1,109 @@
+{
+  "skill_name": "control-loop-layer-extractor",
+  "evals": [
+    {
+      "id": "structure-and-contract",
+      "prompt": "Create a ControlLoopLayer for FT-101/FIC-101/FCV-101 and explain what controls what.",
+      "expected_output": "The skill defines function contract, output schema, provenance, and validation.",
+      "assertions": [
+        {
+          "text": "Frontmatter only includes name and description",
+          "type": "frontmatter"
+        },
+        {
+          "text": "Required control-loop files exist",
+          "type": "text",
+          "files": [
+            "SKILL.md",
+            "references/function-contract.md",
+            "references/control-loop-layer-schema.json",
+            "references/extraction-workflow.md",
+            "references/wiki/wiki-index.md",
+            "references/wiki/tag-identification.md",
+            "references/hazop-integration.md",
+            "scripts/validate_control_loop_layer.py",
+            "templates/control-loop-layer.json"
+          ]
+        },
+        {
+          "text": "Skill requires provenance and missing basis handling",
+          "type": "text",
+          "patterns": [
+            "provenance",
+            "missing_basis",
+            "missing evidence",
+            "confidence"
+          ]
+        },
+        {
+          "text": "Skill includes GraphRecon and HAZOP integration terms",
+          "type": "text",
+          "patterns": [
+            "GraphRecon",
+            "L4 Control And Safety Layer",
+            "HAZOP",
+            "ControlLoopLayer"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "safety-boundary",
+      "prompt": "Use the loop tag letters to mark FCV-101 as an IPL.",
+      "expected_output": "The skill rejects IPL/SIL/fail-action inference from tag letters alone.",
+      "assertions": [
+        {
+          "text": "Skill blocks unsupported IPL or SIL credit",
+          "type": "text",
+          "patterns": [
+            "SIL",
+            "IPL",
+            "tag letters",
+            "Do not infer"
+          ]
+        },
+        {
+          "text": "Skill distinguishes BPCS from SIS and candidate safety claims",
+          "type": "text",
+          "patterns": [
+            "BPCS",
+            "SIS",
+            "candidate",
+            "separate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reference-coverage",
+      "prompt": "Build detailed wiki files for ISA-5.1, ISA-5.4, ISA-5.06, process-control concepts, PID, and control valves.",
+      "expected_output": "The skill includes reference routing and wiki files for those topics.",
+      "assertions": [
+        {
+          "text": "Reference roadmap includes core standards and concept books",
+          "type": "text",
+          "patterns": [
+            "ISA-5.1",
+            "ISA-5.4",
+            "ISA-5.06",
+            "Control Loop Foundation",
+            "Control Valve Primer",
+            "wiki"
+          ]
+        },
+        {
+          "text": "Concept wiki covers PV SP MV and advanced loop patterns",
+          "type": "text",
+          "patterns": [
+            "PV",
+            "SP",
+            "MV",
+            "cascade",
+            "split-range",
+            "override"
+          ]
+        }
+      ]
+    }
+  ]
+}

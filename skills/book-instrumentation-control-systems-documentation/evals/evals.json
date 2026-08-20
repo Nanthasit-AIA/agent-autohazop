@@ -1,0 +1,56 @@
+{
+  "evals": [
+    {
+      "id": "frontmatter-and-references",
+      "prompt": "Validate that the skill has the required Codex frontmatter and reference files.",
+      "assertions": [
+        {
+          "type": "frontmatter",
+          "text": "SKILL.md frontmatter contains only name and description"
+        },
+        {
+          "text": "Required reference files exist",
+          "files": [
+            "references/documentation-chain.md",
+            "references/hazop-control-document-qa.md",
+            "references/pid-loop-logic-checklist.md",
+            "references/source-map.md"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hazop-control-documentation-behavior",
+      "prompt": "A HAZOP row claims a high-pressure alarm and interlock are IPLs, but only a P&ID tag is supplied.",
+      "assertions": [
+        {
+          "text": "Skill requires missing-basis handling for IPL claims",
+          "patterns": [
+            "candidate IPL",
+            "credited IPL",
+            "independence",
+            "effectiveness",
+            "auditability"
+          ]
+        },
+        {
+          "text": "Skill routes logic claims to appropriate documents",
+          "patterns": [
+            "cause-and-effect",
+            "logic diagram",
+            "process control description",
+            "loop diagram"
+          ]
+        },
+        {
+          "text": "Skill blocks unsafe tag-only inference",
+          "patterns": [
+            "Do not infer safety function",
+            "tag letters",
+            "P&ID symbols alone"
+          ]
+        }
+      ]
+    }
+  ]
+}

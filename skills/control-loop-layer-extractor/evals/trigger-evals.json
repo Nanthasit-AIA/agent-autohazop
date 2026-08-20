@@ -1,0 +1,82 @@
+[
+  {
+    "query": "อ่าน loop control จาก P&ID แล้วแยกว่าอะไรคุมอะไรให้หน่อย",
+    "should_trigger": true,
+    "reason": "Thai prompt asks to extract control-loop relations."
+  },
+  {
+    "query": "Build a ControlLoopLayer JSON from FT-101, FIC-101, and FCV-101.",
+    "should_trigger": true,
+    "reason": "Direct ControlLoopLayer extraction request."
+  },
+  {
+    "query": "Which valve does LIC-201 control and what equipment is it mounted on?",
+    "should_trigger": true,
+    "reason": "Asks what controls what and attachment."
+  },
+  {
+    "query": "Map PV SP MV final element and controlled equipment for this loop diagram.",
+    "should_trigger": true,
+    "reason": "Asks for process-control loop roles."
+  },
+  {
+    "query": "สร้าง L4 control and safety layer จาก instrument tags ใน graph agent",
+    "should_trigger": true,
+    "reason": "Thai prompt asks for GraphRecon L4 control layer."
+  },
+  {
+    "query": "Can FIC-101 failure be a HAZOP cause for no flow?",
+    "should_trigger": true,
+    "reason": "Needs HAZOP control-loop cause credibility."
+  },
+  {
+    "query": "Validate this control_loop_layer.json file.",
+    "should_trigger": true,
+    "reason": "Direct validator workflow."
+  },
+  {
+    "query": "Extract instrument loop diagram signal path and instrument air dependency.",
+    "should_trigger": true,
+    "reason": "Loop diagram and dependency extraction."
+  },
+  {
+    "query": "หา paper open access เกี่ยวกับ graph neural network",
+    "should_trigger": false,
+    "reason": "Open paper search belongs to open-paper-scout."
+  },
+  {
+    "query": "ช่วยทำ worksheet สรุปประชุมทั่วไป",
+    "should_trigger": false,
+    "reason": "Generic worksheet writing is unrelated to control-loop extraction."
+  },
+  {
+    "query": "คำนวณ SIL verification สำหรับ SIF นี้",
+    "should_trigger": false,
+    "reason": "SIL verification belongs to SIS/SIL skill."
+  },
+  {
+    "query": "จัด format Excel workbook ให้หน่อย",
+    "should_trigger": false,
+    "reason": "Spreadsheet formatting is unrelated."
+  },
+  {
+    "query": "Solve derivative calculus homework.",
+    "should_trigger": false,
+    "reason": "General math tutoring is unrelated to control-loop extraction."
+  },
+  {
+    "query": "Review alarm rationalization priorities for these alarms.",
+    "should_trigger": false,
+    "reason": "Alarm rationalization is a separate skill unless loop extraction is needed."
+  },
+  {
+    "query": "Trace the driving route from Bangkok to Chiang Mai.",
+    "should_trigger": false,
+    "reason": "General route tracing is unrelated to process-control extraction."
+  },
+  {
+    "query": "Does XV-101 count as an IPL?",
+    "should_trigger": false,
+    "reason": "IPL classification belongs to LOPA/SIS skill unless the task first asks to extract the loop relation."
+  }
+]

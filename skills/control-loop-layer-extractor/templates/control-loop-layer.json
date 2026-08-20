@@ -1,0 +1,312 @@
+{
+  "schema_version": "control-loop-layer-0.1",
+  "function_name": "extract_control_loop_layer",
+  "status": "draft",
+  "inputs_used": [
+    {
+      "source_file": "example-pid.pdf",
+      "document_type": "pid",
+      "revision": "unknown",
+      "pages": [1],
+      "notes": "Example placeholder only."
+    }
+  ],
+  "control_loops": [
+    {
+      "loop_id": "loop-FIC-101",
+      "classification": "feedback",
+      "loop_number": "101",
+      "service": "example flow control",
+      "control_objective": "Maintain flow through the controlled line.",
+      "controlled_variable": "flow",
+      "measured_variable": "flow",
+      "setpoint_source": "unknown",
+      "manipulated_variable": "valve position / line flow",
+      "controller": {
+        "id": "inst-FIC-101",
+        "tag": "FIC-101",
+        "role": "controller",
+        "attachment": "control system",
+        "description": "Flow indicating controller candidate.",
+        "confidence": 0.7,
+        "missing_basis": ["Need control narrative or loop diagram to confirm controller action."]
+      },
+      "sensors": [
+        {
+          "id": "inst-FT-101",
+          "tag": "FT-101",
+          "role": "sensor/transmitter",
+          "attachment": "line-L-101",
+          "description": "Flow transmitter candidate.",
+          "confidence": 0.75,
+          "missing_basis": []
+        }
+      ],
+      "final_elements": [
+        {
+          "id": "valve-FCV-101",
+          "tag": "FCV-101",
+          "role": "final_control_element",
+          "attachment": "line-L-101",
+          "description": "Flow control valve candidate.",
+          "confidence": 0.75,
+          "missing_basis": ["Need datasheet to confirm fail action."]
+        }
+      ],
+      "controlled_assets": [
+        {
+          "id": "line-L-101",
+          "tag": "L-101",
+          "role": "controlled_line",
+          "attachment": "process graph",
+          "description": "Line affected by FCV-101.",
+          "confidence": 0.8,
+          "missing_basis": []
+        }
+      ],
+      "signal_paths": [
+        {
+          "source": "FT-101",
+          "target": "FIC-101",
+          "signal_type": "unknown",
+          "medium": "unknown",
+          "confidence": 0.45,
+          "missing_basis": ["Need loop diagram to confirm signal path."]
+        },
+        {
+          "source": "FIC-101",
+          "target": "FCV-101",
+          "signal_type": "unknown",
+          "medium": "unknown",
+          "confidence": 0.45,
+          "missing_basis": ["Need loop diagram to confirm output path."]
+        }
+      ],
+      "dependencies": [],
+      "control_action": "unknown",
+      "fail_action": "unknown",
+      "operating_modes": ["unknown"],
+      "safety_boundary": "bpcs",
+      "edges": ["edge-FT101-FIC101", "edge-FIC101-FCV101", "edge-FCV101-L101"],
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.75,
+          "activity": "example_loop_grouping"
+        }
+      ],
+      "confidence": 0.7,
+      "missing_basis": ["Need loop diagram and control narrative for full HAZOP-ready basis."],
+      "hazop_relevance": {
+        "usable_for_hazop": true,
+        "cause_families": ["controller output fault", "transmitter signal fault", "final element stuck"],
+        "safeguard_claims": ["ordinary BPCS control only; no IPL credit without separate basis"],
+        "recommendation_hooks": ["Verify loop diagram and final element fail action."]
+      }
+    }
+  ],
+  "nodes": [
+    {
+      "id": "loop-FIC-101",
+      "type": "control_loop",
+      "label": "FIC-101 flow control loop",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "classification": "feedback",
+        "status": "candidate"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.75,
+          "activity": "example_node_creation"
+        }
+      ]
+    },
+    {
+      "id": "inst-FT-101",
+      "type": "transmitter",
+      "label": "FT-101",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "role": "sensor/transmitter",
+        "measured_variable": "flow"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.75,
+          "activity": "example_node_creation"
+        }
+      ]
+    },
+    {
+      "id": "inst-FIC-101",
+      "type": "controller",
+      "label": "FIC-101",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "role": "controller",
+        "controlled_variable": "flow"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.7,
+          "activity": "example_node_creation"
+        }
+      ]
+    },
+    {
+      "id": "valve-FCV-101",
+      "type": "control_valve",
+      "label": "FCV-101",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "role": "final_control_element",
+        "manipulated_variable": "line flow"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.75,
+          "activity": "example_node_creation"
+        }
+      ]
+    },
+    {
+      "id": "line-L-101",
+      "type": "controlled_asset",
+      "label": "L-101",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "role": "controlled_line",
+        "controlled_variable": "flow"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.8,
+          "activity": "example_node_creation"
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "edge-FT101-FIC101",
+      "source": "inst-FT-101",
+      "target": "inst-FIC-101",
+      "type": "transmits_signal_to",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "status": "candidate",
+        "basis": "example"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.45,
+          "activity": "example_edge_creation"
+        }
+      ]
+    },
+    {
+      "id": "edge-FIC101-FCV101",
+      "source": "inst-FIC-101",
+      "target": "valve-FCV-101",
+      "type": "commands",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "status": "candidate",
+        "basis": "example"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.45,
+          "activity": "example_edge_creation"
+        }
+      ]
+    },
+    {
+      "id": "edge-FCV101-L101",
+      "source": "valve-FCV-101",
+      "target": "line-L-101",
+      "type": "manipulates",
+      "layer": "L4_control_safety",
+      "attributes": {
+        "status": "candidate",
+        "basis": "example"
+      },
+      "provenance": [
+        {
+          "source_file": "example-pid.pdf",
+          "page": 1,
+          "bbox": [],
+          "document_type": "pid",
+          "method": ["example"],
+          "agent": "control-loop-layer-extractor",
+          "confidence": 0.7,
+          "activity": "example_edge_creation"
+        }
+      ]
+    }
+  ],
+  "missing_evidence": [
+    {
+      "claim": "FIC-101 output path to FCV-101",
+      "needed_document": "loop diagram or control narrative",
+      "impact": "Cannot verify signal path or control action.",
+      "review_required": true
+    }
+  ],
+  "validation": {
+    "passed": true,
+    "issues": [],
+    "confidence_summary": {
+      "min": 0.45,
+      "max": 0.8
+    }
+  }
+}

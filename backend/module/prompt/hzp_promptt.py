@@ -403,15 +403,25 @@ def build_file_search_hazop_prompt(**kwargs: Any) -> str:
         "guide_word": _clean_prompt_value(kwargs.get("guide_word", "")),
         "parameter": _clean_prompt_value(kwargs.get("parameter", "")),
     }
-    return (
-        HzpRules_Prompt.strip()
-        + "\n\n"
-        + DATA_TAGS_RULE.format(**data).strip()
-        + "\n\n"
-        + FINAL_TASK.strip()
-        + "\n\n"
-        + SUFFIX_TASK.strip()
-    )
+    # Retrieved knowledge is appended outside .format() so that braces in the
+    # source markdown cannot break prompt formatting.
+    knowledge_context = str(kwargs.get("knowledge_context", "") or "").strip()
+
+    parts = [
+        HzpRules_Prompt.strip(),
+        DATA_TAGS_RULE.format(**data).strip(),
+    ]
+    if knowledge_context:
+        parts.append(
+            "REFERENCE KNOWLEDGE (retrieved from the HAZOP skill and standards library).\n"
+            "Use it as the basis for causes, consequences, safeguards and recommendations. "
+            "If it does not cover something, say so explicitly rather than inventing a basis.\n\n"
+            + knowledge_context
+        )
+    parts.append(FINAL_TASK.strip())
+    parts.append(SUFFIX_TASK.strip())
+
+    return "\n\n".join(parts)
 
 
 class LegacyPromptAdapter:
@@ -422,7 +432,7 @@ class LegacyPromptAdapter:
         "included_equipment", "included_lines", "valves", "instruments",
         "system_inputs", "system_outputs", "utility_lines", "flow_direction", "context",
         "process_description", "intention", "connection_record_json", "full_pid_json",
-        "guide_word", "parameter",
+        "guide_word", "parameter", "knowledge_context",
     ]
 
     def format(self, **kwargs: Any) -> str:

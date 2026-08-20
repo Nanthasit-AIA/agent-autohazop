@@ -13,6 +13,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import pandas as pd
 
 from decorators import logger, timeit_log
+from module.knowledge_module import build_generation_knowledge_context
 from module.llm_module import get_openai_sdk, get_llm_client, build_llm_metadata, _call_with_retries
 from module.prompt.hzp_promptt import (
     HAZOP_LOPA_HEADERS_20,
@@ -33,6 +34,27 @@ SUPPORTED_VECTOR_FILE_EXTENSIONS = {
 DEFAULT_VECTOR_STORE_CONFIG_PATH = "hazop_vector_store_config.json"
 DEFAULT_VECTOR_STORE_NAME = "hazop_db"
 DEFAULT_RESPONSES_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5-2026-04-23")
+
+# Where HAZOP reference knowledge comes from.
+#   "local"              -> local skill/standards library via knowledge_module (no vector store)
+#   "openai_file_search" -> OpenAI hosted vector store via the file_search tool
+KNOWLEDGE_SOURCE_LOCAL = "local"
+KNOWLEDGE_SOURCE_FILE_SEARCH = "openai_file_search"
+DEFAULT_KNOWLEDGE_SOURCE = (
+    os.getenv("HAZOP_KNOWLEDGE_SOURCE", KNOWLEDGE_SOURCE_LOCAL).strip().lower()
+    or KNOWLEDGE_SOURCE_LOCAL
+)
+
+
+def knowledge_sources_from_context(context_text: str) -> List[str]:
+    """Pull the SOURCE: lines out of a built knowledge context, for trace logging."""
+    sources: List[str] = []
+    for line in str(context_text or "").splitlines():
+        if line.startswith("SOURCE: "):
+            source = line[len("SOURCE: "):].strip()
+            if source and source not in sources:
+                sources.append(source)
+    return sources
 
 
 # =============================================================================
@@ -533,28 +555,42 @@ def _response_output_text(response: Any) -> str:
 def generate_hazop_with_file_search(
     input_data: Dict[str, Any],
     *,
-    vector_store_id: str,
+    vector_store_id: Optional[str] = None,
     llm_provider: str = "own_api",
     model_name: str = DEFAULT_RESPONSES_MODEL,
     max_num_results: int = 12,
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
 ) -> Tuple[str, Dict[str, Any]]:
-    """Call Responses API with file_search over a HAZOP vector store."""
+    """Call the Responses API for one HAZOP deviation.
+
+    Knowledge comes from one of two places:
+      - vector_store_id set  -> OpenAI file_search over that hosted vector store
+      - vector_store_id None -> local skill/standards library, injected into the prompt
+    """
     client = get_llm_client(llm_provider)
-    prompt = build_file_search_hazop_prompt(**input_data)
+
+    call_input = dict(input_data)
+    knowledge_sources: List[str] = []
+    if not vector_store_id:
+        knowledge_context = build_generation_knowledge_context(call_input)
+        call_input["knowledge_context"] = knowledge_context
+        knowledge_sources = knowledge_sources_from_context(knowledge_context)
+
+    prompt = build_file_search_hazop_prompt(**call_input)
 
     request_kwargs: Dict[str, Any] = {
         "model": model_name,
         "input": prompt,
-        "tools": [
+    }
+    if vector_store_id:
+        request_kwargs["tools"] = [
             {
                 "type": "file_search",
                 "vector_store_ids": [vector_store_id],
                 "max_num_results": max_num_results,
             }
-        ],
-    }
+        ]
 
     # The SDK/model may support these for GPT-5.x. Keep optional to avoid breaking older models.
     if reasoning_effort:
@@ -574,7 +610,11 @@ def generate_hazop_with_file_search(
     )
     latency = time.perf_counter() - start
     meta = build_llm_metadata(response, latency)
-    meta["vector_store_id"] = vector_store_id
+    meta["vector_store_id"] = vector_store_id or ""
+    meta["knowledge_source"] = (
+        KNOWLEDGE_SOURCE_FILE_SEARCH if vector_store_id else KNOWLEDGE_SOURCE_LOCAL
+    )
+    meta["knowledge_sources"] = knowledge_sources
     meta["model"] = meta.get("model") or model_name
     return _response_output_text(response), meta
 
@@ -664,6 +704,7 @@ def run_hazop_agent_1(
     max_generation_retries: int = 1,
     reasoning_effort: Optional[str] = None,
     verbosity: Optional[str] = None,
+    knowledge_source: str = DEFAULT_KNOWLEDGE_SOURCE,
 ) -> Generator[Tuple[str, int], None, None]:
     """Generate HAZOP rows using OpenAI File Search over a pre-uploaded vector store.
 
@@ -675,12 +716,28 @@ def run_hazop_agent_1(
 
     If vector_store_id is not passed, the function loads HAZOP_VECTOR_STORE_ID from .env
     or hazop_vector_store_config.json.
+
+    knowledge_source selects where reference knowledge comes from. The default is
+    "local", which uses the on-disk skill/standards library and needs no vector
+    store. Set HAZOP_KNOWLEDGE_SOURCE=openai_file_search (or pass knowledge_source)
+    to fall back to the OpenAI hosted vector store.
     """
-    resolved_vector_store_id = get_or_create_vector_store_id(
-        vector_store_id=vector_store_id,
-        source_folder=source_folder,
-        config_path=vector_store_config_path,
-        create_if_missing=create_vector_store_if_missing,
+    resolved_vector_store_id: Optional[str] = None
+    if knowledge_source == KNOWLEDGE_SOURCE_FILE_SEARCH:
+        resolved_vector_store_id = get_or_create_vector_store_id(
+            vector_store_id=vector_store_id,
+            source_folder=source_folder,
+            config_path=vector_store_config_path,
+            create_if_missing=create_vector_store_if_missing,
+        )
+    elif vector_store_id:
+        # Explicit id always wins, whatever the configured default is.
+        resolved_vector_store_id = vector_store_id.strip()
+
+    logger.info(
+        "HAZOP knowledge source: %s%s",
+        knowledge_source,
+        f" (vector_store_id={resolved_vector_store_id})" if resolved_vector_store_id else "",
     )
 
     headers = HAZOP_LOPA_HEADERS_20
@@ -693,6 +750,7 @@ def run_hazop_agent_1(
 
     token_df = pd.read_csv(token_log_path) if os.path.exists(token_log_path) else pd.DataFrame(columns=[
         "Timestamp", "LineID", "Parameter", "GuideWord", "Model", "VectorStoreID",
+        "KnowledgeSource", "KnowledgeSources",
         "PromptTokens", "CompletionTokens", "TotalTokens", "ResponseID", "LatencySeconds"
     ])
 
@@ -776,7 +834,7 @@ def run_hazop_agent_1(
             "GuideWord": guide_word,
             "RawOutput": result_text,
             "ResponseID": meta.get("id"),
-            "VectorStoreID": resolved_vector_store_id,
+            "VectorStoreID": resolved_vector_store_id or "",
         }
         llm_response_df = pd.concat([llm_response_df, pd.DataFrame([response_entry])], ignore_index=True)
         llm_response_df.to_csv(llm_response_log_path, index=False)
@@ -803,7 +861,9 @@ def run_hazop_agent_1(
             "Parameter": param,
             "GuideWord": guide_word,
             "Model": meta.get("model", model_name),
-            "VectorStoreID": resolved_vector_store_id,
+            "VectorStoreID": resolved_vector_store_id or "",
+            "KnowledgeSource": meta.get("knowledge_source", ""),
+            "KnowledgeSources": " | ".join(meta.get("knowledge_sources") or []),
             "PromptTokens": tokens.get("prompt"),
             "CompletionTokens": tokens.get("completion"),
             "TotalTokens": tokens.get("total"),

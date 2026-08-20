@@ -1,0 +1,7 @@
+interface:
+  display_name: "AutoHAZOP Agent Pack"
+  short_description: "Portable HAZOP/LOPA worksheet skill pack"
+  default_prompt: "Use $autohazop-agent-pack to build HAZOP/LOPA worksheet rows from P&ID context, equipment data, safeguards, and supplied risk criteria."
+
+policy:
+  allow_implicit_invocation: true

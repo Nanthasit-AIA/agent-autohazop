@@ -1,0 +1,3 @@
+display_name: Book Instrumentation Control Systems Documentation
+short_description: Apply instrumentation and control systems documentation evidence checks to HAZOP/LOPA gene
+default_prompt: Use book-instrumentation-control-systems-documentation to complete this task with validation and a concise final report.

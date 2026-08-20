@@ -1,0 +1,7 @@
+interface:
+  display_name: "Severity Safety Environment Asset"
+  short_description: "Rule-guided HAZOP severity assessment"
+  default_prompt: "Use $severity-safety-environment-asset to assess safety, environmental, and asset severity for the current HAZOP consequence."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "ControlLoopLayer",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "function_name",
+    "status",
+    "inputs_used",
+    "control_loops",
+    "nodes",
+    "edges",
+    "missing_evidence",
+    "validation"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "control-loop-layer-0.1"
+    },
+    "function_name": {
+      "const": "extract_control_loop_layer"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["draft", "complete", "blocked", "partial"]
+    },
+    "inputs_used": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_file", "document_type"],
+        "properties": {
+          "source_file": {"type": "string"},
+          "document_type": {"type": "string"},
+          "revision": {"type": "string"},
+          "pages": {"type": "array"},
+          "notes": {"type": "string"}
+        }
+      }
+    },
+    "control_loops": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/control_loop"}
+    },
+    "nodes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/edge"}
+    },
+    "missing_evidence": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/missing_evidence"}
+    },
+    "validation": {
+      "type": "object",
+      "required": ["passed", "issues"],
+      "properties": {
+        "passed": {"type": "boolean"},
+        "issues": {"type": "array"},
+        "confidence_summary": {"type": "object"}
+      }
+    }
+  },
+  "$defs": {
+    "control_loop": {
+      "type": "object",
+      "required": [
+        "loop_id",
+        "classification",
+        "measured_variable",
+        "controller",
+        "final_elements",
+        "controlled_assets",
+        "edges",
+        "provenance",
+        "confidence",
+        "missing_basis",
+        "hazop_relevance"
+      ],
+      "properties": {
+        "loop_id": {"type": "string"},
+        "classification": {
+          "type": "string",
+          "enum": [
+            "feedback",
+            "cascade",
+            "ratio",
+            "feedforward",
+            "override",
+            "split_range",
+            "on_off",
+            "sequence",
+            "analyzer",
+            "monitoring_only",
+            "alarm_only",
+            "candidate",
+            "unknown"
+          ]
+        },
+        "loop_number": {"type": "string"},
+        "service": {"type": "string"},
+        "control_objective": {"type": "string"},
+        "controlled_variable": {"type": "string"},
+        "measured_variable": {"type": "string"},
+        "setpoint_source": {"type": "string"},
+        "manipulated_variable": {"type": "string"},
+        "controller": {"$ref": "#/$defs/component_ref"},
+        "sensors": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/component_ref"}
+        },
+        "final_elements": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/component_ref"}
+        },
+        "controlled_assets": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/component_ref"}
+        },
+        "signal_paths": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/signal_path"}
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/component_ref"}
+        },
+        "control_action": {"type": "string"},
+        "fail_action": {"type": "string"},
+        "operating_modes": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "safety_boundary": {
+          "type": "string",
+          "enum": ["bpcs", "alarm", "interlock_candidate", "sis_candidate", "manual", "unknown"]
+        },
+        "edges": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "provenance": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/provenance"}
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "missing_basis": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "hazop_relevance": {
+          "type": "object",
+          "required": ["usable_for_hazop", "cause_families", "safeguard_claims", "recommendation_hooks"],
+          "properties": {
+            "usable_for_hazop": {"type": "boolean"},
+            "cause_families": {"type": "array", "items": {"type": "string"}},
+            "safeguard_claims": {"type": "array", "items": {"type": "string"}},
+            "recommendation_hooks": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "component_ref": {
+      "type": "object",
+      "required": ["id", "tag", "role", "attachment", "confidence"],
+      "properties": {
+        "id": {"type": "string"},
+        "tag": {"type": "string"},
+        "role": {"type": "string"},
+        "attachment": {"type": "string"},
+        "description": {"type": "string"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "missing_basis": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "signal_path": {
+      "type": "object",
+      "required": ["source", "target", "signal_type", "confidence"],
+      "properties": {
+        "source": {"type": "string"},
+        "target": {"type": "string"},
+        "signal_type": {"type": "string"},
+        "medium": {"type": "string"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "missing_basis": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "type", "label", "layer", "attributes", "provenance"],
+      "properties": {
+        "id": {"type": "string"},
+        "type": {"type": "string"},
+        "label": {"type": "string"},
+        "layer": {"type": "string"},
+        "attributes": {"type": "object"},
+        "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}}
+      }
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "source", "target", "type", "layer", "attributes", "provenance"],
+      "properties": {
+        "id": {"type": "string"},
+        "source": {"type": "string"},
+        "target": {"type": "string"},
+        "type": {"type": "string"},
+        "layer": {"type": "string"},
+        "attributes": {"type": "object"},
+        "provenance": {"type": "array", "items": {"$ref": "#/$defs/provenance"}}
+      }
+    },
+    "missing_evidence": {
+      "type": "object",
+      "required": ["claim", "needed_document", "impact", "review_required"],
+      "properties": {
+        "claim": {"type": "string"},
+        "needed_document": {"type": "string"},
+        "impact": {"type": "string"},
+        "review_required": {"type": "boolean"}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": ["source_file", "method", "confidence", "activity"],
+      "properties": {
+        "source_file": {"type": "string"},
+        "page": {"type": ["integer", "string", "null"]},
+        "bbox": {"type": "array"},
+        "document_type": {"type": "string"},
+        "method": {"type": "array", "items": {"type": "string"}},
+        "agent": {"type": "string"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "activity": {"type": "string"}
+      }
+    }
+  }
+}
+
