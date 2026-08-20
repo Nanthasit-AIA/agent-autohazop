@@ -13,6 +13,11 @@ from module.ext_module import extract_pid, extract_pid_multi_files_single_call, 
 from module.agent_module import run_hazop_agent
 from module.ag_template_modulee import run_hazop_agent_1
 from module.hazop_export_module import hazop_lopa_preview_dataframe
+from module.review_excel_module import (
+    export_pid_review_excel,
+    import_pid_review_excel,
+    save_reviewed_pid_json,
+)
 from module.llm_module import (
     get_llm_config,
     get_llm_client,
@@ -26,6 +31,8 @@ app = Flask(__name__, static_folder="static")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 DATA_DIR = Path(app.root_path) / "static" / "data"
+REVIEW_DIR = Path(app.root_path) / "static" / "review"
+REVIEW_UPLOAD_DIR = REVIEW_DIR / "uploads"
 
 
 def sanitize_hazop_output_folder(value: str | None) -> str:
@@ -367,6 +374,69 @@ def api_search():
     )
     logger.info(f"SocketIO emit: {result}")
     return jsonify(result), status_code
+
+
+# ---------- Engineer review round-trip ----------
+@app.route("/api/review/export", methods=["POST"])
+def api_review_export():
+    payload = request.get_json(silent=True) or {}
+    name = (payload.get("name") or payload.get("file_name") or "pid_review").strip()
+    data = payload.get("data")
+
+    if not data:
+        return jsonify({"ok": False, "error": "No PID data received"}), 400
+
+    try:
+        xlsx_path = export_pid_review_excel(data=data, out_dir=REVIEW_DIR, name=name)
+        return jsonify({
+            "ok": True,
+            "file_name": xlsx_path.name,
+            "download_url": static_download_url(xlsx_path),
+        }), 200
+    except Exception as e:
+        logger.exception("Review Excel export failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+@app.route("/api/review/import", methods=["POST"])
+def api_review_import():
+    name = (request.form.get("name") or "reviewed_pid").strip()
+    review_file = request.files.get("file")
+
+    if not review_file or not review_file.filename:
+        return jsonify({"ok": False, "error": "No reviewed Excel file received"}), 400
+    if not review_file.filename.lower().endswith(".xlsx"):
+        return jsonify({"ok": False, "error": "Please upload an .xlsx review file"}), 400
+
+    REVIEW_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+    save_path = REVIEW_UPLOAD_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{Path(review_file.filename).name}"
+    review_file.save(save_path)
+
+    try:
+        pid_data, errors, warnings = import_pid_review_excel(save_path)
+        if errors:
+            return jsonify({"ok": False, "error": "Excel validation failed", "errors": errors}), 400
+
+        json_path = save_reviewed_pid_json(
+            pid_data=pid_data,
+            out_dir=DATA_DIR,
+            name=_slugify_filename(name),
+            source_file=review_file.filename,
+        )
+        result = search_file(json_path.stem, DATA_DIR)
+        if not result.get("ok"):
+            return jsonify(result), 500
+
+        return jsonify({
+            "ok": True,
+            "file_name": result.get("file_name"),
+            "data": result.get("data"),
+            "warnings": warnings,
+            "source": "Engineer reviewed Excel",
+        }), 200
+    except Exception as e:
+        logger.exception("Review Excel import failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 # ---------- Modify / Fix existing JSON ----------
