@@ -41,3 +41,9 @@ logs
 
 # Windows crash dumps
 sh.exe.stackdump
+
+# Expert HAZOP ground-truth worksheets (evaluation data, may contain client content)
+HAZOP Worksheet_*.xlsx
+*ground_truth*.xlsx
+*ground-truth*.xlsx
+/backend/static/ground_truth/

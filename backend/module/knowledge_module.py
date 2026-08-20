@@ -8,21 +8,31 @@ from decorators import logger
 
 
 MAX_GENERATION_KNOWLEDGE_CHARS = int(os.getenv("HAZOP_GENERATION_KNOWLEDGE_CHARS", "18000"))
-MAX_MANDATORY_GENERATION_KNOWLEDGE_CHARS = int(os.getenv("HAZOP_MANDATORY_GENERATION_KNOWLEDGE_CHARS", "14500"))
+# The mandatory bundle is injected regardless of the deviation. Capped at 14500 it
+# consumed ~95% of the budget, so no deviation-specific standard (API 610 for pump
+# cavitation, API 521 for overpressure) could ever be retrieved. 8000 leaves ~10000
+# for query-driven evidence.
+MAX_MANDATORY_GENERATION_KNOWLEDGE_CHARS = int(os.getenv("HAZOP_MANDATORY_GENERATION_KNOWLEDGE_CHARS", "8000"))
 MAX_MANDATORY_GENERATION_SOURCE_CHARS = int(os.getenv("HAZOP_MANDATORY_GENERATION_SOURCE_CHARS", "1900"))
+# Per-source ceiling for the query-scored pass. Without it a single large, highly
+# path-boosted document (scgc-hazop-lopa-generation-method) took the entire
+# remaining budget, leaving four identical sources for every deviation.
+MAX_SCORED_SOURCE_CHARS = int(os.getenv("HAZOP_SCORED_SOURCE_CHARS", "2600"))
 MAX_SECTION_CHARS = 2400
 
+# Sources injected for every deviation. Kept deliberately small: these are the
+# method and team rules that genuinely apply to every row.
+#
+# Control-loop extraction and instrumentation document-QA sources were demoted
+# from this list. They belong to the extraction phase rather than deviation
+# analysis, and together occupied ~6900 chars (40% of the budget) of every prompt.
+# They are NOT removed from the library - the scored pass still retrieves them
+# whenever a deviation is actually about control loops or instrument logic.
 MANDATORY_GENERATION_SOURCE_PRIORITY = (
     "backend/skill.md",
     "autohazop-agent-pack/skill.md",
     "references/workflows/scgc-hazop-lopa-generation-method.md",
     "references/workflows/pfd-pid-tracing.md",
-    "book-instrumentation-control-systems-documentation/skill.md",
-    "book-instrumentation-control-systems-documentation/references/hazop-control-document-qa.md",
-    "book-instrumentation-control-systems-documentation/references/pid-loop-logic-checklist.md",
-    "control-loop-layer-extractor/skill.md",
-    "control-loop-layer-extractor/references/extraction-workflow.md",
-    "control-loop-layer-extractor/references/hazop-integration.md",
     "references/workflows/cause-consequence.md",
     "references/workflows/severity-assessment.md",
     "references/workflows/lopa-ipl-assessment.md",
@@ -438,11 +448,27 @@ def build_generation_knowledge_context(selection_context: Dict[str, Any]) -> str
         if used_chars >= mandatory_budget:
             break
 
-    for item in scored[:16]:
+    # Per-source budget carries over from the mandatory pass so one document cannot
+    # dominate the context. Candidate pool is wide because over-represented sources
+    # are now skipped rather than filling the budget.
+    for item in scored[:200]:
         key = (item["source"], item["heading"])
         if key in selected_keys:
             continue
+
+        source_key = _normalized_source(item["source"])
+        source_used = mandatory_source_chars.get(source_key, 0)
+        if source_used >= MAX_SCORED_SOURCE_CHARS:
+            continue
+
         block = _format_knowledge_block(item)
+
+        source_remaining = MAX_SCORED_SOURCE_CHARS - source_used
+        if len(block) > source_remaining:
+            if source_remaining < 600:
+                continue
+            block = block[:source_remaining].rsplit("\n", 1)[0].strip()
+
         if used_chars + len(block) + 2 > MAX_GENERATION_KNOWLEDGE_CHARS:
             remaining = MAX_GENERATION_KNOWLEDGE_CHARS - used_chars - 2
             if remaining < 900:
@@ -451,6 +477,7 @@ def build_generation_knowledge_context(selection_context: Dict[str, Any]) -> str
         selected.append(block)
         selected_keys.add(key)
         used_chars += len(block) + 2
+        mandatory_source_chars[source_key] = source_used + len(block) + 2
         if used_chars >= MAX_GENERATION_KNOWLEDGE_CHARS:
             break
 
