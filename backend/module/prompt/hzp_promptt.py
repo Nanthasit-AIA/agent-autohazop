@@ -98,6 +98,23 @@ Use retrieved text as engineering evidence and style guidance.
 Do not copy retrieved worksheet wording verbatim. Preserve engineering intent and tags where applicable but paraphrase in professional Process Safety Engineer wording.
 """
 
+LOCAL_KNOWLEDGE_RULES = """MANDATORY REFERENCE KNOWLEDGE RULES
+You have NO search tools available. Do not call file_search or any other tool, and
+never emit tool-call syntax such as <file_search.query ...> in your output.
+All reference evidence you may use is supplied inline in the REFERENCE KNOWLEDGE
+section of this prompt. Use it for:
+1) Step 4 cause-selection rules.
+2) HAZOP workflow steps.
+3) Initiating event likelihood and IPL probability / credit rules.
+4) Risk ranking matrix.
+5) Integrated HAZOP/LOPA output template.
+6) Matched case examples when topology matches.
+
+Use the supplied text as engineering evidence and style guidance.
+Do not copy supplied wording verbatim. Preserve engineering intent and tags where applicable but paraphrase in professional Process Safety Engineer wording.
+If the supplied knowledge does not cover something, state that explicitly rather than inventing a basis.
+"""
+
 TOPOLOGY_MATCH_RULES = """CASE MATCHING AND FEW-SHOT USE RULES
 Always compare the current topology data with the embedded few-shot cases and retrieved source documents.
 
@@ -350,11 +367,17 @@ SUFFIX_TASK = """OUTPUT RULES
 """
 
 
-def build_HzpRules_Prompt() -> str:
+def build_HzpRules_Prompt(*, local_knowledge: bool = False) -> str:
+    # In local-knowledge mode there is no file_search tool, so the vector-store
+    # instructions are swapped out; leaving them in makes the model emit
+    # tool-call syntax into the CSV.
     sections = [
         ROLE,
-        FILE_SEARCH_RULES,
-        VECTORDB_PREFLIGHT_RULES,
+        LOCAL_KNOWLEDGE_RULES if local_knowledge else FILE_SEARCH_RULES,
+    ]
+    if not local_knowledge:
+        sections.append(VECTORDB_PREFLIGHT_RULES)
+    sections += [
         TOPOLOGY_MATCH_RULES,
         PARAPHRASE_RULES,
         CSV_SCHEMA_HAZOP_LOPA_20,
@@ -370,6 +393,7 @@ def build_HzpRules_Prompt() -> str:
 
 
 HzpRules_Prompt = build_HzpRules_Prompt()
+HzpRules_Prompt_Local = build_HzpRules_Prompt(local_knowledge=True)
 
 
 def _clean_prompt_value(value: Any) -> str:
@@ -407,9 +431,26 @@ def build_file_search_hazop_prompt(**kwargs: Any) -> str:
     # source markdown cannot break prompt formatting.
     knowledge_context = str(kwargs.get("knowledge_context", "") or "").strip()
 
+    rules = HzpRules_Prompt_Local if knowledge_context else HzpRules_Prompt
+    data_block = DATA_TAGS_RULE.format(**data).strip()
+    final_task = FINAL_TASK.strip()
+
+    if knowledge_context:
+        # Redirect the two inline file_search instructions at the supplied knowledge.
+        data_block = data_block.replace(
+            "plus retrieved file_search evidence",
+            "plus the REFERENCE KNOWLEDGE section below",
+        )
+        final_task = final_task.replace(
+            "1) Use file_search to retrieve the applicable guide, cause, IPL, risk, "
+            "template, and matched case evidence.",
+            "1) Use the REFERENCE KNOWLEDGE section for the applicable guide, cause, "
+            "IPL, risk, template, and matched case evidence.",
+        )
+
     parts = [
-        HzpRules_Prompt.strip(),
-        DATA_TAGS_RULE.format(**data).strip(),
+        rules,
+        data_block,
     ]
     if knowledge_context:
         parts.append(
@@ -418,7 +459,7 @@ def build_file_search_hazop_prompt(**kwargs: Any) -> str:
             "If it does not cover something, say so explicitly rather than inventing a basis.\n\n"
             + knowledge_context
         )
-    parts.append(FINAL_TASK.strip())
+    parts.append(final_task)
     parts.append(SUFFIX_TASK.strip())
 
     return "\n\n".join(parts)
