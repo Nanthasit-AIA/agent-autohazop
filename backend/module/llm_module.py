@@ -56,6 +56,159 @@ def get_llm_config() -> Dict[str, Any]:
     }
 
 
+# ------------- MULTI-PROVIDER MODEL SELECTION ---------------
+# Added alongside get_llm_client/get_llm_config, which keep working unchanged for
+# /api/modify, /api/llm-config and the existing extract/HAZOP call sites.
+
+openai_base_url = os.getenv("OPENAI_BASE_URL") or os.getenv("OPENAI_API_BASE")
+openrouter_api_key = os.getenv("OPENROUTER_API_KEY")
+openrouter_base_url = os.getenv("OPENROUTER_BASE_URL") or "https://openrouter.ai/api/v1"
+gemini_api_key = os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+gemini_base_url = os.getenv("GEMINI_BASE_URL") or "https://generativelanguage.googleapis.com/v1beta/openai/"
+xai_api_key = os.getenv("XAI_API_KEY")
+xai_base_url = os.getenv("XAI_BASE_URL") or "https://api.x.ai/v1"
+
+default_chat_model = own_api_models[0] if own_api_models else "gpt-5.5-2026-04-23"
+
+
+class ModelPreset(TypedDict, total=False):
+    id: str
+    provider: str
+    provider_label: str
+    label: str
+    model: str
+    api_key_env: str
+    base_url: str | None
+    configured: bool
+    note: str
+
+
+class ResolvedModel(TypedDict):
+    provider: str
+    provider_label: str
+    model: str
+    api_key: str
+    base_url: str | None
+    display_name: str
+
+
+def _preset(provider, provider_label, label, model, api_key_env, api_key, base_url, note="") -> ModelPreset:
+    return {
+        "id": f"{provider}:{model}",
+        "provider": provider,
+        "provider_label": provider_label,
+        "label": label,
+        "model": model,
+        "api_key_env": api_key_env,
+        "base_url": base_url,
+        "configured": bool(api_key),
+        "note": note,
+    }
+
+
+def _build_model_presets() -> List[ModelPreset]:
+    presets = [
+        _preset("own_api", "Own API", f"Own API - {m}", m, "OPENAI_API_KEY", openai_api_key, openai_base_url)
+        for m in own_api_models
+    ]
+    presets += [
+        _preset("litellm", "LiteLLM", f"LiteLLM - {m}", m, "LITELLM_API_KEY", litellm_api_key, litellm_base_url)
+        for m in litellm_models
+    ]
+    presets += [
+        _preset("anthropic_openrouter", "Anthropic Claude", "Claude - Sonnet 5", "anthropic/claude-sonnet-5",
+                "OPENROUTER_API_KEY", openrouter_api_key, openrouter_base_url, "via OpenRouter"),
+        _preset("anthropic_openrouter", "Anthropic Claude", "Claude - Opus 4.8", "anthropic/claude-opus-4.8",
+                "OPENROUTER_API_KEY", openrouter_api_key, openrouter_base_url, "via OpenRouter"),
+        _preset("google", "Google Gemini", "Gemini - 3.1 Pro", "gemini-3.1-pro-preview",
+                "GEMINI_API_KEY", gemini_api_key, gemini_base_url),
+        _preset("google", "Google Gemini", "Gemini - 3.5 Flash", "gemini-3.5-flash",
+                "GEMINI_API_KEY", gemini_api_key, gemini_base_url),
+        _preset("xai", "xAI Grok", "xAI - Grok 4.3", "grok-4.3",
+                "XAI_API_KEY", xai_api_key, xai_base_url),
+    ]
+    return presets
+
+
+model_presets: List[ModelPreset] = _build_model_presets()
+
+
+def _provider_api_settings(provider: str):
+    if provider == "litellm":
+        return litellm_api_key, litellm_base_url, "LITELLM_API_KEY", "LiteLLM"
+    if provider == "anthropic_openrouter":
+        return openrouter_api_key, openrouter_base_url, "OPENROUTER_API_KEY", "Anthropic Claude"
+    if provider == "google":
+        return gemini_api_key, gemini_base_url, "GEMINI_API_KEY", "Google Gemini"
+    if provider == "xai":
+        return xai_api_key, xai_base_url, "XAI_API_KEY", "xAI Grok"
+    return openai_api_key, openai_base_url, "OPENAI_API_KEY", "Own API"
+
+
+def _provider_from_model(model_name: str | None) -> str | None:
+    model = str(model_name or "").strip()
+    if not model:
+        return None
+    if model.startswith("anthropic/"):
+        return "anthropic_openrouter"
+    if model.startswith("gemini-"):
+        return "google"
+    if model.startswith("grok-"):
+        return "xai"
+    for preset in model_presets:
+        if preset["model"] == model:
+            return preset["provider"]
+    return None
+
+
+def resolve_model_selection(model_name: str | None = None, provider: str | None = None) -> ResolvedModel:
+    model = str(model_name or "").strip() or default_chat_model
+    selected_provider = str(provider or "").strip() or _provider_from_model(model) or "own_api"
+    api_key, base_url, api_key_env, provider_label = _provider_api_settings(selected_provider)
+
+    if not api_key:
+        raise EnvironmentError(f"{api_key_env} not found in .env for provider {provider_label}.")
+
+    label = next(
+        (p["label"] for p in model_presets
+         if p["provider"] == selected_provider and p["model"] == model),
+        f"{provider_label} - {model}",
+    )
+    return {
+        "provider": selected_provider,
+        "provider_label": provider_label,
+        "model": model,
+        "api_key": api_key,
+        "base_url": base_url,
+        "display_name": label,
+    }
+
+
+def get_client_for_model(model_name: str | None = None, provider: str | None = None) -> OpenAI:
+    """OpenAI-compatible client for any configured provider."""
+    selected = resolve_model_selection(model_name=model_name, provider=provider)
+    kwargs: Dict[str, Any] = {"api_key": selected["api_key"]}
+    if selected["base_url"]:
+        kwargs["base_url"] = selected["base_url"]
+    return OpenAI(**kwargs)
+
+
+def model_presets_for_client() -> List[Dict[str, Any]]:
+    return [
+        {
+            "id": p["id"],
+            "provider": p["provider"],
+            "provider_label": p["provider_label"],
+            "label": p["label"],
+            "model": p["model"],
+            "configured": p["configured"],
+            "api_key_env": p["api_key_env"],
+            "note": p.get("note", ""),
+        }
+        for p in model_presets
+    ]
+
+
 def _is_retryable_error(e: Exception) -> bool:
     """
     Decide whether an exception is worth retrying.

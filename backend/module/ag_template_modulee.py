@@ -13,6 +13,7 @@ from typing import Any, Dict, Generator, List, Optional, Tuple
 import pandas as pd
 
 from decorators import logger, timeit_log
+from module.hazop_export_module import write_hazop_lopa_workbook
 from module.knowledge_module import build_generation_knowledge_context
 from module.llm_module import get_openai_sdk, get_llm_client, build_llm_metadata, _call_with_retries
 from module.prompt.hzp_promptt import (
@@ -44,6 +45,21 @@ DEFAULT_KNOWLEDGE_SOURCE = (
     os.getenv("HAZOP_KNOWLEDGE_SOURCE", KNOWLEDGE_SOURCE_LOCAL).strip().lower()
     or KNOWLEDGE_SOURCE_LOCAL
 )
+
+
+def _read_existing_hazop(excel_path: str, headers: List[str]) -> pd.DataFrame:
+    """Load previously written rows when appending.
+
+    The export workbook is styled, with a metadata block above the table, so the
+    default sheet is not machine-readable. Its "Raw Data" sheet carries the plain
+    20 columns. Older plain workbooks fall back to the default sheet.
+    """
+    if not os.path.exists(excel_path):
+        return pd.DataFrame(columns=headers)
+    try:
+        return pd.read_excel(excel_path, sheet_name="Raw Data")
+    except Exception:
+        return pd.read_excel(excel_path)
 
 
 def knowledge_sources_from_context(context_text: str) -> List[str]:
@@ -745,7 +761,7 @@ def run_hazop_agent_1(
     query_infos = list_all_connections(pid_data)
     info_by_line: Dict[str, dict] = {str(info.get("line_id")): info for info in query_infos}
 
-    df = pd.read_excel(excel_path) if os.path.exists(excel_path) else pd.DataFrame(columns=headers)
+    df = _read_existing_hazop(excel_path, headers)
     df = df.reindex(columns=headers)
 
     token_df = pd.read_csv(token_log_path) if os.path.exists(token_log_path) else pd.DataFrame(columns=[
@@ -850,9 +866,9 @@ def run_hazop_agent_1(
             df_combined = df_parsed.reindex(columns=headers)
         df_combined.to_excel(parsed_excel_path, index=False)
 
-        # Main HAZOP output.
+        # Main HAZOP output, written as the styled HAZOP/LOPA worksheet.
         df = pd.concat([df, df_parsed.reindex(columns=headers)], ignore_index=True)
-        df.to_excel(excel_path, index=False)
+        write_hazop_lopa_workbook(df, excel_path)
 
         # Token / metadata log.
         token_row = {

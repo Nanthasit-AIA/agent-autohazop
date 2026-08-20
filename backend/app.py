@@ -1,6 +1,8 @@
 import json, os, re, shutil, time
+from datetime import datetime
 from pathlib import Path
 
+import pandas as pd
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
@@ -10,7 +12,13 @@ from decorators import logger
 from module.ext_module import extract_pid, extract_pid_multi_files_single_call, _upload_vision_file
 from module.agent_module import run_hazop_agent
 from module.ag_template_modulee import run_hazop_agent_1
-from module.llm_module import get_llm_config, get_llm_client
+from module.hazop_export_module import hazop_lopa_preview_dataframe
+from module.llm_module import (
+    get_llm_config,
+    get_llm_client,
+    default_chat_model,
+    model_presets_for_client,
+)
 from module.modify_module import modify_pid_json
 from utils import save_pid_json
 
@@ -38,6 +46,122 @@ def sanitize_hazop_output_folder(value: str | None) -> str:
     return folder or "default"
 
 
+def static_download_url(path: Path) -> str:
+    static_root = Path(app.root_path) / "static"
+    return f"/static/{path.resolve().relative_to(static_root.resolve()).as_posix()}"
+
+
+def _json_safe(value):
+    try:
+        if pd.isna(value):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if hasattr(value, "item"):
+        try:
+            return value.item()
+        except Exception:
+            pass
+    return value
+
+
+def build_hazop_result_payload(
+    excel_path: str,
+    parsed_excel_path: str,
+    token_log_path: str,
+    error_log_path: str,
+    row_limit: int = 200,
+) -> dict:
+    """Summary of a finished run for the UI: preview rows, totals and a download link."""
+    payload = {
+        "source_file": os.path.basename(excel_path),
+        "download_url": "",
+        "columns": [],
+        "rows": [],
+        "row_count": 0,
+        "shown_count": 0,
+        "truncated": False,
+        "token_total": 0,
+        "error_count": 0,
+        "knowledge_sources": [],
+        "payload_error": "",
+    }
+
+    try:
+        if os.path.exists(excel_path):
+            payload["download_url"] = static_download_url(Path(excel_path))
+
+        # Prefer the plain parsed rows; the export workbook is styled, so its
+        # machine-readable copy lives on the "Raw Data" sheet.
+        df = None
+        if os.path.exists(parsed_excel_path):
+            df = pd.read_excel(parsed_excel_path)
+        elif os.path.exists(excel_path):
+            try:
+                df = pd.read_excel(excel_path, sheet_name="Raw Data")
+            except Exception:
+                df = pd.read_excel(excel_path)
+
+        if df is not None:
+            preview = hazop_lopa_preview_dataframe(df).fillna("")
+            payload["row_count"] = int(len(df))
+            payload["truncated"] = len(preview) > row_limit
+            preview = preview.head(row_limit)
+            payload["shown_count"] = int(len(preview))
+            payload["columns"] = [str(c) for c in preview.columns]
+            payload["rows"] = [
+                {str(k): _json_safe(v) for k, v in row.items()}
+                for row in preview.to_dict(orient="records")
+            ]
+
+        if os.path.exists(token_log_path):
+            token_df = pd.read_csv(token_log_path)
+            if "TotalTokens" in token_df.columns:
+                payload["token_total"] = int(
+                    pd.to_numeric(token_df["TotalTokens"], errors="coerce").fillna(0).sum()
+                )
+            if "KnowledgeSources" in token_df.columns:
+                sources = set()
+                for value in token_df["KnowledgeSources"].dropna().astype(str):
+                    for source in value.split("|"):
+                        source = source.strip()
+                        if source:
+                            sources.add(source)
+                payload["knowledge_sources"] = sorted(sources)
+
+        if os.path.exists(error_log_path):
+            payload["error_count"] = int(len(pd.read_csv(error_log_path)))
+    except Exception as exc:
+        logger.warning("Failed to build HAZOP result payload: %s", exc)
+        payload["payload_error"] = str(exc)
+
+    return payload
+
+
+def remove_or_retarget_existing(path: str, suffix: str, label: str, reason: str) -> str:
+    """Delete a previous artifact, or fall back to a suffixed path if it is locked.
+
+    On Windows an open workbook cannot be deleted, so rather than failing the run
+    we write to <name>_reanalysis_<timestamp><ext> instead.
+    """
+    if not os.path.exists(path):
+        return path
+    try:
+        os.remove(path)
+        logger.info(f"Removed previous HAZOP {label} for {reason}: {path}")
+        return path
+    except OSError as exc:
+        root, ext = os.path.splitext(path)
+        replacement = f"{root}_reanalysis_{suffix}{ext or '.xlsx'}"
+        logger.warning(
+            f"Could not remove previous HAZOP {label} for {reason}: {path}. "
+            f"Using new artifact path {replacement}. Error: {exc}"
+        )
+        return replacement
+
+
 def sanitize_hazop_file_name(value: str | None) -> str:
     """Reduce a client-supplied file name to a safe .xlsx leaf name."""
     raw = Path(str(value or "").strip()).name
@@ -52,6 +176,19 @@ def sanitize_hazop_file_name(value: str | None) -> str:
 @app.route("/api/llm-config", methods=["GET"])
 def api_llm_config():
     return jsonify(get_llm_config())
+
+
+@app.route("/api/models", methods=["GET"])
+def api_models():
+    presets = model_presets_for_client()
+    default_preset = next((p for p in presets if p["configured"]), None)
+    return jsonify({
+        "ok": True,
+        "default_model": default_preset["model"] if default_preset else default_chat_model,
+        "default_provider": default_preset["provider"] if default_preset else "own_api",
+        "models": [p["model"] for p in presets],
+        "model_presets": presets,
+    })
 
 
 @app.before_request
@@ -324,6 +461,22 @@ def handle_hazop_start(data):
     llm_response_log_path = os.path.join(base_dir, "llm_response_log.csv")
     parsed_excel_path = os.path.join(base_dir, "parsed_rows.xlsx")
 
+    # Re-analysis control. append_output keeps prior rows (the previous behaviour);
+    # reset_output and the default both start clean, so a re-run does not silently
+    # accumulate rows from earlier runs into the same workbook.
+    reset_output = bool(data.get("reset_output"))
+    append_output = bool(data.get("append_output"))
+
+    if not append_output:
+        reason = "re-analysis" if reset_output else "fresh analysis"
+        suffix = datetime.now().strftime("%Y%m%d_%H%M%S")
+        excel_path = remove_or_retarget_existing(excel_path, suffix, "export workbook", reason)
+        file_name = os.path.basename(excel_path)
+        parsed_excel_path = remove_or_retarget_existing(parsed_excel_path, suffix, "parsed raw workbook", reason)
+        token_log_path = remove_or_retarget_existing(token_log_path, suffix, "token log", reason)
+        error_log_path = remove_or_retarget_existing(error_log_path, suffix, "error log", reason)
+        llm_response_log_path = remove_or_retarget_existing(llm_response_log_path, suffix, "LLM response log", reason)
+
     logger.info(f"HAZOP start: {excel_path}")
     logger.info(f"Selections count: {len(selections)}")
 
@@ -367,6 +520,9 @@ def handle_hazop_start(data):
                     "ok": True,
                     "folder": base_dir,
                     "file_name": os.path.basename(excel_path),
+                    "result": build_hazop_result_payload(
+                        excel_path, parsed_excel_path, token_log_path, error_log_path
+                    ),
                 },
                 room=sid,
             )
@@ -380,6 +536,9 @@ def handle_hazop_start(data):
                     "error": str(e),
                     "folder": base_dir,
                     "file_name": os.path.basename(excel_path),
+                    "result": build_hazop_result_payload(
+                        excel_path, parsed_excel_path, token_log_path, error_log_path
+                    ),
                 },
                 room=sid,
             )
