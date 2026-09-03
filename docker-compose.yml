@@ -1,0 +1,23 @@
+# Local run on Docker Desktop:
+#   cp .env.example .env   # then fill in OPENAI_API_KEY
+#   docker compose up --build
+#
+# Compose reads .env from this directory automatically for the ${...} values below.
+services:
+  pid-extract:
+    build: ./services/pid-extract
+    image: pid-extract:local
+    ports:
+      - "8000:8000"
+    environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OPENAI_API_KEY in .env at the repo root}
+      EXTRACT_MODEL: ${EXTRACT_MODEL:-gpt-5.1-2025-11-13}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      STORAGE_BACKEND: local
+      LOCAL_STORE_DIR: /data
+      ALLOWED_ORIGINS: "*"
+    volumes:
+      # Existing extraction fixtures, so GET /api/results/h2o2 works out of the box.
+      - ./backend/static/data:/data
+    restart: unless-stopped

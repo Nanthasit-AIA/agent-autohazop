@@ -30,3 +30,6 @@ logs
 /backend/static/hazop_runs
 
 
+
+# Local result store for services/pid-extract
+/services/pid-extract/data

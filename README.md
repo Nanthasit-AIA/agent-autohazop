@@ -1,4 +1,32 @@
 # AGENT-AUTO-HAZOP
+
+## Layout
+
+| Path | What it is |
+|---|---|
+| `app/` | Nuxt 4 SPA (static, `ssr: false`). |
+| `services/pid-extract/` | P&ID extraction service. Containerized and deployed to Azure. See its README. |
+| `backend/` | Flask + Socket.IO HAZOP agent. Runs locally on port 5000. |
+| `infra/` | Azure deployment for the extraction service. See `infra/README.md`. |
+
+The SPA talks to two backends. Both are build-time settings baked into the static bundle
+(`nuxt.config.ts` → `runtimeConfig.public`):
+
+- `NUXT_PUBLIC_EXTRACT_API_BASE` — default `http://localhost:8000`
+- `NUXT_PUBLIC_HAZOP_API_BASE` — default `http://localhost:5000`
+
+## Run everything locally
+
+```bash
+cp .env.example .env      # then fill in OPENAI_API_KEY
+```
+```bash
+docker compose up --build   # extraction service on :8000
+```
+```bash
+npm run dev:s               # SPA on :3000 + HAZOP backend on :5000
+```
+
 # Nuxt Minimal Starter
 
 Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.

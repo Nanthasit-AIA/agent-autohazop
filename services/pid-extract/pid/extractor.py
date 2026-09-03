@@ -1,16 +1,15 @@
 import openai, time
 from pathlib import Path
-from typing import Dict, List
+from typing import List
 
-from module.llm_module import get_openai_sdk, build_llm_metadata, LLMUsageMeta
-from module.schema_json import PIDResponse
-from module.prompt.ext_prompt import PID_SYSTEM_PROMPT, build_pid_input
-from decorators import logger, timeit_log
-from utils import save_pid_json
+from .llm import get_client, build_llm_metadata, EXTRACT_MODEL, LLMUsageMeta
+from .schema import PIDResponse
+from .prompt import PID_SYSTEM_PROMPT, build_pid_input
+from .logging_conf import logger, timeit_log
 
 @timeit_log
 def _upload_vision_file(path: str | Path) -> str:
-    client = get_openai_sdk()
+    client = get_client()
     path = Path(path)
 
     with path.open("rb") as f:
@@ -26,11 +25,11 @@ def extract_pid(
     file_path: str,
     *,
     process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
+    model: str = EXTRACT_MODEL,
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
-    client = get_openai_sdk()
+    client = get_client()
 
     file_id = _upload_vision_file(file_path)
     input_messages = build_pid_input(process_description, [file_id])
@@ -100,11 +99,11 @@ def extract_pid_multi_files_single_call(
     file_paths: List[str],
     *,
     process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
+    model: str = EXTRACT_MODEL,
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
-    client = get_openai_sdk()
+    client = get_client()
 
     file_ids: List[str] = []
     for p in file_paths:
@@ -170,34 +169,3 @@ def extract_pid_multi_files_single_call(
     raise RuntimeError(
         f"Failed to obtain valid P&ID JSON for files {file_paths} after {max_retries} attempts."
     )
-
-# Run P&ID extraction for multiple files, but with ONE call per file.
-@timeit_log
-def extract_pid_batch(
-    file_paths: List[str],
-    *,
-    process_description: str,
-    model: str = "gpt-5.1-2025-11-13",
-    max_retries: int = 3,
-    backoff_s: float = 2.0,
-) -> Dict[str, Dict[str, object]]:
-    results: Dict[str, Dict[str, object]] = {}
-
-    for p in file_paths:
-        try:
-            logger.info("Starting P&ID extraction for: %s", p)
-            pid_result, meta = extract_pid(
-                p,
-                process_description=process_description,
-                model=model,
-                max_retries=max_retries,
-                backoff_s=backoff_s,
-            )
-            results[p] = {
-                "pid": pid_result,
-                "metadata": meta,
-            }
-        except Exception as e:
-            logger.error("Failed to extract P&ID from %s: %s", p, e)
-
-    return results
