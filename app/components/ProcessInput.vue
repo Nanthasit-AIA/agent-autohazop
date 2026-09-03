@@ -239,7 +239,7 @@ const fileColor = (file: File): string => {
             ref="fileInputRef"
             type="file"
             class="hidden"
-            accept="application/pdf,image/*"
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
             multiple
             @change="handleFileChange"
           />

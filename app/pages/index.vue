@@ -120,7 +120,11 @@ const analysisFileName = ref<string>("");
 const outputFolder = ref<string>("");
 
 // ----------------- Socket.IO (HAZOP only) -----------------
-const socket = io(HAZOP_BASE);
+// autoConnect is off on purpose. The HAZOP backend is not deployed, so on a
+// hosted build this would dial http://localhost:5000 from an https page on
+// every page load - blocked as mixed content, then retried forever. Nothing in
+// the extract flow needs the socket, so it is only dialled when analysis starts.
+const socket = io(HAZOP_BASE, { autoConnect: false });
 
 const resetAllState = () => {
   stage.value = "initial";
@@ -703,6 +707,7 @@ const handleStartAnalysis = async () => {
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // emit to backend via Socket.IO ✅
+  if (!socket.connected) socket.connect();
   socket.emit("hazop_start", {
     pid_data: jsonData.value,
     selections,
