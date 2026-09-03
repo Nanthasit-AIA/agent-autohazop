@@ -1,28 +1,17 @@
 import openai, time
-from pathlib import Path
-from typing import List
+from typing import Sequence
 
 from .llm import get_client, build_llm_metadata, EXTRACT_MODEL, LLMUsageMeta
 from .schema import PIDResponse
 from .prompt import PID_SYSTEM_PROMPT, build_pid_input
 from .logging_conf import logger, timeit_log
 
-@timeit_log
-def _upload_vision_file(path: str | Path) -> str:
-    client = get_client()
-    path = Path(path)
-
-    with path.open("rb") as f:
-        file_obj = client.files.create(
-            file=f,
-            purpose="user_data",  
-        )
-    logger.info("Uploaded file '%s' as id=%s", path, file_obj.id)
-    return file_obj.id
+# Files are inlined as base64 content parts rather than uploaded first: the
+# LiteLLM proxy does not expose the Files API. See pid/prompt.py.
 
 # single file (PDF or image) using Responses API.
 def extract_pid(
-    file_path: str,
+    file: tuple[str, bytes],
     *,
     process_description: str,
     model: str = EXTRACT_MODEL,
@@ -31,8 +20,7 @@ def extract_pid(
 ) -> tuple[PIDResponse, LLMUsageMeta]:
     client = get_client()
 
-    file_id = _upload_vision_file(file_path)
-    input_messages = build_pid_input(process_description, [file_id])
+    input_messages = build_pid_input(process_description, [file])
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -86,7 +74,7 @@ def extract_pid(
             time.sleep(backoff_s * attempt)
 
     raise RuntimeError(
-        f"Failed to obtain valid P&ID JSON for {file_path} after {max_retries} attempts."
+        f"Failed to obtain valid P&ID JSON for {file[0]} after {max_retries} attempts."
     )
 
 # multiple files (e.g. several PDFs + images) in ONE API call.
@@ -96,7 +84,7 @@ def extract_pid(
 # File order does NOT matter; all context is used together.
 @timeit_log
 def extract_pid_multi_files_single_call(
-    file_paths: List[str],
+    files: Sequence[tuple[str, bytes]],
     *,
     process_description: str,
     model: str = EXTRACT_MODEL,
@@ -105,16 +93,7 @@ def extract_pid_multi_files_single_call(
 ) -> tuple[PIDResponse, LLMUsageMeta]:
     client = get_client()
 
-    file_ids: List[str] = []
-    for p in file_paths:
-        try:
-            fid = _upload_vision_file(p)
-            file_ids.append(fid)
-        except Exception as e:
-            logger.error("Failed to upload file '%s': %s", p, e)
-            raise
-
-    input_messages = build_pid_input(process_description, file_ids)
+    input_messages = build_pid_input(process_description, files)
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -167,5 +146,5 @@ def extract_pid_multi_files_single_call(
             time.sleep(backoff_s * attempt)
 
     raise RuntimeError(
-        f"Failed to obtain valid P&ID JSON for files {file_paths} after {max_retries} attempts."
+        f"Failed to obtain valid P&ID JSON for files {[n for n, _ in files]} after {max_retries} attempts."
     )

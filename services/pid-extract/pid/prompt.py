@@ -1,3 +1,7 @@
+import base64
+from pathlib import Path
+from typing import Sequence
+
 
 PID_SYSTEM_PROMPT = """
 Act like an expert Process and Instrumentation Diagram (P&ID) analyst and industrial automation engineer. Your role is to meticulously extract and structure all relevant data from a given P&ID image and accompanying high-level process description. Your final output must be a detailed JSON object that conforms exactly to the schema described below.
@@ -96,7 +100,38 @@ PID_USER_PROMPT_TEMPLATE = (
     "Return only the JSON matching the schema."
 )
 
-def build_pid_input(process_description: str, file_ids: list[str]) -> list[dict]:
+MIME_BY_SUFFIX = {
+    ".pdf": "application/pdf",
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+}
+
+def _content_part(filename: str, data: bytes) -> dict:
+    """
+    Inline one uploaded file as a Responses API content part.
+
+    The LiteLLM proxy does not expose the Files API (it answers
+    "files_settings is not set"), so bytes travel in the request as a data URI
+    rather than being uploaded first and referenced by id.
+    """
+    suffix = Path(filename).suffix.lower()
+    mime = MIME_BY_SUFFIX.get(suffix)
+    if mime is None:
+        raise ValueError(f"Unsupported file type for extraction: {filename}")
+
+    data_uri = f"data:{mime};base64,{base64.b64encode(data).decode()}"
+
+    if mime == "application/pdf":
+        return {"type": "input_file", "filename": filename, "file_data": data_uri}
+    return {"type": "input_image", "image_url": data_uri}
+
+def build_pid_input(
+    process_description: str,
+    files: Sequence[tuple[str, bytes]],
+) -> list[dict]:
+    """`files` is a sequence of (filename, raw bytes)."""
     content: list[dict] = [
         {
             "type": "input_text",
@@ -104,10 +139,7 @@ def build_pid_input(process_description: str, file_ids: list[str]) -> list[dict]
         }
     ]
 
-    content.extend(
-        {"type": "input_file", "file_id": fid}
-        for fid in file_ids
-    )
+    content.extend(_content_part(name, data) for name, data in files)
 
     return [
         {

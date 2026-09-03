@@ -1,4 +1,4 @@
-import os, tempfile
+import os, uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 from pid import jobs
 from pid.extractor import extract_pid, extract_pid_multi_files_single_call
+from pid.llm import EXTRACT_MODEL, provider_label
 from pid.logging_conf import logger
 from pid.storage import get_store, slugify_filename
 
@@ -28,8 +29,18 @@ def log_request():
 
 @app.get("/healthz")
 def healthz():
-    # Liveness only - no LLM or storage call, so a bad key never fails the probe.
+    # Liveness only - no LLM or storage call, so bad credentials never fail the probe.
     return jsonify({"ok": True})
+
+@app.get("/api/config")
+def api_config():
+    """What this instance is wired to. Handy for confirming a deployment."""
+    return jsonify({
+        "ok": True,
+        "provider": provider_label(),
+        "model": EXTRACT_MODEL,
+        "storage": os.getenv("STORAGE_BACKEND", "local"),
+    })
 
 @app.post("/api/extract")
 def api_extract():
@@ -40,8 +51,10 @@ def api_extract():
     if not files:
         return jsonify({"ok": False, "error": "No file received"}), 400
 
-    tmpdir = tempfile.mkdtemp(prefix="pid-extract-")
-    saved_paths: list[str] = []
+    store = get_store()
+    job_id = uuid.uuid4().hex
+    uploaded: list[tuple[str, str]] = []  # (filename, storage key)
+
     for f in files:
         if not f.filename:
             continue
@@ -51,45 +64,42 @@ def api_extract():
                 "ok": False,
                 "error": f"Unsupported file type: {f.filename}",
             }), 400
-        path = Path(tmpdir) / safe
-        f.save(path)
-        saved_paths.append(str(path))
+        key = store.put_input(job_id, safe, f.read())
+        uploaded.append((safe, key))
 
-    if not saved_paths:
+    if not uploaded:
         return jsonify({"ok": False, "error": "No valid file received"}), 400
 
-    result_name = slugify_filename(name or Path(saved_paths[0]).stem)
+    result_name = slugify_filename(name or Path(uploaded[0][0]).stem)
 
     def work() -> dict:
-        try:
-            if len(saved_paths) == 1:
-                pid_data, usage_meta = extract_pid(
-                    saved_paths[0],
-                    process_description=description,
-                )
-            else:
-                pid_data, usage_meta = extract_pid_multi_files_single_call(
-                    saved_paths,
-                    process_description=description,
-                )
+        # Read the drawings back out of the store, so the extraction path is the
+        # same one a re-run would take and the container holds no upload state.
+        loaded = [(fname, store.get_input(key)) for fname, key in uploaded]
 
-            payload = {
-                "pid_data": pid_data.model_dump(by_alias=True),
-                "metadata": usage_meta,
-            }
-            # Persist before the job is marked done, so the result outlives the container.
-            get_store().save(result_name, payload)
-            return payload
-        finally:
-            for p in saved_paths:
-                Path(p).unlink(missing_ok=True)
-            try:
-                os.rmdir(tmpdir)
-            except OSError:
-                pass
+        if len(loaded) == 1:
+            pid_data, usage_meta = extract_pid(
+                loaded[0],
+                process_description=description,
+            )
+        else:
+            pid_data, usage_meta = extract_pid_multi_files_single_call(
+                loaded,
+                process_description=description,
+            )
 
-    job_id = jobs.submit(result_name, work)
-    logger.info("Queued job %s for '%s' (%d file(s))", job_id, result_name, len(saved_paths))
+        usage_meta["inputs"] = [key for _, key in uploaded]
+
+        payload = {
+            "pid_data": pid_data.model_dump(by_alias=True),
+            "metadata": usage_meta,
+        }
+        # Persist before the job is marked done, so the result outlives the container.
+        store.save_result(result_name, payload)
+        return payload
+
+    jobs.submit_with_id(job_id, result_name, work)
+    logger.info("Queued job %s for '%s' (%d file(s))", job_id, result_name, len(uploaded))
     return jsonify({"ok": True, "job_id": job_id, "name": result_name}), 202
 
 @app.get("/api/jobs/<job_id>")
@@ -110,7 +120,7 @@ def api_job(job_id: str):
 
 @app.get("/api/results/<name>")
 def api_result(name: str):
-    data = get_store().load(name)
+    data = get_store().load_result(name)
     if data is None:
         return jsonify({"ok": False, "error": "File not found"}), 404
     return jsonify({

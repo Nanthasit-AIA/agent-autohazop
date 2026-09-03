@@ -11,6 +11,7 @@ stays in `backend/app.py` and is unaffected.
 | Method | Path | Behaviour |
 |---|---|---|
 | `GET` | `/healthz` | Liveness. Touches neither the LLM nor storage. |
+| `GET` | `/api/config` | What this instance is wired to: provider, model, storage backend. |
 | `POST` | `/api/extract` | multipart: `name`, `description`, `file` (repeatable). Returns `202 {job_id, name}`. |
 | `GET` | `/api/jobs/<job_id>` | `{status, name, error}`; on `done` also `{result}`. `404` if unknown. |
 | `GET` | `/api/results/<name>` | A previously saved result, `{ok, file_name, data}`. |
@@ -32,8 +33,8 @@ cp .env.example .env
 docker compose up --build
 ```
 
-Compose mounts `backend/static/data` as the result store, so the existing fixtures are
-immediately readable at `GET /api/results/h2o2`.
+Compose mounts `backend/static/data` at the store's `results/` prefix, so the existing
+fixtures are immediately readable at `GET /api/results/h2o2`. Uploads land in `/data/inputs`.
 
 Without Docker:
 
@@ -41,7 +42,7 @@ Without Docker:
 pip install -r services/pid-extract/requirements.txt
 ```
 ```bash
-cd services/pid-extract && OPENAI_API_KEY=sk-... LOCAL_STORE_DIR=../../backend/static/data python app.py
+cd services/pid-extract && LITELLM_BASE_URL=https://scgc-llmproxy.scg.com LITELLM_API_KEY=sk-... LOCAL_STORE_DIR=../../backend/static/data python app.py
 ```
 
 ## Smoke test
@@ -61,23 +62,54 @@ curl -sS http://localhost:8000/api/jobs/PASTE_JOB_ID_HERE
 
 ## Configuration
 
-Every value is an environment variable; see `.env.example`. The ones that matter:
+Every value is an environment variable; see `.env.example`.
 
 | Variable | Default | Notes |
 |---|---|---|
-| `OPENAI_API_KEY` | — | Required. Read per request, **not** at import, so a bad key never breaks `/healthz`. |
-| `LLM_BASE_URL` | unset | Unset → api.openai.com. Set to a LiteLLM/OpenRouter proxy to change providers. |
-| `EXTRACT_MODEL` | `gpt-5.1-2025-11-13` | |
+| `LITELLM_BASE_URL` | — | The LiteLLM proxy. `/v1` is appended if missing. |
+| `LITELLM_API_KEY` | — | Proxy key. Checked per request, **not** at import, so bad credentials never break `/healthz`. |
+| `EXTRACT_MODEL` | `gpt-5.5` | Must match a model id from the proxy's `/v1/models` exactly. |
+| `LLM_BASE_URL` / `LLM_API_KEY` | unset | Deployment-level override; wins over `LITELLM_*`. |
+| `OPENAI_API_KEY` | unset | Fallback only, used when no LiteLLM/LLM credential is set. |
 | `STORAGE_BACKEND` | `local` | `local` or `blob`. |
 | `LOCAL_STORE_DIR` | `data` | When `local`. |
 | `BLOB_CONTAINER` | `pid-results` | When `blob`. |
-| `AZURE_STORAGE_CONNECTION_STRING` | unset | When `blob`. Leave empty and set `AZURE_STORAGE_ACCOUNT` to use a managed identity instead. |
+| `AZURE_STORAGE_CONNECTION_STRING` | unset | When `blob`. Leave empty and set `AZURE_STORAGE_ACCOUNT` to use a managed identity. |
 | `ALLOWED_ORIGINS` | `*` | Comma-separated CORS allowlist. |
 
-## On swapping in LiteLLM
+## Storage layout
 
-`LLM_BASE_URL` is the seam, but it is not a free swap. `extractor.py` calls
-`client.responses.parse(text_format=PIDResponse)` — OpenAI's Responses API with native
-structured output. LiteLLM's proxy does not fully support that endpoint. Actually moving
-providers means rewriting extraction to `json_schema` chat completions and re-validating
-output quality against the fixtures in `backend/static/data/`.
+Both backends use the same two prefixes, so local and Azure match:
+
+```
+inputs/<job_id>/<filename>     the uploaded drawings
+results/<name>.json            the extraction output
+```
+
+Uploads are written to the store in the request handler, and the worker reads
+them back out before calling the model. So the extraction path is the same one
+a re-run would take, the container holds no upload state, and every drawing
+that produced a result is still there to audit against it. The result records
+its inputs under `metadata.inputs`.
+
+## LiteLLM notes
+
+Extraction goes through the LiteLLM proxy using the **Responses API**
+(`client.responses.parse` with `text_format=PIDResponse`), which the proxy
+supports.
+
+What it does **not** support is the Files API — it answers
+`files_settings is not set`. So files are not uploaded and referenced by id;
+their bytes are inlined into the request as data URIs: PDFs as
+`input_file` + `file_data`, images as `input_image` + `image_url`. That is the
+one real difference from calling OpenAI directly, and it is why
+`_upload_vision_file` no longer exists.
+
+Model ids must be copied exactly from `/v1/models`. The proxy lists some
+display names with spaces (`GPT 5.1`, `GPT 5-mini`) that it then rejects as
+invalid; the slug-style ids (`gpt-5.5`, `gemini-3.5-flash`, `claude-opus-4-8`)
+work. Check what your key can actually call:
+
+```bash
+curl -H "Authorization: Bearer $LITELLM_API_KEY" $LITELLM_BASE_URL/v1/models
+```

@@ -5,7 +5,7 @@
 | Path | What it is |
 |---|---|
 | `app/` | Nuxt 4 SPA (static, `ssr: false`). |
-| `services/pid-extract/` | P&ID extraction service. Containerized and deployed to Azure. See its README. |
+| `services/pid-extract/` | P&ID extraction service. Calls the LiteLLM proxy; stores inputs and results in Blob. Containerized and deployed to Azure. See its README. |
 | `backend/` | Flask + Socket.IO HAZOP agent. Runs locally on port 5000. |
 | `infra/` | Azure deployment for the extraction service. See `infra/README.md`. |
 
@@ -18,7 +18,7 @@ The SPA talks to two backends. Both are build-time settings baked into the stati
 ## Run everything locally
 
 ```bash
-cp .env.example .env      # then fill in OPENAI_API_KEY
+cp .env.example .env      # then fill in LITELLM_API_KEY
 ```
 ```bash
 docker compose up --build   # extraction service on :8000

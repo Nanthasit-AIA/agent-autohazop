@@ -1,5 +1,5 @@
 # Local run on Docker Desktop:
-#   cp .env.example .env   # then fill in OPENAI_API_KEY
+#   cp .env.example .env   # then fill in LITELLM_API_KEY
 #   docker compose up --build
 #
 # Compose reads .env from this directory automatically for the ${...} values below.
@@ -10,14 +10,15 @@ services:
     ports:
       - "8000:8000"
     environment:
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OPENAI_API_KEY in .env at the repo root}
-      EXTRACT_MODEL: ${EXTRACT_MODEL:-gpt-5.1-2025-11-13}
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LITELLM_BASE_URL: ${LITELLM_BASE_URL:?set LITELLM_BASE_URL in .env at the repo root}
+      LITELLM_API_KEY: ${LITELLM_API_KEY:?set LITELLM_API_KEY in .env at the repo root}
+      EXTRACT_MODEL: ${EXTRACT_MODEL:-gpt-5.5}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       STORAGE_BACKEND: local
       LOCAL_STORE_DIR: /data
       ALLOWED_ORIGINS: "*"
     volumes:
-      # Existing extraction fixtures, so GET /api/results/h2o2 works out of the box.
-      - ./backend/static/data:/data
+      # Existing extraction fixtures, mounted at the store's results/ prefix so
+      # GET /api/results/h2o2 works out of the box. Uploads land in /data/inputs.
+      - ./backend/static/data:/data/results
     restart: unless-stopped

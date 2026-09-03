@@ -3,26 +3,52 @@ from typing import Any, Dict, TypedDict
 
 from openai import OpenAI
 
-# Default extraction model. Overridable so a redeploy can change models without a code change.
-EXTRACT_MODEL = os.getenv("EXTRACT_MODEL", "gpt-5.1-2025-11-13")
+# Extraction model, as named by the LiteLLM proxy's /v1/models listing.
+EXTRACT_MODEL = os.getenv("EXTRACT_MODEL", "gpt-5.5")
+
+def _base_url() -> str | None:
+    """
+    LiteLLM proxy endpoint. LLM_BASE_URL wins so a deployment can override the
+    value inherited from the project's LITELLM_BASE_URL. Returns None to fall
+    back to api.openai.com.
+    """
+    raw = os.getenv("LLM_BASE_URL") or os.getenv("LITELLM_BASE_URL")
+    if not raw:
+        return None
+    raw = raw.rstrip("/")
+    # The SDK appends /chat/completions etc. directly, so the version segment
+    # has to be part of base_url. Proxies are usually configured without it.
+    return raw if raw.endswith("/v1") else raw + "/v1"
+
+def _api_key() -> str:
+    key = (
+        os.getenv("LLM_API_KEY")
+        or os.getenv("LITELLM_API_KEY")
+        or os.getenv("OPENAI_API_KEY")
+    )
+    if not key:
+        raise RuntimeError(
+            "No LLM credential set. Provide LITELLM_API_KEY (with LITELLM_BASE_URL) "
+            "or OPENAI_API_KEY."
+        )
+    return key
 
 def get_client() -> OpenAI:
     """
-    Provider seam. LLM_BASE_URL unset -> api.openai.com.
-    Point it at a LiteLLM / OpenRouter proxy to switch providers.
-
-    The key is checked here rather than at import time so the container can
-    boot and answer /healthz even when it is misconfigured.
+    Checked lazily rather than at import so the container still boots - and
+    still answers /healthz - when credentials are missing or wrong.
     """
-    key = os.getenv("OPENAI_API_KEY")
-    if not key:
-        raise RuntimeError("OPENAI_API_KEY is not set")
-    return OpenAI(api_key=key, base_url=os.getenv("LLM_BASE_URL") or None)
+    return OpenAI(api_key=_api_key(), base_url=_base_url())
+
+def provider_label() -> str:
+    base = _base_url()
+    return f"litellm:{base}" if base else "openai:api.openai.com/v1"
 
 class LLMUsageMeta(TypedDict, total=False):
     id: str | None
     created: int | None
     model: str | None
+    provider: str
     tokens: Dict[str, Any]
     response_type: str
     reasoning_effort: str
@@ -65,6 +91,7 @@ def build_llm_metadata(resp: Any, latency_s: float) -> Dict[str, Any]:
         "id": getattr(resp, "id", None),
         "created": getattr(resp, "created", None),
         "model": getattr(resp, "model", None),
+        "provider": provider_label(),
         "tokens": {
             "prompt": prompt_tokens,
             "completion": completion_tokens,

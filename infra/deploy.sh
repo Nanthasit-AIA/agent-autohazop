@@ -6,7 +6,7 @@
 #   Container Registry Basic + App Service Linux B1 + Storage (Blob) + Static Web Apps Free
 #
 # Usage:
-#   export OPENAI_API_KEY=sk-...
+#   export LITELLM_API_KEY=sk-...   # your LiteLLM proxy key
 #   export SUFFIX=ku01              # 3-8 lowercase alphanumerics, makes names globally unique
 #   ./infra/deploy.sh
 #
@@ -27,7 +27,10 @@ WEBAPP="app-pid-extract-${SUFFIX}"
 SWA="swa-autohazop-${SUFFIX}"
 BLOB_CONTAINER="pid-results"
 
-: "${OPENAI_API_KEY:?export OPENAI_API_KEY before running}"
+LITELLM_BASE_URL="${LITELLM_BASE_URL:-https://scgc-llmproxy.scg.com}"
+EXTRACT_MODEL="${EXTRACT_MODEL:-gpt-5.5}"
+
+: "${LITELLM_API_KEY:?export LITELLM_API_KEY before running}"
 
 say() { printf '\n=== %s ===\n' "$1"; }
 
@@ -89,7 +92,9 @@ az webapp config container set -n "$WEBAPP" -g "$RG" \
 
 say "App settings"
 az webapp config appsettings set -n "$WEBAPP" -g "$RG" --settings \
-  OPENAI_API_KEY="$OPENAI_API_KEY" \
+  LITELLM_BASE_URL="$LITELLM_BASE_URL" \
+  LITELLM_API_KEY="$LITELLM_API_KEY" \
+  EXTRACT_MODEL="$EXTRACT_MODEL" \
   STORAGE_BACKEND=blob \
   BLOB_CONTAINER="$BLOB_CONTAINER" \
   AZURE_STORAGE_CONNECTION_STRING="$STORAGE_CONN" \
@@ -101,9 +106,10 @@ az webapp config set -n "$WEBAPP" -g "$RG" --always-on true -o none
 az webapp config set -n "$WEBAPP" -g "$RG" \
   --generic-configurations '{"healthCheckPath":"/healthz"}' -o none
 
-say "Seeding existing extraction fixtures into Blob"
-az storage blob upload-batch -d "$BLOB_CONTAINER" -s ./backend/static/data \
-  --pattern "*.json" --overwrite --connection-string "$STORAGE_CONN" -o none
+say "Seeding existing extraction fixtures into Blob (results/ prefix)"
+az storage blob upload-batch -d "$BLOB_CONTAINER" --destination-path "results" \
+  -s ./backend/static/data --pattern "*.json" --overwrite \
+  --connection-string "$STORAGE_CONN" -o none
 
 az webapp restart -n "$WEBAPP" -g "$RG" -o none
 API_URL="https://$(az webapp show -n "$WEBAPP" -g "$RG" --query defaultHostName -o tsv)"
@@ -144,5 +150,10 @@ az webapp restart -n "$WEBAPP" -g "$RG" -o none
 say "Done"
 echo "  Extract API : ${API_URL}"
 echo "  Frontend    : ${SWA_URL}"
+echo "  LLM         : ${LITELLM_BASE_URL}  (model ${EXTRACT_MODEL})"
+echo "  Blob        : ${STORAGE}/${BLOB_CONTAINER}   inputs/ + results/"
+echo
+echo "Confirm what the deployed service is wired to:"
+echo "  curl ${API_URL}/api/config"
 echo
 echo "Teardown (stops all charges):  az group delete -n ${RG} --yes --no-wait"

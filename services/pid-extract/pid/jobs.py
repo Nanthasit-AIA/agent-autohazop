@@ -16,7 +16,10 @@ _jobs: dict[str, dict[str, Any]] = {}
 _lock = threading.Lock()
 
 def submit(name: str, fn: Callable[[], Any]) -> str:
-    job_id = uuid.uuid4().hex
+    return submit_with_id(uuid.uuid4().hex, name, fn)
+
+def submit_with_id(job_id: str, name: str, fn: Callable[[], Any]) -> str:
+    """Caller supplies the id so uploads can be stored under it before the job starts."""
     with _lock:
         _jobs[job_id] = {
             "status": "queued",

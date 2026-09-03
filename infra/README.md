@@ -40,7 +40,7 @@ az consumption usage list --top 20 -o table
 ## Deploy
 
 ```bash
-export OPENAI_API_KEY=sk-...
+export LITELLM_API_KEY=sk-...
 ```
 ```bash
 export SUFFIX=ku01
@@ -92,7 +92,7 @@ An in-flight one does not: the job disappears and the client is told to retry.
 when idle and kills any running extraction thread. It is included in the B1 price.
 
 **Health probe is `/healthz`**, which deliberately touches neither the LLM nor storage — a bad
-`OPENAI_API_KEY` should surface as a failed extraction, not as a container Azure keeps
+`LITELLM_API_KEY` should surface as a failed extraction, not as a container Azure keeps
 restarting.
 
 ## Hardening, once it works end to end
@@ -101,7 +101,7 @@ restarting.
   grant *Storage Blob Data Contributor* on the storage account, then delete the
   `AZURE_STORAGE_CONNECTION_STRING` app setting and add `AZURE_STORAGE_ACCOUNT`. No code
   change — `BlobStore` already falls through to `DefaultAzureCredential`.
-- **Key Vault for `OPENAI_API_KEY`** via a Key Vault reference in app settings. Effectively
+- **Key Vault for `LITELLM_API_KEY`** via a Key Vault reference in app settings. Effectively
   free at this request volume. This is the deck's Key Vault box.
 - **GitHub Actions** to run `az acr build` + `az webapp restart` on push to `main` — the deck's
   CI/CD arrow. Needs a federated credential or a service principal secret.
