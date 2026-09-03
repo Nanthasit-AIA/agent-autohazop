@@ -15,6 +15,13 @@
 # redeployed. For the container path instead, use ./infra/deploy.sh
 set -euo pipefail
 
+# On Windows/Git Bash the pip-installed "az" is a Python script whose shebang
+# loses quoting: any argument containing a space arrives split in two, so
+# --startup-file and --query silently break. az.bat passes argv through intact.
+if command -v az.bat >/dev/null 2>&1; then
+  az() { az.bat "$@"; }
+fi
+
 RG="${RG:-rg-autohazop}"
 LOCATION="${LOCATION:-southeastasia}"
 SWA_LOCATION="${SWA_LOCATION:-eastasia}"
@@ -35,7 +42,7 @@ STARTUP="gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 --timeout 1800 --a
 say() { printf '\n=== %s ===\n' "$1"; }
 
 say "Subscription"
-az account show --query "{subscription:name, state:state}" -o table
+az account show --query "{subscription:name,state:state}" -o table
 
 say "Registering providers"
 for ns in Microsoft.Web Microsoft.Storage; do

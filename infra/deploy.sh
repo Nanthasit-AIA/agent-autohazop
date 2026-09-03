@@ -14,6 +14,13 @@
 # is rebuilt and the web app restarted.
 set -euo pipefail
 
+# On Windows/Git Bash the pip-installed "az" is a Python script whose shebang
+# loses quoting: any argument containing a space arrives split in two, so
+# --startup-file and --query silently break. az.bat passes argv through intact.
+if command -v az.bat >/dev/null 2>&1; then
+  az() { az.bat "$@"; }
+fi
+
 RG="${RG:-rg-autohazop}"
 LOCATION="${LOCATION:-southeastasia}"
 SWA_LOCATION="${SWA_LOCATION:-eastasia}"
@@ -36,7 +43,7 @@ say() { printf '\n=== %s ===\n' "$1"; }
 
 # ---------------------------------------------------------------- preflight
 say "Preflight"
-az account show --query "{subscription:name, state:state}" -o table
+az account show --query "{subscription:name,state:state}" -o table
 for ns in Microsoft.Web Microsoft.ContainerRegistry Microsoft.Storage; do
   az provider register -n "$ns" --only-show-errors >/dev/null
 done
