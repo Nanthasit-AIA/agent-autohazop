@@ -33,3 +33,6 @@ logs
 
 # Local result store for services/pid-extract
 /services/pid-extract/data
+
+# App Service code-deploy archive (build artifact)
+pid-extract-deploy.zip

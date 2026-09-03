@@ -30,6 +30,124 @@ List prices, region-dependent. Check the real burn with:
 az consumption usage list --top 20 -o table
 ```
 
+## Two ways to deploy
+
+**Portal + ZIP (fastest, no Docker).** App Service runs Python directly from code, so
+there is no image to build and no Container Registry. This is the demo path — see below.
+Roughly **$14/month**.
+
+**Container from ACR.** Keeps the architecture in the deck: a real image, pulled from a
+registry. Needs the Azure CLI but still no local Docker, since `az acr build` builds in the
+cloud. `./infra/deploy.sh` does it end to end. Roughly **$19/month**.
+
+The Dockerfile stays in the repo either way, so switching later costs nothing.
+
+---
+
+# Portal deploy, step by step
+
+About 15 minutes. Pick a short suffix (`ku01` below) — web app and storage account names
+must be globally unique across Azure.
+
+## A. Storage — 2 minutes
+
+1. **Create resource → Storage account.** Resource group `rg-autohazop` (create it here),
+   name `stautohazop ku01` without the space, region **Southeast Asia**, Standard / LRS.
+2. Open it → **Data storage → Containers → + Container**, name it `pid-results`.
+3. **Security + networking → Access keys → Show**, copy the **Connection string** for key1.
+   You need it in step B2.
+
+## B. The API — 6 minutes
+
+1. **Create resource → Web App.**
+   - Resource group `rg-autohazop`, name `pid-extract-ku01`
+   - **Publish: Code** (not Container)
+   - **Runtime stack: Python 3.12**, OS Linux, region Southeast Asia
+   - **Pricing plan: Basic B1** — not Free F1, see the note below
+
+2. Open the app → **Settings → Environment variables**, add:
+
+   | Name | Value |
+   |---|---|
+   | `SCM_DO_BUILD_DURING_DEPLOYMENT` | `true` |
+   | `LITELLM_BASE_URL` | `https://scgc-llmproxy.scg.com` |
+   | `LITELLM_API_KEY` | your proxy key |
+   | `EXTRACT_MODEL` | `gpt-5.5` |
+   | `STORAGE_BACKEND` | `blob` |
+   | `BLOB_CONTAINER` | `pid-results` |
+   | `AZURE_STORAGE_CONNECTION_STRING` | from step A3 |
+   | `ALLOWED_ORIGINS` | `*` — tightened in step D |
+
+   `SCM_DO_BUILD_DURING_DEPLOYMENT` is the one people forget. Without it Azure skips
+   `pip install` and the app starts with no dependencies.
+
+3. **Configuration → General settings**:
+   - **Startup Command**:
+     `gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 --timeout 1800 --access-logfile '-' app:app`
+   - **Always On: On**
+   - Save.
+
+   `--workers 1` is not optional. The job registry lives in process memory, so a poll has to
+   reach the process that started the job.
+
+4. Build the archive locally and upload it:
+
+   ```bash
+   ./infra/make-zip.sh
+   ```
+
+   Then browse to `https://pid-extract-ku01.scm.azurewebsites.net/ZipDeployUI` and drag
+   `pid-extract-deploy.zip` onto the page. Wait for the build to finish — it runs
+   `pip install -r requirements.txt` on the server.
+
+5. Check what the running instance is wired to:
+
+   ```bash
+   curl https://pid-extract-ku01.azurewebsites.net/api/config
+   ```
+
+   Expect `"provider":"litellm:…"` and `"storage":"blob"`.
+
+6. Optional: **Monitoring → Health check → /healthz**.
+
+## C. The web app — 5 minutes
+
+1. **Create resource → Static Web App.** Resource group `rg-autohazop`, name
+   `swa-autohazop-ku01`, plan **Free**, region **East Asia** (Static Web Apps has no
+   Southeast Asia region). **Deployment source: Other** — this skips the GitHub wiring.
+2. Open it → **Overview → Manage deployment token**, copy it.
+3. Build with the API URL baked in, then upload. The Nuxt build is static, so the URL is
+   fixed at build time:
+
+   ```bash
+   NUXT_PUBLIC_EXTRACT_API_BASE=https://pid-extract-ku01.azurewebsites.net npm run generate
+   ```
+   ```bash
+   npx @azure/static-web-apps-cli deploy ./.output/public --deployment-token PASTE_TOKEN --env production
+   ```
+
+4. Open the Static Web App URL from its Overview blade. Upload a P&ID and run an extraction.
+
+## D. Lock CORS — 1 minute
+
+Back in the Web App → **Environment variables** → set `ALLOWED_ORIGINS` to the Static Web App
+origin, e.g. `https://swa-autohazop-ku01.azurestaticapps.net`. Save; the app restarts.
+
+## Confirm Blob holds both halves
+
+Storage account → **Containers → pid-results**. After one extraction you should see
+`inputs/<job_id>/<drawing>` and `results/<name>.json`.
+
+To seed your six existing results, use **Upload** with *Advanced → Upload to folder* set to
+`results`.
+
+## Portal costs
+
+App Service B1 $13.14 + Storage ~$1 + Static Web Apps Free $0 = **~$14/month**. Cheaper than
+the container path because there is no Container Registry.
+
+---
+
 ## Prerequisites
 
 - **Azure CLI** — `winget install Microsoft.AzureCLI`, then `az login`
