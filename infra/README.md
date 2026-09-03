@@ -36,6 +36,9 @@ az consumption usage list --top 20 -o table
 there is no image to build and no Container Registry. This is the demo path — see below.
 Roughly **$14/month**.
 
+The same thing scripted, if you have the Azure CLI, is `./infra/deploy-code.sh` — identical
+resources and settings, one command instead of the Portal walkthrough.
+
 **Container from ACR.** Keeps the architecture in the deck: a real image, pulled from a
 registry. Needs the Azure CLI but still no local Docker, since `az acr build` builds in the
 cloud. `./infra/deploy.sh` does it end to end. Roughly **$19/month**.
