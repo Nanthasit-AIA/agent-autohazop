@@ -36,3 +36,6 @@ logs
 
 # App Service code-deploy archive (build artifact)
 pid-extract-deploy.zip
+
+# Local runtime store for services/pid-extract (results + uploaded inputs)
+/backend/static/store

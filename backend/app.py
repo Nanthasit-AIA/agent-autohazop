@@ -11,6 +11,18 @@ app = Flask(__name__, static_folder="static")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# Shared-secret gate, matching services/pid-extract. Unset means open, which is
+# right for local dev; set it whenever this is reachable from outside the
+# machine, since a HAZOP run spends real LLM budget.
+DEMO_TOKEN = os.getenv("DEMO_TOKEN", "").strip()
+
+@socketio.on("connect")
+def handle_connect(auth):
+    if DEMO_TOKEN and (not auth or auth.get("token") != DEMO_TOKEN):
+        logger.warning("Rejected socket connection: bad or missing token")
+        return False
+    return None
+
 @app.before_request
 def log_request():
     logger.info(

@@ -95,8 +95,16 @@ const createEmptyDeviationSelections = (): Record<ParamName, GuideWord[]> => {
 const stage = ref<Stage>("initial");
 
 // Two services now: P&ID extraction is its own deployable container, HAZOP is still the monolith.
-const { extractApiBase: EXTRACT_BASE, hazopApiBase: HAZOP_BASE } =
-  useRuntimeConfig().public;
+const {
+  extractApiBase: EXTRACT_BASE,
+  hazopApiBase: HAZOP_BASE,
+  demoToken: DEMO_TOKEN,
+} = useRuntimeConfig().public;
+
+// Empty bases mean same-origin, which is how the dev proxy (and so a single
+// tunnel) serves the SPA and both backends from one host.
+const authHeaders = (): Record<string, string> =>
+  DEMO_TOKEN ? { "X-Demo-Token": DEMO_TOKEN as string } : {};
 
 const inputMode = ref<InputMode>("search");
 const processName = ref("");
@@ -124,7 +132,10 @@ const outputFolder = ref<string>("");
 // hosted build this would dial http://localhost:5000 from an https page on
 // every page load - blocked as mixed content, then retried forever. Nothing in
 // the extract flow needs the socket, so it is only dialled when analysis starts.
-const socket = io(HAZOP_BASE, { autoConnect: false });
+const socket = io(HAZOP_BASE || undefined, {
+  autoConnect: false,
+  auth: { token: DEMO_TOKEN },
+});
 
 const resetAllState = () => {
   stage.value = "initial";
@@ -383,7 +394,9 @@ const pollExtractJob = async (
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, JOB_POLL_MS));
 
-    const res = await fetch(`${EXTRACT_BASE}/api/jobs/${jobId}`);
+    const res = await fetch(`${EXTRACT_BASE}/api/jobs/${jobId}`, {
+      headers: authHeaders(),
+    });
 
     if (res.status === 404) {
       return {
@@ -423,7 +436,8 @@ const onStartExtract = async (payload: StartExtractPayload) => {
   try {
     if (payload.mode === "search") {
       const res = await fetch(
-        `${EXTRACT_BASE}/api/results/${encodeURIComponent(name)}`
+        `${EXTRACT_BASE}/api/results/${encodeURIComponent(name)}`,
+        { headers: authHeaders() }
       );
       const body = await res.json();
 
@@ -464,6 +478,7 @@ const onStartExtract = async (payload: StartExtractPayload) => {
 
       const res = await fetch(`${EXTRACT_BASE}/api/extract`, {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
 

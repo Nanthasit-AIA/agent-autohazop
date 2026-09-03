@@ -36,13 +36,14 @@ docker compose up --build
 Compose mounts `backend/static/data` at the store's `results/` prefix, so the existing
 fixtures are immediately readable at `GET /api/results/h2o2`. Uploads land in `/data/inputs`.
 
-Without Docker:
+Without Docker (the store keeps results under `results/` and uploads under `inputs/`, so
+point `LOCAL_STORE_DIR` at the store root, not at `backend/static/data`):
 
 ```bash
 pip install -r services/pid-extract/requirements.txt
 ```
 ```bash
-cd services/pid-extract && LITELLM_BASE_URL=https://scgc-llmproxy.scg.com LITELLM_API_KEY=sk-... LOCAL_STORE_DIR=../../backend/static/data python app.py
+cd services/pid-extract && LITELLM_BASE_URL=https://scgc-llmproxy.scg.com LITELLM_API_KEY=sk-... LOCAL_STORE_DIR=../../backend/static/store python app.py
 ```
 
 ## Smoke test

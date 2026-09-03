@@ -1,4 +1,4 @@
-import os, uuid
+import hmac, os, uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -19,9 +19,29 @@ load_dotenv(Path(__file__).parent / ".env")
 ALLOWED_EXTENSIONS = {".pdf", ".png", ".jpg", ".jpeg", ".webp"}
 MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 
+# Shared-secret gate. Unset means open, which is right for local dev; set it
+# whenever the service is reachable from outside the machine, so that finding
+# the port is not the same as being able to spend the LLM budget.
+DEMO_TOKEN = os.getenv("DEMO_TOKEN", "").strip()
+
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_UPLOAD_BYTES
-CORS(app, origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",")])
+CORS(
+    app,
+    origins=[o.strip() for o in os.getenv("ALLOWED_ORIGINS", "*").split(",")],
+    allow_headers=["Content-Type", "X-Demo-Token"],
+)
+
+@app.before_request
+def require_token():
+    if not DEMO_TOKEN or request.method == "OPTIONS":
+        return None
+    if request.path == "/healthz":
+        return None  # probes must work without the secret
+    supplied = request.headers.get("X-Demo-Token") or request.args.get("token", "")
+    if not hmac.compare_digest(supplied, DEMO_TOKEN):
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    return None
 
 @app.before_request
 def log_request():
