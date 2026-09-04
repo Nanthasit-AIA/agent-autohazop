@@ -39,3 +39,6 @@ pid-extract-deploy.zip
 
 # Local runtime store for services/pid-extract (results + uploaded inputs)
 /backend/static/store
+
+# Built SPA bundled into the service for single-origin deploy
+/services/pid-extract/spa

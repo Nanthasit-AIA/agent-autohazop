@@ -188,6 +188,68 @@ az acr build --registry acrautohazop$SUFFIX --image pid-extract:v1 ./services/pi
 az webapp restart -n app-pid-extract-$SUFFIX -g rg-autohazop
 ```
 
+## Running it day to day
+
+### Local
+
+```bash
+.\scripts\local-start.ps1
+```
+```bash
+.\scripts\local-stop.ps1
+```
+
+`local-start.ps1` creates `services/pid-extract/.venv` on first run, seeds the result store,
+and starts the extraction API (:8000), the HAZOP agent (:5000) and the UI (:3000). Add
+`-Tunnel` for a public Cloudflare URL, `-Model gemini-3.5-flash` for faster demos, and
+`-DemoToken <secret>` to require a password.
+
+`local-stop.ps1` only touches those three ports and cloudflared, so nothing else on the
+machine is affected.
+
+### Azure
+
+The deployed app is `aah-app` — it serves both the SPA and the API from one origin.
+
+```bash
+az webapp stop  -n aah-app -g rg-autohazop
+```
+```bash
+az webapp start -n aah-app -g rg-autohazop
+```
+
+**Stopping the web app does not stop the bill.** App Service charges for the *plan*
+(`asp-autohazop`, B1), not for whether an app on it happens to be running. Stopping is for
+taking the demo offline, not for saving money.
+
+To actually stop charges you either delete the resource group (below) and redeploy when
+needed — about 15 minutes — or downgrade the plan while idle:
+
+```bash
+az webapp config set -n aah-app -g rg-autohazop --always-on false
+```
+```bash
+az appservice plan update -n asp-autohazop -g rg-autohazop --sku F1
+```
+
+F1 is free but caps CPU at 60 minutes/day and cannot keep Always On, so a long extraction
+can be killed mid-run. Go back to B1 before a demo with `--sku B1`, then re-enable Always On.
+
+### Redeploying after a code change
+
+```bash
+./infra/make-zip.sh
+```
+```bash
+az webapp deploy -n aah-app -g rg-autohazop --src-path pid-extract-deploy.zip --type zip
+```
+
+If the frontend changed, rebuild it into the archive first:
+
+```bash
+NUXT_PUBLIC_EXTRACT_API_BASE="" NUXT_PUBLIC_DEMO_TOKEN=<secret> npm run generate && rm -rf services/pid-extract/spa && cp -r .output/public services/pid-extract/spa
+```
+
 ## Teardown
 
 Deleting the resource group is the only reliable way to stop all charges:

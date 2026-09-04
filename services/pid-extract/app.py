@@ -2,7 +2,7 @@ import hmac, os, uuid
 from pathlib import Path
 
 from dotenv import load_dotenv
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 
@@ -36,8 +36,10 @@ CORS(
 def require_token():
     if not DEMO_TOKEN or request.method == "OPTIONS":
         return None
-    if request.path == "/healthz":
-        return None  # probes must work without the secret
+    # Gate the API only. /healthz must answer probes, and the SPA's own files
+    # have to load before it can send the token it carries.
+    if not request.path.startswith("/api/"):
+        return None
     supplied = request.headers.get("X-Demo-Token") or request.args.get("token", "")
     if not hmac.compare_digest(supplied, DEMO_TOKEN):
         return jsonify({"ok": False, "error": "Unauthorized"}), 401
@@ -148,6 +150,31 @@ def api_result(name: str):
         "file_name": f"{slugify_filename(name)}.json",
         "data": data,
     }), 200
+
+# ---------------------------------------------------------------- SPA
+# Optional. When SPA_DIR is set, this service also serves the built frontend,
+# so the whole app lives on one origin: no CORS, and no rebuilding the SPA
+# every time the API hostname changes. Unset, it stays a pure API.
+SPA_DIR = os.getenv("SPA_DIR", "").strip()
+
+if SPA_DIR:
+    SPA_ROOT = (Path(__file__).parent / SPA_DIR).resolve()
+
+    @app.get("/")
+    def spa_index():
+        return send_from_directory(SPA_ROOT, "index.html")
+
+    @app.get("/<path:filename>")
+    def spa_files(filename: str):
+        # Never let the catch-all answer for the API surface.
+        if filename.startswith(("api/", "healthz")):
+            return jsonify({"ok": False, "error": "Not found"}), 404
+        candidate = (SPA_ROOT / filename).resolve()
+        if candidate.is_file() and candidate.is_relative_to(SPA_ROOT):
+            return send_from_directory(SPA_ROOT, filename)
+        return send_from_directory(SPA_ROOT, "index.html")  # SPA route fallback
+
+    logger.info("Serving SPA from %s", SPA_ROOT)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", "8000")))

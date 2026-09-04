@@ -18,7 +18,7 @@ python - "$SRC" "$OUT" <<'PY'
 import os, sys, zipfile
 
 src, out = sys.argv[1], sys.argv[2]
-SKIP_DIRS = {"__pycache__", ".pytest_cache", "data"}
+SKIP_DIRS = {"__pycache__", ".pytest_cache", "data"}  # note: "spa" is included on purpose
 SKIP_NAMES = {".env", ".dockerignore", "Dockerfile", "README.md"}
 
 written = []
