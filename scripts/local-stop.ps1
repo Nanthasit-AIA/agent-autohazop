@@ -3,55 +3,67 @@
 
         .\scripts\local-stop.ps1
 
-    Only touches ports 3000 / 5000 / 8000 and cloudflared, so nothing else on
-    the machine is affected. Azure is untouched - see infra/README.md for that.
+    Targets ports 3000 / 5000 / 8000, this repo's own service processes, and
+    cloudflared. Nothing else on the machine is touched. Azure is untouched -
+    see infra/README.md for that.
 #>
 $ports = @(3000, 5000, 8000)
-$stopped = 0
+$repo = Split-Path -Parent $PSScriptRoot
 
-foreach ($port in $ports) {
-    $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if (-not $conns) { Write-Host ("  port {0,-5} already stopped" -f $port) -ForegroundColor DarkGray; continue }
-
-    foreach ($procId in ($conns.OwningProcess | Select-Object -Unique)) {
-        $p = Get-Process -Id $procId -ErrorAction SilentlyContinue
-        if (-not $p) { continue }
-        try {
-            Stop-Process -Id $procId -Force -ErrorAction Stop
-            Write-Host ("  port {0,-5} stopped {1} (pid {2})" -f $port, $p.ProcessName, $procId) -ForegroundColor Green
-            $stopped++
-        } catch {
-            Write-Host ("  port {0,-5} could not stop pid {1}: {2}" -f $port, $procId, $_) -ForegroundColor Red
+function Stop-ByPort($port) {
+    # Flask's reloader hands the socket to a child, and Windows keeps reporting
+    # the (now dead) parent as the owner - so re-query each round rather than
+    # trusting one snapshot.
+    for ($i = 0; $i -lt 4; $i++) {
+        $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
+        if (-not $conns) { return $true }
+        foreach ($procId in ($conns.OwningProcess | Select-Object -Unique)) {
+            if (Get-Process -Id $procId -ErrorAction SilentlyContinue) {
+                Stop-Process -Id $procId -Force -ErrorAction SilentlyContinue
+            }
         }
+        Start-Sleep -Milliseconds 1200
     }
+    return -not (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
 }
 
-# Flask's reloader and npm both spawn children that can keep a port held.
-Start-Sleep -Seconds 2
+Write-Host ""
 foreach ($port in $ports) {
-    $again = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($again) {
-        foreach ($procId in ($again.OwningProcess | Select-Object -Unique)) {
-            try { Stop-Process -Id $procId -Force -ErrorAction Stop; Write-Host ("  port {0,-5} stopped leftover child (pid {1})" -f $port, $procId) -ForegroundColor Green }
-            catch { }
-        }
-    }
+    $was = [bool](Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue)
+    if (-not $was) { Write-Host ("  port {0,-5} already stopped" -f $port) -ForegroundColor DarkGray; continue }
+    if (Stop-ByPort $port) { Write-Host ("  port {0,-5} stopped" -f $port) -ForegroundColor Green }
+    else { Write-Host ("  port {0,-5} still held - see below" -f $port) -ForegroundColor Yellow }
+}
+
+# Catch orphans that survived their parent: only processes whose command line
+# points into this repo or its service venv, so unrelated work is never killed.
+$orphans = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue | Where-Object {
+    $_.Name -match '^(python|node)\.exe$' -and $_.CommandLine -and (
+        $_.CommandLine -like "*$repo*" -or $_.CommandLine -like "*aah01lib*"
+    )
+}
+foreach ($o in $orphans) {
+    Stop-Process -Id $o.ProcessId -Force -ErrorAction SilentlyContinue
+    Write-Host ("  stopped orphan {0} (pid {1})" -f $o.Name, $o.ProcessId) -ForegroundColor Green
 }
 
 $cf = Get-Process cloudflared -ErrorAction SilentlyContinue
 if ($cf) {
     $cf | Stop-Process -Force -ErrorAction SilentlyContinue
     Write-Host "  cloudflared stopped - the public URL is now dead" -ForegroundColor Green
-    $stopped++
 } else {
     Write-Host "  cloudflared already stopped" -ForegroundColor DarkGray
 }
 
-Start-Sleep -Seconds 1
+Start-Sleep -Seconds 2
 Write-Host "`nFinal state:" -ForegroundColor Cyan
+$bad = 0
 foreach ($port in $ports) {
-    $c = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
-    if ($c) { Write-Host ("  port {0,-5} STILL LISTENING" -f $port) -ForegroundColor Red }
-    else { Write-Host ("  port {0,-5} free" -f $port) -ForegroundColor Green }
+    if (Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue) {
+        Write-Host ("  port {0,-5} STILL LISTENING" -f $port) -ForegroundColor Red; $bad++
+    } else {
+        Write-Host ("  port {0,-5} free" -f $port) -ForegroundColor Green
+    }
 }
+if ($bad) { Write-Host "`nRun the script again, or find the holder with: netstat -ano | findstr :5000" -ForegroundColor Yellow }
 Write-Host ""
