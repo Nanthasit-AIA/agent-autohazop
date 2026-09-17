@@ -14,8 +14,8 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
-from decorators import logger
-from module.schema_json import PIDResponse
+from .logging_conf import logger
+from .schema import PIDResponse
 
 LIST_SEP = "; "
 

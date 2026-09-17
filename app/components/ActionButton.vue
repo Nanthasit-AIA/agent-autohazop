@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, computed } from "vue";
 
-const API_BASE = "http://localhost:5000";
+const { extractApiBase: API_BASE, demoToken: DEMO_TOKEN } = useRuntimeConfig().public;
+const authHeaders = (): Record<string, string> =>
+  DEMO_TOKEN ? { "X-Demo-Token": DEMO_TOKEN as string } : {};
 
 const props = defineProps<{
   disabled?: boolean;
@@ -25,7 +27,7 @@ const currentModels = computed<string[]>(() => llmGroups.value.find(g => g.id ==
 
 onMounted(async () => {
   try {
-    const res = await fetch(`${API_BASE}/api/llm-config`);
+    const res = await fetch(`${API_BASE}/api/llm-config`, { headers: authHeaders() });
     const data = await res.json();
     llmGroups.value = data.groups ?? [];
     llmProvider.value = llmGroups.value[0]?.id ?? "";
@@ -84,7 +86,7 @@ const submitModify = async () => {
     if (llmModel.value) form.append("llm_model", llmModel.value);
     if (modifyFile.value) form.append("file", modifyFile.value);
 
-    const res = await fetch(`${API_BASE}/api/modify`, { method: "POST", body: form });
+    const res = await fetch(`${API_BASE}/api/modify`, { method: "POST", headers: authHeaders(), body: form });
     const body = await res.json();
 
     if (!res.ok || !body.ok) {

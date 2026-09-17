@@ -1,4 +1,4 @@
-import json, os, re, shutil, time
+import os, re
 from datetime import datetime
 from pathlib import Path
 
@@ -7,32 +7,30 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
-from utils import search_file, _slugify_filename
 from decorators import logger
-from module.ext_module import extract_pid, extract_pid_multi_files_single_call, _upload_vision_file
 from module.agent_module import run_hazop_agent
 from module.ag_template_modulee import run_hazop_agent_1
 from module.hazop_export_module import hazop_lopa_preview_dataframe
-from module.review_excel_module import (
-    export_pid_review_excel,
-    import_pid_review_excel,
-    save_reviewed_pid_json,
-)
 from module.llm_module import (
-    get_llm_config,
-    get_llm_client,
     default_chat_model,
     model_presets_for_client,
 )
-from module.modify_module import modify_pid_json
-from utils import save_pid_json
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*")
-DATA_DIR = Path(app.root_path) / "static" / "data"
-REVIEW_DIR = Path(app.root_path) / "static" / "review"
-REVIEW_UPLOAD_DIR = REVIEW_DIR / "uploads"
+
+# Shared-secret gate, matching services/pid-extract. Unset means open, which is
+# right for local dev; set it whenever this is reachable from outside the
+# machine, since a HAZOP run spends real LLM budget.
+DEMO_TOKEN = os.getenv("DEMO_TOKEN", "").strip()
+
+@socketio.on("connect")
+def handle_connect(auth):
+    if DEMO_TOKEN and (not auth or auth.get("token") != DEMO_TOKEN):
+        logger.warning("Rejected socket connection: bad or missing token")
+        return False
+    return None
 
 
 def sanitize_hazop_output_folder(value: str | None) -> str:
@@ -180,11 +178,6 @@ def sanitize_hazop_file_name(value: str | None) -> str:
     return re.sub(r"[^A-Za-z0-9._ -]+", "_", raw).strip(" ._") or "hazop_output.xlsx"
 
 
-@app.route("/api/llm-config", methods=["GET"])
-def api_llm_config():
-    return jsonify(get_llm_config())
-
-
 @app.route("/api/models", methods=["GET"])
 def api_models():
     presets = model_presets_for_client()
@@ -203,314 +196,6 @@ def log_request():
     logger.info(
         f" {request.method} {request.path} | args={dict(request.args)} | form={dict(request.form)}"
     )
-# ---------- Extract agent via Socket.IO -----------------
-@app.route("/api/full", methods=["POST"])
-def api_full():
-    name = request.form.get("name", "").strip()
-    description = request.form.get("description", "").strip()
-    node_define = request.form.get("node_define", "").strip()
-    intention = request.form.get("intention", "").strip()
-    llm_provider = request.form.get("llm_provider", "own_api").strip()
-    llm_model = request.form.get("llm_model", "").strip() or None
-
-    logger.info("🟦 /api/full received")
-    logger.info(f"name: {name}")
-    logger.info(f"description: {description}")
-    logger.info(f"llm_provider: {llm_provider}, llm_model: {llm_model}")
-
-    socketio.emit("file_status", {
-        "status": "working",
-        "file_name": name,
-        "error": "",
-    })
-
-    # ----------------------------
-    # 1) UPLOAD FILES
-    # ----------------------------
-    files = request.files.getlist("file")
-
-    if not files:
-        return jsonify({"ok": False, "error": "No file received"}), 400
-
-    upload_dir = Path("static") / "uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-
-    saved_paths = []
-    for f in files:
-        if not f.filename:
-            continue
-
-        save_path = upload_dir / f.filename
-        f.save(save_path)
-        saved_paths.append(str(save_path))
-
-        logger.info(f"file saved to: {save_path}")
-
-    if not saved_paths:
-        return jsonify({"ok": False, "error": "No valid file received"}), 400
-
-    # ----------------------------
-    # 2) RUN EXTRACTOR
-    # ----------------------------
-    try:
-        extract_kwargs = {
-            "process_description": description,
-            "node_define": node_define,
-            "intention": intention,
-            "llm_provider": llm_provider,
-        }
-        if llm_model:
-            extract_kwargs["model"] = llm_model
-
-        if len(saved_paths) == 1:
-            pid_data, usage_meta = extract_pid(saved_paths[0], **extract_kwargs)
-        else:
-            pid_data, usage_meta = extract_pid_multi_files_single_call(saved_paths, **extract_kwargs)
-
-        # ----------------------------
-        # 3) PERSIST SOURCE IMAGES before saving JSON
-        # ----------------------------
-        base_name = _slugify_filename(name) if name else Path(saved_paths[0]).stem
-        sources_dir = Path("static") / "data" / "sources" / base_name
-        sources_dir.mkdir(parents=True, exist_ok=True)
-        source_files_urls = []
-        for p in saved_paths:
-            src = Path(p)
-            dest = sources_dir / src.name
-            shutil.copy2(src, dest)
-            source_files_urls.append(f"/static/data/sources/{base_name}/{src.name}")
-        usage_meta["source_files"] = source_files_urls
-
-        # ----------------------------
-        # 4) SAVE JSON USING NAME
-        # ----------------------------
-        json_path = save_pid_json(
-            pid_data=pid_data,
-            metadata=usage_meta,
-            image_path=saved_paths[0],
-            out_dir="static/data",
-            name=name or None,
-        )
-
-        # ----------------------------
-        # 5) RELOAD JSON → same format as /api/search
-        # ----------------------------
-        base_name = name or Path(json_path).stem
-        result = search_file(base_name, Path("static/data"))
-
-    except Exception as e:
-        logger.exception("Full extract failed")
-
-        socketio.emit("file_status", {
-            "status": "error",
-            "file_name": name,
-            "error": str(e),
-        })
-
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-    # ----------------------------
-    # 5) CLEANUP ALL UPLOADED FILES
-    # ----------------------------
-    for path in saved_paths:
-        try:
-            Path(path).unlink(missing_ok=True)
-            logger.info(f"cleaned file: {path}")
-        except Exception as cleanup_err:
-            logger.warning(f"Failed to remove {path}: {cleanup_err}")
-
-    # (Optional extra cleanup: remove the folder if empty)
-    try:
-        if not any(upload_dir.iterdir()):
-            upload_dir.rmdir()
-            logger.info("removed empty uploads folder")
-    except:
-        pass
-
-    # ----------------------------
-    # 6) EMIT RESULT TO FRONTEND
-    # ----------------------------
-    time.sleep(2)
-    socketio.emit("file_status", {
-        "status": "loading_complete" if result.get("ok") else "error",
-        "file_name": result.get("file_name", base_name),
-        "error": result.get("error", ""),
-    })
-
-    return jsonify(result), (200 if result.get("ok") else 400)
-
-@app.route("/api/search", methods=["GET"])
-def api_search():
-    name = request.args.get("name", "")
-
-    logger.info("🟩 /api/search received")
-    logger.info(f"search name = {name}")
-
-    socketio.emit(
-        "file_status",
-        {
-            "status": "working",
-            "file_name": name,
-            "error": "",
-        },
-    )
-
-    result = search_file(name, DATA_DIR)
-
-    status_code = 200
-    if not result.get("ok", False):
-        if result.get("error") == "File not found":
-            status_code = 404
-        else:
-            status_code = 400
-    time.sleep(2)
-    socketio.emit(
-        "file_status",
-        {
-            "status": "loading_complete" if result.get("ok") else "error",
-            "file_name": result.get("file_name", name),
-            "error": result.get("error", ""),
-        },
-    )
-    logger.info(f"SocketIO emit: {result}")
-    return jsonify(result), status_code
-
-
-# ---------- Engineer review round-trip ----------
-@app.route("/api/review/export", methods=["POST"])
-def api_review_export():
-    payload = request.get_json(silent=True) or {}
-    name = (payload.get("name") or payload.get("file_name") or "pid_review").strip()
-    data = payload.get("data")
-
-    if not data:
-        return jsonify({"ok": False, "error": "No PID data received"}), 400
-
-    try:
-        xlsx_path = export_pid_review_excel(data=data, out_dir=REVIEW_DIR, name=name)
-        return jsonify({
-            "ok": True,
-            "file_name": xlsx_path.name,
-            "download_url": static_download_url(xlsx_path),
-        }), 200
-    except Exception as e:
-        logger.exception("Review Excel export failed")
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-@app.route("/api/review/import", methods=["POST"])
-def api_review_import():
-    name = (request.form.get("name") or "reviewed_pid").strip()
-    review_file = request.files.get("file")
-
-    if not review_file or not review_file.filename:
-        return jsonify({"ok": False, "error": "No reviewed Excel file received"}), 400
-    if not review_file.filename.lower().endswith(".xlsx"):
-        return jsonify({"ok": False, "error": "Please upload an .xlsx review file"}), 400
-
-    REVIEW_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
-    save_path = REVIEW_UPLOAD_DIR / f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{Path(review_file.filename).name}"
-    review_file.save(save_path)
-
-    try:
-        pid_data, errors, warnings = import_pid_review_excel(save_path)
-        if errors:
-            return jsonify({"ok": False, "error": "Excel validation failed", "errors": errors}), 400
-
-        json_path = save_reviewed_pid_json(
-            pid_data=pid_data,
-            out_dir=DATA_DIR,
-            name=_slugify_filename(name),
-            source_file=review_file.filename,
-        )
-        result = search_file(json_path.stem, DATA_DIR)
-        if not result.get("ok"):
-            return jsonify(result), 500
-
-        return jsonify({
-            "ok": True,
-            "file_name": result.get("file_name"),
-            "data": result.get("data"),
-            "warnings": warnings,
-            "source": "Engineer reviewed Excel",
-        }), 200
-    except Exception as e:
-        logger.exception("Review Excel import failed")
-        return jsonify({"ok": False, "error": str(e)}), 500
-
-
-# ---------- Modify / Fix existing JSON ----------
-@app.route("/api/modify", methods=["POST"])
-def api_modify():
-    file_name = request.form.get("file_name", "").strip()
-    instruction = request.form.get("instruction", "").strip()
-    llm_provider = request.form.get("llm_provider", "own_api").strip()
-    llm_model = request.form.get("llm_model", "").strip() or None
-
-    if not file_name:
-        return jsonify({"ok": False, "error": "file_name is required"}), 400
-    if not instruction:
-        return jsonify({"ok": False, "error": "instruction is required"}), 400
-
-    # Strip .json extension if present so we get the bare base name
-    base_name = file_name[:-5] if file_name.endswith(".json") else file_name
-
-    client = get_llm_client(llm_provider)
-    file_ids: list[str] = []
-    upload_dir = Path("static") / "uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    user_saved: list[Path] = []
-
-    # Upload any user-provided file
-    for f in request.files.getlist("file"):
-        if not f.filename:
-            continue
-        p = upload_dir / f.filename
-        f.save(p)
-        user_saved.append(p)
-        try:
-            fid = _upload_vision_file(str(p), client)
-            file_ids.append(fid)
-        except Exception as e:
-            logger.warning("Failed to upload user file %s: %s", f.filename, e)
-
-    # Attach original P&ID images from metadata.source_files
-    json_path = Path("static/data") / f"{base_name}.json"
-    if json_path.exists():
-        try:
-            saved_data = json.loads(json_path.read_text(encoding="utf-8"))
-            for url in (saved_data.get("metadata") or {}).get("source_files", []):
-                local = Path(url.lstrip("/"))
-                if local.exists():
-                    try:
-                        fid = _upload_vision_file(str(local), client)
-                        file_ids.append(fid)
-                    except Exception as e:
-                        logger.warning("Failed to upload source image %s: %s", local, e)
-        except Exception as e:
-            logger.warning("Could not read source_files from %s: %s", json_path, e)
-
-    try:
-        new_combined, _ = modify_pid_json(
-            file_name=base_name,
-            instruction=instruction,
-            file_ids=file_ids,
-            llm_provider=llm_provider,
-            model=llm_model or "gpt-5.5-2026-04-23",
-        )
-    except ValueError as e:
-        return jsonify({"ok": False, "error": f"Validation failed: {e}"}), 422
-    except Exception as e:
-        logger.exception("modify_pid_json failed")
-        return jsonify({"ok": False, "error": str(e)}), 500
-    finally:
-        for p in user_saved:
-            p.unlink(missing_ok=True)
-
-    return jsonify({"ok": True, "data": new_combined, "file_name": f"{base_name}.json"})
-
-
-# ---------- HAZOP analysis agent via Socket.IO ----------
 @socketio.on("hazop_start")
 def handle_hazop_start(data):
     logger.info(f"hazop_start received: {len(data.get('selections', []))} selections")

@@ -1,41 +1,30 @@
 import openai, time
-from pathlib import Path
-from typing import Dict, List
+from typing import Sequence
 
-from module.llm_module import get_openai_sdk, get_llm_client, build_llm_metadata, LLMUsageMeta
-from module.schema_json import PIDResponse
-from module.prompt.ext_prompt import PID_SYSTEM_PROMPT, build_pid_input
-from decorators import logger, timeit_log
-from utils import save_pid_json
+from .llm import get_llm_client, build_llm_metadata, default_model, LLMUsageMeta
+from .schema import PIDResponse
+from .prompt import PID_SYSTEM_PROMPT, build_pid_input
+from .logging_conf import logger, timeit_log
 
-@timeit_log
-def _upload_vision_file(path: str | Path, client) -> str:
-    path = Path(path)
-
-    with path.open("rb") as f:
-        file_obj = client.files.create(
-            file=f,
-            purpose="user_data",
-        )
-    logger.info("Uploaded file '%s' as id=%s", path, file_obj.id)
-    return file_obj.id
+# Files are inlined as base64 content parts rather than uploaded first: the
+# LiteLLM proxy does not expose the Files API. See pid/prompt.py.
 
 # single file (PDF or image) using Responses API.
 def extract_pid(
-    file_path: str,
+    file: tuple[str, bytes],
     *,
     process_description: str,
     node_define: str = "",
     intention: str = "",
-    llm_provider: str = "own_api",
-    model: str = "gpt-5.5-2026-04-23",
+    llm_provider: str = "litellm",
+    model: str | None = None,
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
     client = get_llm_client(llm_provider)
+    model = model or default_model(llm_provider)
 
-    file_id = _upload_vision_file(file_path, client)
-    input_messages = build_pid_input(process_description, [file_id], node_define=node_define, intention=intention)
+    input_messages = build_pid_input(process_description, [file], node_define=node_define, intention=intention)
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -51,7 +40,7 @@ def extract_pid(
             elapsed = time.perf_counter() - start_t
 
             pid_result: PIDResponse = resp.output_parsed
-            meta = build_llm_metadata(resp, elapsed)
+            meta = build_llm_metadata(resp, elapsed, llm_provider)
 
             total_tokens = meta.get("tokens", {}).get("total")
             logger.info(
@@ -89,7 +78,7 @@ def extract_pid(
             time.sleep(backoff_s * attempt)
 
     raise RuntimeError(
-        f"Failed to obtain valid P&ID JSON for {file_path} after {max_retries} attempts."
+        f"Failed to obtain valid P&ID JSON for {file[0]} after {max_retries} attempts."
     )
 
 # multiple files (e.g. several PDFs + images) in ONE API call.
@@ -99,28 +88,20 @@ def extract_pid(
 # File order does NOT matter; all context is used together.
 @timeit_log
 def extract_pid_multi_files_single_call(
-    file_paths: List[str],
+    files: Sequence[tuple[str, bytes]],
     *,
     process_description: str,
     node_define: str = "",
     intention: str = "",
-    llm_provider: str = "own_api",
-    model: str = "gpt-5.5-2026-04-23",
+    llm_provider: str = "litellm",
+    model: str | None = None,
     max_retries: int = 3,
     backoff_s: float = 2.0,
 ) -> tuple[PIDResponse, LLMUsageMeta]:
     client = get_llm_client(llm_provider)
+    model = model or default_model(llm_provider)
 
-    file_ids: List[str] = []
-    for p in file_paths:
-        try:
-            fid = _upload_vision_file(p, client)
-            file_ids.append(fid)
-        except Exception as e:
-            logger.error("Failed to upload file '%s': %s", p, e)
-            raise
-
-    input_messages = build_pid_input(process_description, file_ids, node_define=node_define, intention=intention)
+    input_messages = build_pid_input(process_description, files, node_define=node_define, intention=intention)
 
     for attempt in range(1, max_retries + 1):
         try:
@@ -136,7 +117,7 @@ def extract_pid_multi_files_single_call(
             elapsed = time.perf_counter() - start_t
 
             pid_result: PIDResponse = resp.output_parsed
-            meta = build_llm_metadata(resp, elapsed)
+            meta = build_llm_metadata(resp, elapsed, llm_provider)
 
             logger.info(
                 "LLM multi-files usage: model=%s total_tokens=%s latency=%.3fs",
@@ -173,40 +154,5 @@ def extract_pid_multi_files_single_call(
             time.sleep(backoff_s * attempt)
 
     raise RuntimeError(
-        f"Failed to obtain valid P&ID JSON for files {file_paths} after {max_retries} attempts."
+        f"Failed to obtain valid P&ID JSON for files {[n for n, _ in files]} after {max_retries} attempts."
     )
-
-# Run P&ID extraction for multiple files, but with ONE call per file.
-@timeit_log
-def extract_pid_batch(
-    file_paths: List[str],
-    *,
-    process_description: str,
-    node_define: str = "",
-    intention: str = "",
-    model: str = "gpt-5.5-2026-04-23",
-    max_retries: int = 3,
-    backoff_s: float = 2.0,
-) -> Dict[str, Dict[str, object]]:
-    results: Dict[str, Dict[str, object]] = {}
-
-    for p in file_paths:
-        try:
-            logger.info("Starting P&ID extraction for: %s", p)
-            pid_result, meta = extract_pid(
-                p,
-                process_description=process_description,
-                node_define=node_define,
-                intention=intention,
-                model=model,
-                max_retries=max_retries,
-                backoff_s=backoff_s,
-            )
-            results[p] = {
-                "pid": pid_result,
-                "metadata": meta,
-            }
-        except Exception as e:
-            logger.error("Failed to extract P&ID from %s: %s", p, e)
-
-    return results

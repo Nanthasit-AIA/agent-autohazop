@@ -3,16 +3,14 @@ import json
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Sequence
 
-from module.llm_module import get_llm_client, build_llm_metadata
-from module.schema_json import PIDResponse
-from decorators import logger, timeit_log
+from .llm import get_llm_client, build_llm_metadata, default_model
+from .schema import PIDResponse
+from .prompt import content_part
+from .logging_conf import logger, timeit_log
 
-_PROMPT_DIR = Path(__file__).parent / "prompt"
-MODIFY_SYSTEM_PROMPT = (_PROMPT_DIR / "skill_modify_json.md").read_text(encoding="utf-8")
-
-DEFAULT_MODEL = "gpt-5.5-2026-04-23"
+MODIFY_SYSTEM_PROMPT = (Path(__file__).parent / "skill_modify_json.md").read_text(encoding="utf-8")
 
 # Maps section name → the field used as item identifier
 _ID_FIELD: dict[str, str | None] = {
@@ -101,29 +99,28 @@ def _apply_patches(pid_data: dict, patches: list[dict]) -> dict:
 
 @timeit_log
 def modify_pid_json(
-    file_name: str,
+    combined: dict,
     instruction: str,
-    file_ids: list[str],
+    files: Sequence[tuple[str, bytes]] = (),
     *,
-    llm_provider: str = "own_api",
-    model: str = DEFAULT_MODEL,
-    data_dir: str = "static/data",
+    llm_provider: str = "litellm",
+    model: str | None = None,
 ) -> tuple[dict, dict]:
-    """Apply a targeted LLM patch to a saved P&ID JSON file.
+    """Apply a targeted LLM patch to a P&ID document.
+
+    `combined` is the stored {"pid_data", "metadata"} document; `files` are
+    (filename, bytes) pairs of the source drawings, inlined for the model.
+    Loading and saving are the caller's job, so this works against any store.
 
     Returns (new_combined_dict, usage_meta).
     Raises ValueError if the patched document fails PIDResponse validation.
     Raises RuntimeError if LLM call fails or patch JSON is unparseable.
     """
-    json_path = Path(data_dir) / f"{file_name}.json"
-    if not json_path.exists():
-        raise FileNotFoundError(f"JSON not found: {json_path}")
-
-    combined = json.loads(json_path.read_text(encoding="utf-8"))
     pid_data: dict = combined.get("pid_data", combined)
     old_metadata: dict = combined.get("metadata", {})
 
     client = get_llm_client(llm_provider)
+    model = model or default_model(llm_provider)
 
     content: list[dict] = [
         {
@@ -134,7 +131,7 @@ def modify_pid_json(
             ),
         }
     ]
-    content.extend({"type": "input_file", "file_id": fid} for fid in file_ids)
+    content.extend(content_part(name, data) for name, data in files)
 
     start = time.perf_counter()
     resp = client.responses.create(
@@ -162,12 +159,11 @@ def modify_pid_json(
     except Exception as exc:
         raise ValueError(f"Patched document failed schema validation: {exc}") from exc
 
-    usage_meta = build_llm_metadata(resp, latency)
+    usage_meta = build_llm_metadata(resp, latency, llm_provider)
     usage_meta["modified_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    usage_meta["source_files"] = old_metadata.get("source_files", [])
+    usage_meta["inputs"] = old_metadata.get("inputs", [])
 
     new_combined = {"pid_data": new_pid_data, "metadata": usage_meta}
-    json_path.write_text(json.dumps(new_combined, indent=2, ensure_ascii=False), encoding="utf-8")
 
-    logger.info("modify_pid_json: applied %d patch(es) to %s", len(patches), json_path)
+    logger.info("modify_pid_json: applied %d patch(es)", len(patches))
     return new_combined, usage_meta

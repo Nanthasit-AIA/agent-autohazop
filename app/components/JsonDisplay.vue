@@ -327,6 +327,14 @@ const sourceFiles = computed<string[]>(() => {
 const imageScale = ref(100);
 const currentImageIndex = ref(0);
 
+// Source drawings are streamed by the extraction service. <img> cannot send a
+// header, so the demo token rides in the query string instead.
+const sourceUrl = (path: string): string => {
+  const { extractApiBase, demoToken } = useRuntimeConfig().public;
+  const sep = path.includes("?") ? "&" : "?";
+  return `${extractApiBase}${path}${demoToken ? `${sep}token=${encodeURIComponent(demoToken as string)}` : ""}`;
+};
+
 const openGraph = () => {
   if (hasConnections.value) {
     currentImageIndex.value = 0;
@@ -546,7 +554,7 @@ const handleGraphOpenModify = (instruction: string) => {
               </div>
               <div class="flex-1 overflow-auto border rounded-xl bg-gray-100 min-h-0">
                 <img
-                  :src="`http://localhost:5000${sourceFiles[currentImageIndex]}`"
+                  :src="sourceUrl(sourceFiles[currentImageIndex])"
                   :style="{ width: imageScale + '%', maxWidth: 'none' }"
                   class="block"
                   alt="P&ID source image"

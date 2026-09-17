@@ -47,3 +47,10 @@ HAZOP Worksheet_*.xlsx
 *ground_truth*.xlsx
 *ground-truth*.xlsx
 /backend/static/ground_truth/
+
+# Python virtualenvs
+.venv/
+/services/pid-extract/data
+/services/pid-extract/spa
+/backend/static/store
+pid-extract-deploy.zip

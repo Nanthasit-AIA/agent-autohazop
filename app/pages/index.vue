@@ -99,7 +99,17 @@ const createEmptyDeviationSelections = (): Record<ParamName, GuideWord[]> => {
 
 // ----------------- basic state -----------------
 const stage = ref<Stage>("initial");
-const API_BASE = "http://localhost:5000";
+// Two services: P&ID extraction is its own deployable container, HAZOP is the monolith.
+const {
+  extractApiBase: EXTRACT_BASE,
+  hazopApiBase: HAZOP_BASE,
+  demoToken: DEMO_TOKEN,
+} = useRuntimeConfig().public;
+
+// Empty bases mean same-origin, which is how the dev proxy (and so a single
+// tunnel or a single App Service) serves the SPA and both backends from one host.
+const authHeaders = (): Record<string, string> =>
+  DEMO_TOKEN ? { "X-Demo-Token": DEMO_TOKEN as string } : {};
 
 const inputMode = ref<InputMode>("search");
 const processName = ref("");
@@ -129,29 +139,15 @@ const selectedLlmProvider = ref("own_api");
 const selectedLlmModel = ref("");
 
 // ----------------- Socket.IO -----------------
-const socket = io(API_BASE);
+// autoConnect is off on purpose. The HAZOP backend is not always deployed, so
+// on a hosted build this would dial the wrong host on every page load - blocked
+// as mixed content, then retried forever. Nothing in the extract flow needs the
+// socket, so it is only dialled when analysis starts.
+const socket = io(HAZOP_BASE || undefined, {
+  autoConnect: false,
+  auth: { token: DEMO_TOKEN },
+});
 
-// file_status for ExtractStatus
-socket.on(
-  "file_status",
-  (payload: { status: string; file_name?: string; error?: string }) => {
-    const fileName = payload.file_name ?? "";
-
-    if (payload.status === "working") {
-      isExtracting.value = true;
-      extractError.value = null;
-      extractLabel.value = fileName ? `processing ${fileName}…` : "processing…";
-    } else if (payload.status === "loading_complete") {
-      isExtracting.value = false;
-      extractError.value = null;
-      extractLabel.value = `loading ${fileName} complete`;
-    } else if (payload.status === "error") {
-      isExtracting.value = false;
-      extractError.value = payload.error || "Error loading file";
-      extractLabel.value = extractError.value;
-    }
-  }
-);
 
 const resetAllState = () => {
   stage.value = "initial";
@@ -487,6 +483,51 @@ const goToJsonAfterMinSpin = async () => {
   }
 };
 
+// Extraction runs for minutes. Azure App Service closes idle HTTP requests after
+// ~230s, so /api/extract returns a job id straight away and we poll for the result.
+const JOB_POLL_MS = 2000;
+const JOB_TIMEOUT_MS = 15 * 60 * 1000;
+
+type JobOutcome =
+  | { ok: true; result: unknown; name: string }
+  | { ok: false; error: string };
+
+const pollExtractJob = async (
+  jobId: string,
+  name: string
+): Promise<JobOutcome> => {
+  const deadline = Date.now() + JOB_TIMEOUT_MS;
+
+  while (Date.now() < deadline) {
+    await new Promise((r) => setTimeout(r, JOB_POLL_MS));
+
+    const res = await fetch(`${EXTRACT_BASE}/api/jobs/${jobId}`, {
+      headers: authHeaders(),
+    });
+
+    if (res.status === 404) {
+      return {
+        ok: false,
+        error: "Extraction job was lost (service restarted). Please try again.",
+      };
+    }
+
+    const job = await res.json();
+
+    if (job.status === "done") {
+      return { ok: true, result: job.result, name: job.name ?? name };
+    }
+    if (job.status === "error") {
+      return { ok: false, error: job.error || "Extraction failed" };
+    }
+
+    const secs = Math.round((Date.now() - (deadline - JOB_TIMEOUT_MS)) / 1000);
+    extractLabel.value = `extracting ${job.name ?? name}… (${secs}s)`;
+  }
+
+  return { ok: false, error: "Extraction timed out after 15 minutes" };
+};
+
 const onStartExtract = async (payload: StartExtractPayload) => {
   const name = payload.name.trim();
   if (!name) return;
@@ -502,7 +543,8 @@ const onStartExtract = async (payload: StartExtractPayload) => {
   try {
     if (payload.mode === "search") {
       const res = await fetch(
-        `${API_BASE}/api/search?name=${encodeURIComponent(name)}`
+        `${EXTRACT_BASE}/api/results/${encodeURIComponent(name)}`,
+        { headers: authHeaders() }
       );
       const body = await res.json();
 
@@ -548,8 +590,9 @@ const onStartExtract = async (payload: StartExtractPayload) => {
         formData.append("file", f);
       }
 
-      const res = await fetch(`${API_BASE}/api/full`, {
+      const res = await fetch(`${EXTRACT_BASE}/api/extract`, {
         method: "POST",
+        headers: authHeaders(),
         body: formData,
       });
 
@@ -561,8 +604,17 @@ const onStartExtract = async (payload: StartExtractPayload) => {
         return;
       }
 
-      jsonData.value = body.data;
-      jsonFileName.value = body.file_name ?? payload.fileName ?? payload.name;
+      const job = await pollExtractJob(body.job_id, body.name);
+
+      if (!job.ok) {
+        extractError.value = job.error ?? "Extraction failed";
+        extractLabel.value = extractError.value;
+        isExtracting.value = false;
+        return;
+      }
+
+      jsonData.value = job.result;
+      jsonFileName.value = `${job.name}.json`;
       extractLabel.value = `loading ${jsonFileName.value} complete`;
 
       await goToJsonAfterMinSpin();
@@ -839,6 +891,7 @@ const handleStartAnalysis = async () => {
   await new Promise((resolve) => setTimeout(resolve, 2000));
 
   // emit to backend via Socket.IO ✅
+  if (!socket.connected) socket.connect();
   socket.emit("hazop_start", {
     pid_data: jsonData.value,
     selections,

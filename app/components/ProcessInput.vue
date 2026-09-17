@@ -65,7 +65,10 @@ const currentModels = computed<string[]>(() => {
 
 onMounted(async () => {
   try {
-    const res = await fetch("http://localhost:5000/api/llm-config");
+    const { extractApiBase, demoToken } = useRuntimeConfig().public;
+    const res = await fetch(`${extractApiBase}/api/llm-config`, {
+      headers: demoToken ? { "X-Demo-Token": demoToken as string } : {},
+    });
     const data = await res.json();
     llmGroups.value = data.groups ?? [];
     if (llmGroups.value.length > 0) {
@@ -367,7 +370,7 @@ const fileColor = (file: File): string => {
             ref="fileInputRef"
             type="file"
             class="hidden"
-            accept="application/pdf,image/*"
+            accept=".pdf,.png,.jpg,.jpeg,.webp"
             multiple
             @change="handleFileChange"
           />
