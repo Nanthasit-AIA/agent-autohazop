@@ -352,6 +352,7 @@ interface HazopRun {
 const analysisLabel = ref<string>("waiting to analysis");
 const analysisError = ref<string>("");
 const hazopRunning = ref<boolean>(false);
+const hazopDownloadUrl = ref("");
 const hazopRuns = ref<HazopRun[]>([]);
 
 const displayLabel = computed<string>(() => {
@@ -399,11 +400,16 @@ socket.on(
     error?: string;
     folder?: string;
     file_name?: string;
+    result?: { download_url?: string };
   }) => {
     hazopRunning.value = false;
 
     if (msg.folder) outputFolder.value = msg.folder;
     if (msg.file_name) analysisFileName.value = msg.file_name;
+    // The workbook is served by the HAZOP backend's static folder.
+    hazopDownloadUrl.value = msg.result?.download_url
+      ? `${HAZOP_BASE}${msg.result.download_url}`
+      : "";
 
     if (msg.ok) {
       analysisLabel.value = "analysis complete";
@@ -978,6 +984,7 @@ const handleStartAnalysis = async () => {
         <Transition name="fade-slide">
           <AnalysisControl v-if="stage === 'analysis'" class="mt-4" :active="hazopRunning" :label="displayLabel"
             :error-message="analysisError" :runs="hazopRuns" :output-folder="outputFolder" :file-name="analysisFileName"
+            :download-url="hazopDownloadUrl"
             :process-inputs="systemInputs" :process-outputs="systemOutputs" @start="handleStartAnalysis"
             @exit="handleExit" />
         </Transition>

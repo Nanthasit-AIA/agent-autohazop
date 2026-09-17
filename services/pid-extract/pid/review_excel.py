@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from openpyxl import Workbook, load_workbook
-from openpyxl.styles import Alignment, Font, PatternFill
+from openpyxl.styles import Alignment, Font, PatternFill, Protection
 from openpyxl.utils import get_column_letter
 
 from .logging_conf import logger
@@ -105,7 +105,11 @@ def _split(value: Any) -> list[str]:
     return [p.strip() for p in parts if p.strip()]
 
 
-def _style_sheet(ws, columns: list[str], row_count: int) -> None:
+# Rows left unlocked below the data, so a reviewer can add items by typing
+# rather than having to insert rows first.
+SPARE_ROWS = 200
+
+def _style_sheet(ws, columns: list[str], row_count: int, editable_from_col: int = 1) -> None:
     fill = PatternFill("solid", fgColor="1F4E78")
     font = Font(name="Arial", size=9, bold=True, color="FFFFFF")
     for idx, header in enumerate(columns, start=1):
@@ -119,6 +123,19 @@ def _style_sheet(ws, columns: list[str], row_count: int) -> None:
             ws.cell(row=r, column=c).alignment = Alignment(vertical="top", wrap_text=True)
     ws.freeze_panes = "A2"
 
+    # The reviewer edits values, not structure. With the sheet protected every
+    # cell is locked by default, so unlock only the data area: the header row and
+    # any column left of editable_from_col stay fixed, and columns cannot be
+    # added or removed. Rows can, since items can legitimately come and go.
+    for r in range(2, row_count + 2 + SPARE_ROWS):
+        for c in range(editable_from_col, len(columns) + 1):
+            ws.cell(row=r, column=c).protection = Protection(locked=False)
+    ws.protection.sheet = True
+    ws.protection.insertRows = False
+    ws.protection.deleteRows = False
+    ws.protection.formatRows = False
+    ws.protection.formatCells = False
+
 
 def export_pid_review_excel(data: Any, out_dir: str | Path, name: str) -> Path:
     pid = _pid_root(data)
@@ -130,7 +147,7 @@ def export_pid_review_excel(data: Any, out_dir: str | Path, name: str) -> Path:
     for i, (field, value) in enumerate(rows, start=2):
         ws.cell(row=i, column=1, value=field)
         ws.cell(row=i, column=2, value=value)
-    _style_sheet(ws, ["field", "value"], len(rows))
+    _style_sheet(ws, ["field", "value"], len(rows), editable_from_col=2)
     ws.column_dimensions["B"].width = 90
 
     io = wb.create_sheet("Inputs Outputs")
@@ -204,9 +221,36 @@ def _check_duplicates(rows: list[dict[str, str]], key: str, label: str, errors: 
         errors.append(f"{label}: duplicate {key} '{value}'")
 
 
+def _expected_layout() -> list[tuple[str, list[str]]]:
+    """Every sheet the export writes, with its header row - the reviewer's fixed structure."""
+    layout = [("Process", ["field", "value"]), ("Inputs Outputs", ["kind", "name"])]
+    layout += [(name, [h for h, _f, _k in cols]) for name, _key, cols in SECTIONS]
+    layout.append((LINE_DETAIL_SHEET, list(LINE_DETAIL_COLUMNS)))
+    return layout
+
+
+def _check_structure(wb) -> list[str]:
+    """Reject a file whose sheets or headers do not match the export exactly.
+
+    _read_rows maps by header name and blanks anything it cannot find, so a
+    renamed column or a missing sheet would otherwise import as silent data loss.
+    """
+    errors = []
+    for sheet, headers in _expected_layout():
+        if sheet not in wb.sheetnames:
+            errors.append(f"Missing sheet: '{sheet}'")
+            continue
+        found = [_text(c.value) for c in wb[sheet][1]][: len(headers)]
+        if found != headers:
+            errors.append(f"{sheet}: header row must be {headers}, found {found}")
+    return errors
+
+
 def import_pid_review_excel(path: str | Path) -> tuple[dict[str, Any], list[str], list[str]]:
     wb = load_workbook(path, data_only=True)
-    errors: list[str] = []
+    errors: list[str] = _check_structure(wb)
+    if errors:
+        return {}, errors, []
     warnings: list[str] = []
 
     process = {r["field"]: r["value"] for r in _read_rows(wb, "Process", ["field", "value"])}

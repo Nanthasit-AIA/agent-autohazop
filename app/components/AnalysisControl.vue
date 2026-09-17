@@ -16,6 +16,7 @@ const props = withDefaults(
     runs?: HazopRun[];
     outputFolder?: string;
     fileName?: string;
+    downloadUrl?: string;
     processInputs?: string[];
     processOutputs?: string[];
   }>(),
@@ -40,6 +41,7 @@ const {
   runs,
   outputFolder,
   fileName,
+  downloadUrl,
   processInputs,
   processOutputs,
 } = toRefs(props);
@@ -323,6 +325,10 @@ const riskLevels = [
         <span class="ml-1 font-mono break-all">
           {{ fullPath }}
         </span>
+        <a v-if="downloadUrl && !active" :href="downloadUrl" :download="fileName || 'hazop.xlsx'"
+          class="ml-3 inline-block px-3 py-1 rounded-md bg-black text-white hover:bg-gray-800 transition">
+          Download Excel
+        </a>
       </div>
     </div>
 

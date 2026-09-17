@@ -11,6 +11,7 @@ export default defineNuxtConfig({
       // of the target or the backend sees /config instead of /api/config.
       '/api': {target: 'http://127.0.0.1:8000/api', changeOrigin: true},
       '/socket.io': {target: 'http://127.0.0.1:5000/socket.io', changeOrigin: true, ws: true},
+      '/static': {target: 'http://127.0.0.1:5000/static', changeOrigin: true},
     },
   },
   app: {

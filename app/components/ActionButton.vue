@@ -67,6 +67,69 @@ const handleModifyFileChange = (e: Event) => {
   modifyFile.value = f;
 };
 
+/* ---- Excel review round-trip ---- */
+const baseNameOf = (fileName: string) =>
+  fileName.endsWith(".json") ? fileName.slice(0, -5) : fileName;
+
+const reviewBusy = ref(false);
+const reviewError = ref("");
+const reviewFileRef = ref<HTMLInputElement | null>(null);
+
+const downloadReviewExcel = async () => {
+  if (!props.jsonFileName) return;
+  reviewBusy.value = true;
+  reviewError.value = "";
+  try {
+    const res = await fetch(`${API_BASE}/api/review/export`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...authHeaders() },
+      body: JSON.stringify({ name: baseNameOf(props.jsonFileName) }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      reviewError.value = body.error || "Export failed.";
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${baseNameOf(props.jsonFileName)}_pid_review.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    reviewError.value = "Network error.";
+  } finally {
+    reviewBusy.value = false;
+  }
+};
+
+const importReviewExcel = async (e: Event) => {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  input.value = ""; // allow picking the same file again
+  if (!file || !props.jsonFileName) return;
+  reviewBusy.value = true;
+  reviewError.value = "";
+  try {
+    const form = new FormData();
+    form.append("name", baseNameOf(props.jsonFileName));
+    form.append("file", file);
+    const res = await fetch(`${API_BASE}/api/review/import`, { method: "POST", headers: authHeaders(), body: form });
+    const body = await res.json();
+    if (!res.ok || !body.ok) {
+      const detail = Array.isArray(body.errors) ? ` ${body.errors.slice(0, 3).join("; ")}` : "";
+      reviewError.value = (body.error || "Import failed.") + detail;
+      return;
+    }
+    emit("modify-done", { data: body.data, fileName: body.file_name });
+  } catch {
+    reviewError.value = "Network error.";
+  } finally {
+    reviewBusy.value = false;
+  }
+};
+
 const submitModify = async () => {
   if (!instruction.value.trim()) { modifyError.value = "Instruction is required."; return; }
   if (!props.jsonFileName) { modifyError.value = "No file loaded."; return; }
@@ -126,12 +189,32 @@ const submitModify = async () => {
       </button>
 
       <button
+        @click="downloadReviewExcel()"
+        :disabled="!jsonFileName || reviewBusy"
+        class="px-6 py-2 rounded-lg border transition"
+        :class="!jsonFileName || reviewBusy ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-400 text-gray-700 hover:bg-gray-50'"
+      >
+        Download Excel
+      </button>
+
+      <button
+        @click="reviewFileRef?.click()"
+        :disabled="!jsonFileName || reviewBusy"
+        class="px-6 py-2 rounded-lg border transition"
+        :class="!jsonFileName || reviewBusy ? 'border-gray-200 text-gray-400 cursor-not-allowed' : 'border-gray-400 text-gray-700 hover:bg-gray-50'"
+      >
+        {{ reviewBusy ? "Working…" : "Import Excel" }}
+      </button>
+      <input ref="reviewFileRef" type="file" accept=".xlsx" class="hidden" @change="importReviewExcel" />
+
+      <button
         @click="emit('exit')"
         class="px-6 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
       >
         exit
       </button>
     </div>
+    <p v-if="reviewError" class="text-center text-sm text-red-600 -mt-6 mb-6">{{ reviewError }}</p>
 
     <!-- Modify modal -->
     <Transition name="fade">
