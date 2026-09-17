@@ -36,7 +36,7 @@ BLOB_CONTAINER="pid-results"
 LITELLM_BASE_URL="${LITELLM_BASE_URL:-https://scgc-llmproxy.scg.com}"
 EXTRACT_MODEL="${EXTRACT_MODEL:-gpt-5.5}"
 # Model ids exactly as the proxy lists them. Shown in the UI picker; first is default.
-LITELLM_MODELS="${LITELLM_MODELS:-gpt-5.5,gemini-3.5-flash,claude-opus-4-8}"
+LITELLM_MODELS="${LITELLM_MODELS:-gpt-5.5,GPT 5.4,claude-opus-4-8,claude-opus-4-7,Gemini 3.0 pro}"
 : "${LITELLM_API_KEY:?export LITELLM_API_KEY before running}"
 
 STARTUP="gunicorn --bind=0.0.0.0:8000 --workers 1 --threads 8 --timeout 1800 --access-logfile '-' app:app"
