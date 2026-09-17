@@ -9,6 +9,9 @@ export default defineNuxtConfig({
     devProxy: {
       // The matched prefix is stripped before forwarding, so it has to be part
       // of the target or the backend sees /config instead of /api/config.
+      // More specific first: the assistant lives on the HAZOP backend, everything
+      // else under /api is extraction.
+      '/api/assistant': {target: 'http://127.0.0.1:5000/api/assistant', changeOrigin: true},
       '/api': {target: 'http://127.0.0.1:8000/api', changeOrigin: true},
       '/socket.io': {target: 'http://127.0.0.1:5000/socket.io', changeOrigin: true, ws: true},
       '/static': {target: 'http://127.0.0.1:5000/static', changeOrigin: true},

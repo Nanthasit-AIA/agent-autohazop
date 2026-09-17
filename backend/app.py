@@ -1,5 +1,10 @@
+import hashlib
+import hmac
+import json
 import os, re
+import zipfile
 from datetime import datetime
+from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
@@ -9,6 +14,7 @@ from flask_socketio import SocketIO
 
 from decorators import logger
 from module.agent_module import run_hazop_agent
+from module.assistant_module import run_hazop_assistant
 from module.ag_template_modulee import run_hazop_agent_1
 from module.hazop_export_module import hazop_lopa_preview_dataframe
 from module.llm_module import (
@@ -24,6 +30,29 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # right for local dev; set it whenever this is reachable from outside the
 # machine, since a HAZOP run spends real LLM budget.
 DEMO_TOKEN = os.getenv("DEMO_TOKEN", "").strip()
+
+ASSISTANT_FILE_MAX_FILES = int(os.getenv("ASSISTANT_FILE_MAX_FILES", "4"))
+ASSISTANT_FILE_MAX_BYTES = int(os.getenv("ASSISTANT_FILE_MAX_BYTES", str(8 * 1024 * 1024)))
+ASSISTANT_FILE_TEXT_LIMIT = int(os.getenv("ASSISTANT_FILE_TEXT_LIMIT", "12000"))
+# Refuse an oversized body at the socket instead of buffering it, since the
+# per-file check below only runs once the upload is already in memory.
+app.config["MAX_CONTENT_LENGTH"] = ASSISTANT_FILE_MAX_FILES * ASSISTANT_FILE_MAX_BYTES + 2 * 1024 * 1024
+
+
+@app.before_request
+def require_token():
+    """Same gate as services/pid-extract: /api/ only, so /static/ downloads
+    (which are plain <a download> links and cannot send a header) still work."""
+    if not DEMO_TOKEN or request.method == "OPTIONS":
+        return None
+    if not request.path.startswith("/api/"):
+        return None
+    supplied = request.headers.get("X-Demo-Token") or request.args.get("token", "")
+    if not hmac.compare_digest(supplied, DEMO_TOKEN):
+        logger.warning("Rejected %s %s: bad or missing token", request.method, request.path)
+        return jsonify({"ok": False, "error": "Unauthorized"}), 401
+    return None
+
 
 @socketio.on("connect")
 def handle_connect(auth):
@@ -176,6 +205,210 @@ def sanitize_hazop_file_name(value: str | None) -> str:
     if not ext:
         raw = root + ".xlsx"
     return re.sub(r"[^A-Za-z0-9._ -]+", "_", raw).strip(" ._") or "hazop_output.xlsx"
+
+
+def limit_text(text: str, limit: int = ASSISTANT_FILE_TEXT_LIMIT):
+    text = text or ""
+    if len(text) <= limit:
+        return text, False
+    return text[:limit].rstrip(), True
+
+def decode_upload_text(raw: bytes) -> str:
+    for encoding in ("utf-8-sig", "utf-16", "cp874", "latin-1"):
+        try:
+            return raw.decode(encoding)
+        except UnicodeDecodeError:
+            continue
+    return raw.decode("utf-8", errors="replace")
+
+def is_probably_text(raw: bytes) -> bool:
+    sample = raw[:4096]
+    if not sample:
+        return False
+    if b"\x00" in sample:
+        return False
+    control_bytes = sum(1 for byte in sample if byte < 32 and byte not in {9, 10, 12, 13})
+    return control_bytes / max(len(sample), 1) < 0.08
+
+def dataframe_preview_text(df: pd.DataFrame, row_limit: int = 30) -> str:
+    df = df.fillna("")
+    df = df.loc[:, ~df.columns.astype(str).str.startswith("Unnamed")]
+    preview = df.head(row_limit)
+    return preview.to_csv(index=False)
+
+def archive_preview_text(raw: bytes, limit: int = 80) -> str:
+    with zipfile.ZipFile(BytesIO(raw)) as archive:
+        names = archive.namelist()[:limit]
+    if not names:
+        return "Archive contains no readable file entries."
+    return "Archive file list:\n" + "\n".join(f"- {name}" for name in names)
+
+def binary_preview_text(raw: bytes, filename: str, mimetype: str = "") -> str:
+    digest = hashlib.sha256(raw).hexdigest()
+    hex_preview = raw[:96].hex(" ")
+    lines = [
+        "Binary or unsupported structured file accepted.",
+        f"Filename: {filename}",
+        f"MIME type: {mimetype or 'unknown'}",
+        f"Size bytes: {len(raw)}",
+        f"SHA256: {digest}",
+    ]
+    if hex_preview:
+        lines.append(f"First 96 bytes (hex): {hex_preview}")
+    lines.append("Text content was not extracted. Use this file as attachment metadata only unless a parser is added.")
+    return "\n".join(lines)
+
+def extract_assistant_upload(file_storage):
+    filename = Path(file_storage.filename or "uploaded_file").name
+    extension = Path(filename).suffix.lower()
+    mimetype = str(getattr(file_storage, "mimetype", "") or "")
+    payload = {
+        "filename": filename,
+        "extension": extension,
+        "mimetype": mimetype,
+        "size_bytes": 0,
+        "text": "",
+        "truncated": False,
+        "error": "",
+        "extraction_method": "",
+        "extraction_note": "",
+    }
+
+    try:
+        raw = file_storage.read()
+        payload["size_bytes"] = len(raw)
+
+        if not raw:
+            payload["error"] = "Uploaded file is empty."
+            return payload
+
+        if len(raw) > ASSISTANT_FILE_MAX_BYTES:
+            payload["error"] = f"File is larger than {ASSISTANT_FILE_MAX_BYTES // (1024 * 1024)} MB and was not read."
+            return payload
+
+        if extension in {".txt", ".md", ".csv", ".json", ".log"}:
+            text = decode_upload_text(raw)
+            payload["extraction_method"] = "text"
+        elif extension in {".xlsx", ".xls"}:
+            sheets = pd.read_excel(BytesIO(raw), sheet_name=None, nrows=80)
+            sheet_texts = []
+            for sheet_name, df in list(sheets.items())[:6]:
+                columns = ", ".join(str(col) for col in df.columns)
+                sheet_texts.append(
+                    f"Sheet: {sheet_name}\nColumns: {columns}\nPreview:\n{dataframe_preview_text(df)}"
+                )
+            text = "\n\n".join(sheet_texts)
+            payload["extraction_method"] = "spreadsheet"
+        elif extension == ".pdf":
+            try:
+                try:
+                    from pypdf import PdfReader
+                except Exception:
+                    from PyPDF2 import PdfReader
+
+                reader = PdfReader(BytesIO(raw))
+                pages = []
+                for idx, page in enumerate(reader.pages[:8]):
+                    pages.append(f"Page {idx + 1}:\n{page.extract_text() or ''}")
+                text = "\n\n".join(pages)
+                payload["extraction_method"] = "pdf"
+            except Exception as exc:
+                payload["error"] = f"PDF text extraction is not available: {exc}"
+                text = binary_preview_text(raw, filename, mimetype)
+                payload["extraction_method"] = "binary_metadata"
+        elif extension == ".docx":
+            try:
+                from docx import Document
+
+                doc = Document(BytesIO(raw))
+                text = "\n".join(paragraph.text for paragraph in doc.paragraphs if paragraph.text.strip())
+                payload["extraction_method"] = "docx"
+            except Exception as exc:
+                payload["error"] = f"DOCX text extraction is not available: {exc}"
+                text = binary_preview_text(raw, filename, mimetype)
+                payload["extraction_method"] = "binary_metadata"
+        elif extension == ".pptx":
+            try:
+                from pptx import Presentation
+
+                prs = Presentation(BytesIO(raw))
+                slide_texts = []
+                for idx, slide in enumerate(prs.slides[:30], start=1):
+                    texts = []
+                    for shape in slide.shapes:
+                        if hasattr(shape, "text") and str(shape.text or "").strip():
+                            texts.append(str(shape.text).strip())
+                    if texts:
+                        slide_texts.append(f"Slide {idx}:\n" + "\n".join(texts))
+                text = "\n\n".join(slide_texts) or "PowerPoint file accepted, but no text was extracted from slide shapes."
+                payload["extraction_method"] = "pptx"
+            except Exception as exc:
+                payload["error"] = f"PPTX text extraction is not available: {exc}"
+                text = binary_preview_text(raw, filename, mimetype)
+                payload["extraction_method"] = "binary_metadata"
+        else:
+            if is_probably_text(raw) or mimetype.startswith("text/"):
+                text = decode_upload_text(raw)
+                payload["extraction_method"] = "generic_text"
+            elif zipfile.is_zipfile(BytesIO(raw)):
+                try:
+                    text = archive_preview_text(raw)
+                    payload["extraction_method"] = "archive_listing"
+                    payload["extraction_note"] = "Archive content was not deeply extracted; only the file list was read."
+                except Exception as exc:
+                    payload["error"] = f"Archive listing is not available: {exc}"
+                    text = binary_preview_text(raw, filename, mimetype)
+                    payload["extraction_method"] = "binary_metadata"
+            else:
+                text = binary_preview_text(raw, filename, mimetype)
+                payload["extraction_method"] = "binary_metadata"
+                payload["extraction_note"] = "File was accepted, but text could not be extracted from this binary format."
+
+        payload["text"], payload["truncated"] = limit_text(text)
+    except Exception as exc:
+        logger.exception("Failed to extract assistant upload")
+        payload["error"] = str(exc)
+
+    return payload
+
+def parse_assistant_payload():
+    if request.files or request.form.get("payload"):
+        raw_payload = request.form.get("payload") or "{}"
+        try:
+            payload = json.loads(raw_payload)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Invalid assistant payload JSON: {exc}") from exc
+
+        if not isinstance(payload, dict):
+            payload = {}
+
+        upload_files = request.files.getlist("files") + request.files.getlist("file")
+        valid_uploads = [item for item in upload_files if item and item.filename]
+        payload["uploaded_files"] = [
+            extract_assistant_upload(item)
+            for item in valid_uploads[:ASSISTANT_FILE_MAX_FILES]
+        ]
+
+        if len(valid_uploads) > ASSISTANT_FILE_MAX_FILES:
+            payload["uploaded_file_warning"] = (
+                f"Only the first {ASSISTANT_FILE_MAX_FILES} files were read."
+            )
+
+        return payload
+
+    return request.get_json(silent=True) or {}
+
+@app.route("/api/assistant/chat", methods=["POST"])
+def api_assistant_chat():
+    try:
+        payload = parse_assistant_payload()
+        result = run_hazop_assistant(payload)
+        return jsonify({"ok": True, **result}), 200
+    except ValueError as e:
+        return jsonify({"ok": False, "error": str(e)}), 400
+    except Exception as e:
+        logger.exception("HAZOP assistant failed")
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 
 @app.route("/api/models", methods=["GET"])

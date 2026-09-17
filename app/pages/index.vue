@@ -9,6 +9,7 @@ import ActionButtons from "~/components/ActionButton.vue";
 import NodeSelection from "~/components/NodeSelection.vue";
 import DeviationSelection from "~/components/DeviationSelection.vue";
 import AnalysisControl from "~/components/AnalysisControl.vue";
+import HazopAssistant from "~/components/HazopAssistant.vue";
 import type { Connection } from "~/components/SelectedPipelineGraph.vue";
 
 // ----------------- types -----------------
@@ -353,6 +354,7 @@ const analysisLabel = ref<string>("waiting to analysis");
 const analysisError = ref<string>("");
 const hazopRunning = ref<boolean>(false);
 const hazopDownloadUrl = ref("");
+const hazopResult = ref<Record<string, any> | null>(null);
 const hazopRuns = ref<HazopRun[]>([]);
 
 const displayLabel = computed<string>(() => {
@@ -400,9 +402,10 @@ socket.on(
     error?: string;
     folder?: string;
     file_name?: string;
-    result?: { download_url?: string };
+    result?: Record<string, any>;
   }) => {
     hazopRunning.value = false;
+    hazopResult.value = msg.result ?? null;
 
     if (msg.folder) outputFolder.value = msg.folder;
     if (msg.file_name) analysisFileName.value = msg.file_name;
@@ -775,6 +778,27 @@ const currentDeviationModel = computed<Record<ParamName, GuideWord[]>>({
   },
 });
 
+const currentAssistantDeviations = computed(() =>
+  allParams.flatMap((parameter) =>
+    (currentDeviationModel.value[parameter] ?? []).map((guide_word) => ({
+      parameter,
+      guide_word,
+    }))
+  )
+);
+
+const assistantHazopStatus = computed(() => ({
+  running: hazopRunning.value,
+  label: analysisLabel.value,
+  error: analysisError.value,
+  completed_deviations: hazopRuns.value.length,
+  latest_run: hazopRuns.value[hazopRuns.value.length - 1] || null,
+  recent_runs: hazopRuns.value.slice(-12),
+  result: hazopResult.value
+    ? { ...hazopResult.value, rows: (hazopResult.value.rows ?? []).slice(0, 30) }
+    : null,
+}));
+
 const selectedNodesDetailed = computed<NodeItem[]>(() => {
   const result = nodes.value.filter((n) => selectedNodes.value.includes(n.id));
   return result.sort((a, b) => {
@@ -999,6 +1023,12 @@ const handleStartAnalysis = async () => {
         </transition>
       </div>
     </div>
+
+    <HazopAssistant :enabled="true" :stage="stage" :process-name="processName" :file-name="jsonFileName"
+      :pid-data="jsonData" :current-node="currentNode ?? null" :selected-nodes="selectedNodesDetailed"
+      :current-deviations="currentAssistantDeviations" :system-inputs="systemInputs"
+      :system-outputs="systemOutputs" :hazop-status="assistantHazopStatus"
+      :api-model="selectedLlmModel" :api-provider="selectedLlmProvider" />
   </div>
 </template>
 

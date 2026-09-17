@@ -54,3 +54,5 @@ HAZOP Worksheet_*.xlsx
 /services/pid-extract/spa
 /backend/static/store
 pid-extract-deploy.zip
+hazop-deploy.zip
+/backend/static/hazop/
