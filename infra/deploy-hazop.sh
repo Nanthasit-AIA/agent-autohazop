@@ -59,7 +59,9 @@ say "Building the deployment archive"
 ./infra/make-hazop-zip.sh
 
 say "Deploying (Azure runs pip install on the server)"
-az webapp deploy -n "$WEBAPP" -g "$RG" --src-path hazop-deploy.zip --type zip -o none
+# The deploy API often returns 504 while Oryx is still installing, even though
+# the deployment goes on to succeed. The health check below is the real gate.
+az webapp deploy -n "$WEBAPP" -g "$RG" --src-path hazop-deploy.zip --type zip -o none   || echo "  deploy API reported an error; waiting to see whether the app comes up anyway"
 
 API_URL="https://$(az webapp show -n "$WEBAPP" -g "$RG" --query defaultHostName -o tsv)"
 

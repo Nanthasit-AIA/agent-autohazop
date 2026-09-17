@@ -11,6 +11,7 @@ from module.llm_module import _call_with_retries, default_chat_model, get_client
 
 ASSISTANT_MODEL = os.getenv("ASSISTANT_MODEL") or default_chat_model
 MAX_SKILL_KNOWLEDGE_CHARS = 9000
+MAX_WORKSHEET_CHARS = 12000
 MAX_UPLOADED_FILE_CHARS = 7000
 
 
@@ -351,7 +352,127 @@ def _summarize_adjacent_connections(
     return adjacent
 
 
-def _compact_hazop_status(status: Any) -> Dict[str, Any]:
+def _worksheet_path(download_url: str) -> Path | None:
+    """Locate the worksheet the UI is showing, from its own download link.
+
+    The browser only ever receives a truncated preview, so row-specific
+    questions have to be answered from the file the run actually wrote. Only
+    the folder segment is taken from the URL, and it is reduced to a single
+    sanitized name: this endpoint is reachable from outside.
+    """
+    match = re.search(r"/static/hazop/([^/]+)/", str(download_url or ""))
+    if not match:
+        return None
+
+    folder = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(match.group(1)).name).strip("._")
+    if not folder:
+        return None
+
+    base = _project_root() / "backend" / "static" / "hazop" / folder
+    for name in ("parsed_rows.xlsx", Path(str(download_url)).name):
+        candidate = base / name
+        if candidate.exists():
+            return candidate
+    return None
+
+
+def load_full_worksheet(result: Dict[str, Any]) -> tuple[List[Dict[str, Any]], List[str], str]:
+    """Every generated row, read from disk. Falls back to the preview the UI sent."""
+    ui_rows = result.get("rows") if isinstance(result.get("rows"), list) else []
+    ui_columns = result.get("columns") if isinstance(result.get("columns"), list) else []
+
+    path = _worksheet_path(result.get("download_url") or "")
+    if path is None:
+        return ui_rows, ui_columns, "ui_preview"
+
+    try:
+        import pandas as pd
+        from module.hazop_export_module import hazop_lopa_preview_dataframe
+
+        df = pd.read_excel(path)
+        if path.name != "parsed_rows.xlsx":
+            try:
+                df = pd.read_excel(path, sheet_name="Raw Data")
+            except Exception:
+                pass
+        df = hazop_lopa_preview_dataframe(df).fillna("")
+        rows = [
+            {str(k): ("" if v is None else str(v)) for k, v in record.items()}
+            for record in df.to_dict(orient="records")
+        ]
+        if not rows:
+            return ui_rows, ui_columns, "ui_preview"
+        return rows, [str(c) for c in df.columns], f"worksheet:{path.name}"
+    except Exception as exc:
+        logger.warning("Could not read the worksheet at %s: %s", path, exc)
+        return ui_rows, ui_columns, "ui_preview"
+
+
+_ROW_REF_RE = re.compile(
+    r"(?:\brows?\s*(?:no\.?|number|#)?\s*|\u0e41\u0e16\u0e27\u0e17\u0e35\u0e48\s*|\u0e41\u0e16\u0e27\s*|\u0e1a\u0e23\u0e23\u0e17\u0e31\u0e14\u0e17\u0e35\u0e48\s*)(\d{1,5})",
+    re.IGNORECASE,
+)
+
+
+def _row_text(row: Dict[str, Any]) -> str:
+    return " | ".join(f"{k}: {v}" for k, v in row.items() if str(v).strip())
+
+
+def select_worksheet_rows(question: str, rows: List[Dict[str, Any]]) -> Dict[str, Any]:
+    """Pick the rows worth spending prompt budget on.
+
+    Rows the question names explicitly come first, then rows that share terms
+    with it. With neither, this degrades to the first rows, which is what the
+    assistant used to see for every question regardless of what was asked.
+    """
+    numbered = [{"row_number": i + 1, **row} for i, row in enumerate(rows)]
+    if not numbered:
+        return {"rows": [], "selected_row_numbers": [], "total_rows": 0, "selection": "none"}
+
+    asked = []
+    for raw in _ROW_REF_RE.findall(question or ""):
+        n = int(raw)
+        if 1 <= n <= len(numbered) and n not in asked:
+            asked.append(n)
+
+    terms = set(_tokenize_for_search(question or ""))
+    scored = []
+    for row in numbered:
+        if row["row_number"] in asked:
+            continue
+        haystack = _row_text(row).lower()
+        scored.append((sum(1 for t in terms if t in haystack), row))
+    scored.sort(key=lambda pair: pair[0], reverse=True)
+
+    ordered = [numbered[n - 1] for n in asked]
+    ordered += [row for score, row in scored if score > 0]
+    ordered += [row for score, row in scored if score <= 0]
+
+    selected, used = [], 0
+    for row in ordered:
+        size = len(_row_text(row))
+        if selected and used + size > MAX_WORKSHEET_CHARS:
+            break
+        selected.append(row)
+        used += size
+
+    selected.sort(key=lambda row: row["row_number"])
+    if asked:
+        selection = "rows named in the question"
+    elif terms and any(score > 0 for score, _ in scored):
+        selection = "rows matching the question"
+    else:
+        selection = "first rows (question named none)"
+
+    return {
+        "rows": selected,
+        "selected_row_numbers": [row["row_number"] for row in selected],
+        "total_rows": len(numbered),
+        "selection": selection,
+    }
+
+
+def _compact_hazop_status(status: Any, question: str = "") -> Dict[str, Any]:
     if not isinstance(status, dict):
         return {}
 
@@ -359,9 +480,8 @@ def _compact_hazop_status(status: Any) -> Dict[str, Any]:
     if not isinstance(result, dict):
         result = {}
 
-    rows = result.get("rows")
-    if not isinstance(rows, list):
-        rows = []
+    all_rows, all_columns, rows_source = load_full_worksheet(result)
+    picked = select_worksheet_rows(question, all_rows)
 
     recent_runs = status.get("recent_runs")
     if not isinstance(recent_runs, list):
@@ -382,8 +502,17 @@ def _compact_hazop_status(status: Any) -> Dict[str, Any]:
             "truncated": bool(result.get("truncated")),
             "token_total": result.get("token_total") or 0,
             "error_count": result.get("error_count") or 0,
-            "columns": result.get("columns") or [],
-            "rows": rows[:25],
+            "columns": all_columns or result.get("columns") or [],
+            # Only a slice of the worksheet fits in the prompt, so say plainly
+            # which rows these are - otherwise the model answers about row 400
+            # using row 1 and sounds certain about it.
+            # The run's own count, not how many we managed to load: if the file
+            # is gone and only the UI preview is left, the gap is the point.
+            "row_total": (result.get("row_count") or 0) or picked["total_rows"],
+            "rows_shown_to_you": picked["selected_row_numbers"],
+            "rows_selected_by": picked["selection"],
+            "rows_source": rows_source,
+            "rows": picked["rows"],
         },
     }
 
@@ -438,7 +567,9 @@ def build_compact_assistant_context(payload: Dict[str, Any]) -> Dict[str, Any]:
         "system_outputs": _as_text_list(root.get("system_outputs")) or context.get("system_outputs") or [],
         "process_description": str(root.get("process_description") or "")[:1600],
         "connections": _summarize_connections(connections),
-        "hazop_status": _compact_hazop_status(context.get("hazop_status")),
+        "hazop_status": _compact_hazop_status(
+            context.get("hazop_status"), str(payload.get("question") or "")
+        ),
         "uploaded_files": _compact_uploaded_files(payload.get("uploaded_files") or context.get("uploaded_files")),
         "uploaded_file_warning": str(payload.get("uploaded_file_warning") or "")[:500],
     }
@@ -674,6 +805,7 @@ Operating rules:
 - Consequence wording must describe the unmitigated event path before safeguards.
 - Use current_connection and adjacent_connections to trace local, upstream, downstream, recycle, utility, relief, and common-header effects before judging consequence quality.
 - If hazop_status contains progress or completed HAZOP rows, use it as the visible in-app result when answering questions about the running analysis, generated table, completed rows, tokens, errors, or final worksheet content.
+- hazop_status.result.rows is a selection, not the whole worksheet: row_total is how many rows exist and rows_shown_to_you lists the row numbers you were given. Each row carries its own row_number. Answer about a row only if that row number is present, and if the user asks about a row you were not given, say which rows you can see instead of guessing from a different row.
 - If uploaded_files are present, treat them as user-provided evidence for the current question and answer from that content before using general knowledge.
 - Uploaded files may be fully extracted text, spreadsheet/PDF/document previews, archive file lists, or binary metadata only. Use extraction_method and extraction_note to state exactly what was actually read.
 - If an uploaded file has an extraction error, binary_metadata only, archive_listing only, or truncated text, tell the user what limitation affects the answer instead of pretending the full file was read.
