@@ -31,6 +31,15 @@ DEMO_TOKEN="${DEMO_TOKEN:-$(az webapp config appsettings list -n "$EXTRACT_APP" 
   --query "[?name=='DEMO_TOKEN'].value | [0]" -o tsv)}"
 [ -n "$DEMO_TOKEN" ] || { echo "Could not read DEMO_TOKEN from ${EXTRACT_APP}"; exit 1; }
 
+# Generated workbooks are mirrored to the same storage account the extraction
+# results already use, under a hazop/ prefix. Without this the download links
+# and the assistant's worksheet die with the next deploy, which wipes wwwroot.
+STORAGE_CONN="${STORAGE_CONN:-$(az webapp config appsettings list -n "$EXTRACT_APP" -g "$RG" \
+  --query "[?name=='AZURE_STORAGE_CONNECTION_STRING'].value" -o tsv | head -1)}"
+BLOB_CONTAINER="${BLOB_CONTAINER:-$(az webapp config appsettings list -n "$EXTRACT_APP" -g "$RG" \
+  --query "[?name=='BLOB_CONTAINER'].value" -o tsv | head -1)}"
+[ -n "$STORAGE_CONN" ] || echo "  WARNING: no storage connection string; workbooks will not survive a redeploy"
+
 # --chdir backend: the archive keeps backend/ and skills/ side by side because
 # the assistant resolves its knowledge base by walking up from backend/module/.
 # --workers 1: Socket.IO run state lives in process memory.
@@ -49,6 +58,8 @@ az webapp config appsettings set -n "$WEBAPP" -g "$RG" --settings \
   LITELLM_API_KEY="$LITELLM_API_KEY" \
   LITELLM_MODELS="${LITELLM_MODELS:-gpt-5.5,gemini-3.5-flash,claude-opus-4-8}" \
   DEMO_TOKEN="$DEMO_TOKEN" \
+  AZURE_STORAGE_CONNECTION_STRING="$STORAGE_CONN" \
+  BLOB_CONTAINER="${BLOB_CONTAINER:-pid-results}" \
   LOG_LEVEL=INFO -o none
 
 say "Startup command, Always On, WebSockets"

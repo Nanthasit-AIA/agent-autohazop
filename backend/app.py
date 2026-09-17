@@ -8,7 +8,7 @@ from io import BytesIO
 from pathlib import Path
 
 import pandas as pd
-from flask import Flask, jsonify, request
+from flask import Flask, abort, jsonify, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 
@@ -17,6 +17,7 @@ from module.agent_module import run_hazop_agent
 from module.assistant_module import run_hazop_assistant
 from module.ag_template_modulee import run_hazop_agent_1
 from module.hazop_export_module import hazop_lopa_preview_dataframe
+from module import hazop_store
 from module.llm_module import (
     default_chat_model,
     model_presets_for_client,
@@ -398,6 +399,20 @@ def parse_assistant_payload():
 
     return request.get_json(silent=True) or {}
 
+@app.route("/static/hazop/<path:subpath>")
+def hazop_static(subpath):
+    """Serve a generated workbook, restoring it from Blob if the disk copy is
+    gone. Stays outside /api/ because the download is a plain <a download>
+    link, which cannot send the token header."""
+    base = (Path(app.root_path) / "static" / "hazop").resolve()
+    target = (base / subpath).resolve()
+    if base != target and base not in target.parents:
+        abort(404)
+    if not hazop_store.ensure_local(target):
+        abort(404)
+    return send_from_directory(target.parent, target.name)
+
+
 @app.route("/api/assistant/chat", methods=["POST"])
 def api_assistant_chat():
     try:
@@ -502,6 +517,7 @@ def handle_hazop_start(data):
                     room=sid,
                 )
 
+            hazop_store.mirror([excel_path, parsed_excel_path])
             socketio.emit(
                 "hazop_complete",
                 {
@@ -517,6 +533,7 @@ def handle_hazop_start(data):
 
         except Exception as e:
             logger.exception(f"HAZOP background task error: {e}")
+            hazop_store.mirror([excel_path, parsed_excel_path])
             socketio.emit(
                 "hazop_complete",
                 {

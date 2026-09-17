@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any, Dict, List
 
 from decorators import logger
+from module import hazop_store
 from module.llm_module import _call_with_retries, default_chat_model, get_client_for_model
 
 
@@ -371,7 +372,8 @@ def _worksheet_path(download_url: str) -> Path | None:
     base = _project_root() / "backend" / "static" / "hazop" / folder
     for name in ("parsed_rows.xlsx", Path(str(download_url)).name):
         candidate = base / name
-        if candidate.exists():
+        # Pulls the file back from Blob when a redeploy has wiped the disk.
+        if hazop_store.ensure_local(candidate):
             return candidate
     return None
 
