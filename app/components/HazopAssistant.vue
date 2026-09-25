@@ -79,7 +79,7 @@ const attachedFiles = ref<File[]>([]);
 const fileInputRef = ref<HTMLInputElement | null>(null);
 const isFileDragging = ref(false);
 const fileError = ref("");
-const assistantName = "AEGUS";
+const assistantName = "HALO";
 const assistantSubtitle = "HAZOP / LOPA assistant";
 
 const modeOptions: { value: AssistantMode; label: string; icon: string }[] = [
@@ -670,13 +670,13 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
     type="button"
     class="fixed right-6 bottom-8 z-[44] inline-flex h-16 items-center gap-3 rounded-full border border-gray-200 bg-white px-7 text-lg font-black text-gray-900 shadow-xl transition hover:-translate-y-0.5 hover:shadow-2xl disabled:cursor-not-allowed disabled:opacity-60"
     :disabled="!enabled"
-    title="Open AEGUS"
+    title="Open HALO"
     @click="openAssistant"
   >
-    <span class="aegus-chat-launch-icon" aria-hidden="true">
+    <span class="halo-chat-launch-icon" aria-hidden="true">
       <i class="fi fi-br-comment-alt flex items-center justify-center" />
     </span>
-    <span>AEGUS</span>
+    <span>HALO</span>
   </button>
 
   <Transition name="assistant-drawer">
@@ -703,7 +703,7 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
           <div class="min-w-0">
             <div class="flex items-center gap-5">
               <div class="min-w-0">
-                <h2 class="aegus-wordmark aegus-title">{{ assistantName }}</h2>
+                <h2 class="halo-wordmark halo-title">{{ assistantName }}</h2>
                 <p class="truncate text-sm font-semibold text-gray-500">
                   {{ assistantSubtitle }}
                 </p>
@@ -1004,7 +1004,7 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
 </template>
 
 <style scoped>
-.aegus-chat-launch-icon {
+.halo-chat-launch-icon {
   display: inline-flex;
   width: 2.35rem;
   height: 2.35rem;
@@ -1018,8 +1018,8 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   box-shadow: 0 10px 18px rgba(15, 23, 42, 0.2);
 }
 
-.aegus-emblem-frame,
-.aegus-empty-emblem {
+.halo-emblem-frame,
+.halo-empty-emblem {
   position: relative;
   display: flex;
   align-items: center;
@@ -1030,25 +1030,25 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   box-shadow: none;
 }
 
-.aegus-emblem-frame {
+.halo-emblem-frame {
   width: 5rem;
   height: 5rem;
   flex: 0 0 5rem;
   border-radius: 9999px;
 }
 
-.aegus-empty-emblem {
+.halo-empty-emblem {
   width: 7rem;
   height: 7rem;
   border-radius: 9999px;
 }
 
-.aegus-emblem-frame::after,
-.aegus-empty-emblem::after {
+.halo-emblem-frame::after,
+.halo-empty-emblem::after {
   display: none;
 }
 
-.aegus-emblem {
+.halo-emblem {
   position: relative;
   z-index: 1;
   width: 100%;
@@ -1058,14 +1058,14 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   filter: drop-shadow(0 14px 24px rgba(154, 92, 10, 0.24));
 }
 
-.aegus-emblem-frame .aegus-emblem {
+.halo-emblem-frame .halo-emblem {
   width: 8.5rem;
   height: 8.5rem;
   max-width: none;
   flex: 0 0 auto;
 }
 
-.aegus-wordmark {
+.halo-wordmark {
   font-family: "Trajan Pro", "Cinzel", "Copperplate Gothic Light", "Constantia", "Times New Roman", serif;
   font-variant: small-caps;
   font-weight: 700;
@@ -1074,7 +1074,7 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   text-transform: uppercase;
 }
 
-.aegus-title {
+.halo-title {
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -1083,7 +1083,7 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   text-shadow: 0 1px 0 #fff, 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
-.aegus-title::after {
+.halo-title::after {
   content: "";
   position: absolute;
   left: 0;
@@ -1093,7 +1093,7 @@ const hasStructuredDetails = (answer: AssistantAnswer) => {
   background: linear-gradient(90deg, rgba(15, 23, 42, 0.85), rgba(148, 163, 184, 0.24));
 }
 
-.aegus-chip {
+.halo-chip {
   font-size: 1.18rem;
 }
 

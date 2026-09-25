@@ -56,7 +56,7 @@ az webapp config appsettings set -n "$WEBAPP" -g "$RG" --settings \
   SCM_DO_BUILD_DURING_DEPLOYMENT=true \
   LITELLM_BASE_URL="$LITELLM_BASE_URL" \
   LITELLM_API_KEY="$LITELLM_API_KEY" \
-  LITELLM_MODELS="${LITELLM_MODELS:-gpt-5.5,GPT 5.4,claude-opus-4-8,claude-opus-4-7,Gemini 3.0 pro}" \
+  LITELLM_MODELS="${LITELLM_MODELS:-gpt-5.5,GPT 5.4,claude-opus-4-8,claude-opus-4-7,Gemini 3.0 pro,gpt-5.6-terra,Gemini 3.1 pro,vertex_ai/claude-sonnet-5,vertex_ai/claude-opus-5,vertex_ai/claude-opus-5-5}" \
   DEMO_TOKEN="$DEMO_TOKEN" \
   AZURE_STORAGE_CONNECTION_STRING="$STORAGE_CONN" \
   BLOB_CONTAINER="${BLOB_CONTAINER:-pid-results}" \
